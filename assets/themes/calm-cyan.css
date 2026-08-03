@@ -1,0 +1,32 @@
+/* calm-cyan —— 冷静青蓝风(科技/工具/方法论) */
+body{margin:0;background:#eef6f7;color:#213033;
+  font:16px/1.92 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+.article{max-width:720px;margin:24px auto 48px;padding:52px 50px 86px;background:#ffffff;
+  border:1px solid #cfe3e7;box-shadow:0 12px 34px rgba(22,87,96,.07);}
+.article-title{font-size:28px;font-weight:780;line-height:1.44;margin:0 0 18px;
+  color:#105866;padding-bottom:18px;border-bottom:1px solid #d7e8eb;}
+h2{font-size:19px;font-weight:760;margin:44px 0 15px;color:#105866;
+  padding:10px 14px;background:#edf8fa;border-radius:6px;}
+h3{font-size:17px;font-weight:720;margin:30px 0 12px;color:#197184;}
+p{margin:0 0 19px;text-align:justify;}
+strong{color:#0d6f80;font-weight:760;}
+em{font-style:normal;color:#63777c;}
+hr{border:none;margin:36px 0;border-top:1px dashed #bdd9de;}
+blockquote{margin:22px 0;padding:15px 18px;background:#f3fbfc;
+  border-left:4px solid #2c9aad;color:#4d666c;font-size:15px;}
+blockquote p{margin:0;}
+ul,ol{margin:0 0 19px;padding-left:24px;}
+li{margin-bottom:7px;}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:24px 0;
+  font-size:14.5px;border:1px solid #cfe3e7;border-radius:8px;overflow:hidden;}
+th{background:#105866;color:#fff;padding:10px 12px;text-align:left;font-weight:700;}
+td{padding:10px 12px;border-bottom:1px solid #dcebed;}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:#f4fafb;}
+a{color:#0d6f80;text-decoration:none;border-bottom:1px solid #9bcdd6;}
+code{background:#e7f5f7;padding:2px 6px;border-radius:4px;font-size:14px;
+  font-family:Consolas,Menlo,monospace;color:#105866;}
+@media (max-width:680px){
+  .article{margin:0;padding:36px 20px 64px;border-left:0;border-right:0;box-shadow:none;}
+  .article-title{font-size:23px;}
+}

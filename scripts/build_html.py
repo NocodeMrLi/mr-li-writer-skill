@@ -9,7 +9,7 @@ build_html.py - Markdown 文章 -> 单文件排版 HTML
 - 多套排版主题, CSS 存于 ../assets/themes/
 
 用法:
-    python build_html.py <正文.md> -o <输出.html> [-t 主题名] [--title "文章标题"]
+    python build_html.py <正文.md> -o <输出.html> [-t 主题名|auto|random] [--title "文章标题"]
     python build_html.py --list-themes
 
 新增主题: 在 ../assets/themes/ 添加一个 .css 文件, 并在下方 THEMES 中注册即可。
@@ -17,6 +17,7 @@ build_html.py - Markdown 文章 -> 单文件排版 HTML
 import argparse
 import html
 import os
+import random
 import re
 import sys
 
@@ -24,15 +25,47 @@ THEMES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ass
 
 # 主题注册表: 名称 -> (css 文件名, 一句话说明)
 THEMES = {
-    "minimal-gold": ("minimal-gold.css", "黑白金极简风(默认, 公众号深度文)"),
+    "minimal-gold": ("minimal-gold.css", "黑白金极简风(公众号深度文)"),
     "business-blue": ("business-blue.css", "商务深蓝报告风(政策解读/行业分析)"),
     "magazine-warm": ("magazine-warm.css", "暖色杂志风(故事性/人物稿)"),
     "fresh-green": ("fresh-green.css", "清新绿(小红书/知乎/轻阅读)"),
     "ink-scholar": ("ink-scholar.css", "水墨学者风(知乎深度/文化类, 衬线留白)"),
     "card-modern": ("card-modern.css", "卡片现代风(圆角卡片, 小红书/产品文)"),
+    "editorial-red": ("editorial-red.css", "编辑部红黑风(评论/观点/社会议题)"),
+    "calm-cyan": ("calm-cyan.css", "冷静青蓝风(科技/工具/方法论)"),
+    "note-paper": ("note-paper.css", "便签纸风(实用指南/清单/复盘)"),
+    "mono-lab": ("mono-lab.css", "黑白实验室风(产品分析/技术说明/极简报告)"),
 }
 
-DEFAULT_THEME = "minimal-gold"
+DEFAULT_THEME = "auto"
+SPECIAL_THEMES = {"auto", "random"}
+
+
+THEME_MATCH_RULES = {
+    "research-explainer": ["business-blue", "ink-scholar", "minimal-gold", "mono-lab"],
+    "practical-guide": ["note-paper", "fresh-green", "calm-cyan", "card-modern"],
+    "opinion-analysis": ["editorial-red", "minimal-gold", "ink-scholar", "magazine-warm"],
+    "story-profile": ["magazine-warm", "ink-scholar", "editorial-red", "minimal-gold"],
+    "platform-native": ["fresh-green", "card-modern", "note-paper", "magazine-warm"],
+}
+
+PLATFORM_MATCH_RULES = {
+    "公众号": ["minimal-gold", "editorial-red", "magazine-warm", "business-blue"],
+    "微信": ["minimal-gold", "editorial-red", "magazine-warm", "business-blue"],
+    "知乎": ["ink-scholar", "business-blue", "editorial-red", "mono-lab"],
+    "小红书": ["fresh-green", "card-modern", "note-paper", "magazine-warm"],
+    "seo": ["minimal-gold", "business-blue", "note-paper", "calm-cyan"],
+}
+
+KEYWORD_MATCH_RULES = [
+    (["政策", "监管", "报告", "行业", "趋势", "数据", "研究", "白皮书"], ["business-blue", "mono-lab", "minimal-gold"]),
+    (["科技", "ai", "人工智能", "工具", "效率", "自动化", "产品", "教程", "方法论"], ["calm-cyan", "mono-lab", "note-paper"]),
+    (["指南", "步骤", "清单", "避坑", "怎么", "如何", "复盘", "计划"], ["note-paper", "fresh-green", "card-modern"]),
+    (["故事", "人物", "访谈", "成长", "经历", "案例", "现场"], ["magazine-warm", "ink-scholar", "editorial-red"]),
+    (["观点", "争议", "为什么", "不要", "反思", "评论", "真相"], ["editorial-red", "minimal-gold", "ink-scholar"]),
+    (["文化", "教育", "阅读", "历史", "心理", "哲学"], ["ink-scholar", "magazine-warm", "minimal-gold"]),
+    (["小红书", "种草", "生活", "新人", "家长", "职场"], ["fresh-green", "card-modern", "note-paper"]),
+]
 
 
 # ---------------- Markdown 解析(轻量, 覆盖文章常用语法) ----------------
@@ -281,18 +314,75 @@ body{margin:0;background:#f5f5f5;color:#222;font:16px/1.9 -apple-system,"PingFan
 
 def list_themes():
     print("可用主题:")
+    print("  %-15s %s" % ("auto", "按内容模式、平台、标题和正文关键词匹配候选主题后随机选择(默认)"))
+    print("  %-15s %s" % ("random", "从全部可用主题中随机选择"))
     for name, (css, desc) in THEMES.items():
         exists = os.path.isfile(os.path.join(THEMES_DIR, css))
         mark = "" if exists else "  [缺少 CSS 文件!]"
         print("  %-15s %s%s" % (name, desc, mark))
 
 
+def add_scores(scores, names, value):
+    for name in names:
+        if name in scores:
+            scores[name] += value
+
+
+def infer_theme_pool(md_text, title="", mode="", platform=""):
+    scores = {name: 0 for name in THEMES}
+    text = (title + "\n" + mode + "\n" + platform + "\n" + md_text[:5000]).lower()
+
+    if mode in THEME_MATCH_RULES:
+        add_scores(scores, THEME_MATCH_RULES[mode], 4)
+
+    for key, names in PLATFORM_MATCH_RULES.items():
+        if key.lower() in platform.lower() or key.lower() in text:
+            add_scores(scores, names, 3)
+
+    for keywords, names in KEYWORD_MATCH_RULES:
+        if any(k.lower() in text for k in keywords):
+            add_scores(scores, names, 2)
+
+    if len(md_text) > 7000:
+        add_scores(scores, ["minimal-gold", "ink-scholar", "magazine-warm", "business-blue"], 1)
+    if md_text.count("|") >= 10:
+        add_scores(scores, ["business-blue", "mono-lab", "calm-cyan"], 1)
+    if len(re.findall(r"^\s*[-*]\s+", md_text, flags=re.M)) >= 6:
+        add_scores(scores, ["note-paper", "fresh-green", "card-modern"], 1)
+
+    top_score = max(scores.values())
+    if top_score <= 0:
+        return ["minimal-gold", "business-blue", "magazine-warm", "fresh-green"]
+
+    threshold = max(1, top_score - 2)
+    pool = [name for name, score in scores.items() if score >= threshold]
+    if len(pool) < 3:
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        for name, score in ranked:
+            if score > 0 and name not in pool:
+                pool.append(name)
+            if len(pool) >= 3:
+                break
+    return pool
+
+
+def resolve_theme(theme, md_text, title="", mode="", platform=""):
+    if theme == "random":
+        return random.choice(list(THEMES.keys())), "random"
+    if theme == "auto":
+        pool = infer_theme_pool(md_text, title=title, mode=mode, platform=platform)
+        return random.choice(pool), "auto:%s" % ",".join(pool)
+    return theme, "manual"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Markdown -> 单文件排版 HTML")
     parser.add_argument("md", nargs="?", help="Markdown 正文文件路径")
     parser.add_argument("-o", "--output", help="输出 HTML 路径(默认: 与 md 同目录同名 .html)")
-    parser.add_argument("-t", "--theme", default=DEFAULT_THEME, help="主题名(默认 %s)" % DEFAULT_THEME)
+    parser.add_argument("-t", "--theme", default=DEFAULT_THEME, help="主题名、auto 或 random(默认 %s)" % DEFAULT_THEME)
     parser.add_argument("--title", default="", help="文章标题(默认取 md 文件名)")
+    parser.add_argument("--mode", default="", help="内容模式: research-explainer/practical-guide/opinion-analysis/story-profile/platform-native")
+    parser.add_argument("--platform", default="", help="发布平台: 公众号/知乎/小红书/SEO 等")
     parser.add_argument("--list-themes", action="store_true", help="列出可用主题")
     args = parser.parse_args()
 
@@ -308,12 +398,24 @@ def main():
         sys.stderr.write("[错误] 文件不存在: %s\n" % md_path)
         sys.exit(1)
 
-    if args.theme not in THEMES:
+    if args.theme not in THEMES and args.theme not in SPECIAL_THEMES:
         sys.stderr.write("[错误] 未知主题 '%s'\n" % args.theme)
         list_themes()
         sys.exit(1)
 
-    css_file = os.path.join(THEMES_DIR, THEMES[args.theme][0])
+    with open(md_path, "r", encoding="utf-8") as f:
+        md_text = f.read()
+
+    title = args.title or os.path.splitext(os.path.basename(md_path))[0]
+    selected_theme, theme_reason = resolve_theme(
+        args.theme,
+        md_text,
+        title=title,
+        mode=args.mode,
+        platform=args.platform,
+    )
+
+    css_file = os.path.join(THEMES_DIR, THEMES[selected_theme][0])
     if os.path.isfile(css_file):
         with open(css_file, "r", encoding="utf-8") as f:
             css = f.read()
@@ -321,10 +423,6 @@ def main():
         sys.stderr.write("[警告] 主题 CSS 缺失, 使用内置基础样式: %s\n" % css_file)
         css = BASE_CSS_FALLBACK
 
-    with open(md_path, "r", encoding="utf-8") as f:
-        md_text = f.read()
-
-    title = args.title or os.path.splitext(os.path.basename(md_path))[0]
     body = md_to_html(md_text)
 
     out_path = args.output or os.path.splitext(md_path)[0] + ".html"
@@ -338,7 +436,7 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(page)
 
-    print("[完成] 主题=%s" % args.theme)
+    print("[完成] 主题=%s (%s)" % (selected_theme, theme_reason))
     print("[输出] %s" % out_path)
 
 
