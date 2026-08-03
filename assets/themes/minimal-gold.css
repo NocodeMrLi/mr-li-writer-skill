@@ -1,12 +1,13 @@
 /* minimal-gold —— 黑白金极简风(公众号深度文默认) */
-body{margin:0;background:#f7f6f3;color:#1a1a1a;
-  font:16px/2.0 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
-.article{max-width:640px;margin:0 auto;padding:40px 24px 80px;background:#fff;}
-.article-title{font-size:24px;font-weight:700;line-height:1.5;margin:0 0 8px;
-  padding-bottom:16px;border-bottom:1px solid #e8e4dc;letter-spacing:.5px;}
-h2{font-size:19px;font-weight:700;margin:48px 0 16px;padding-left:12px;
-  border-left:4px solid #b8860b;line-height:1.4;}
-h3{font-size:17px;font-weight:700;margin:32px 0 12px;color:#8a6914;}
+body{margin:0;background:#f2f1ed;color:#20201e;
+  font:16px/2.02 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+.article{max-width:720px;margin:24px auto 48px;padding:58px 54px 92px;background:#fff;
+  border:1px solid #e8e5de;box-shadow:0 12px 36px rgba(35,31,22,.06);}
+.article-title{font-size:29px;font-weight:750;line-height:1.42;margin:0 0 14px;
+  padding:0 0 22px;border-bottom:1px solid #e8e4dc;letter-spacing:0;}
+h2{font-size:20px;font-weight:700;margin:54px 0 18px;padding:10px 0 10px 15px;
+  border-left:3px solid #b8860b;line-height:1.4;color:#25231f;}
+h3{font-size:17px;font-weight:700;margin:34px 0 12px;color:#8a6914;}
 h4{font-size:16px;margin:24px 0 10px;}
 p{margin:0 0 20px;text-align:justify;}
 strong{color:#b8860b;font-weight:700;}
@@ -26,3 +27,9 @@ tr:nth-child(even) td{background:#fcfaf5;}
 a{color:#b8860b;text-decoration:none;border-bottom:1px dotted #b8860b;}
 code{background:#f4f1ea;padding:2px 6px;border-radius:3px;font-size:14px;
   font-family:Consolas,Menlo,monospace;color:#7a5c10;}
+::selection{background:#ead9a5;color:#1a1a1a;}
+@media (max-width:680px){
+  .article{margin:0;padding:38px 20px 64px;border-left:0;border-right:0;box-shadow:none;}
+  .article-title{font-size:24px;}
+  h2{margin-top:42px;}
+}

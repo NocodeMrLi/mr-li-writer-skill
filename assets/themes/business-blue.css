@@ -1,9 +1,9 @@
 /* business-blue —— 商务深蓝报告风(政策解读/行业分析) */
 body{margin:0;background:#eef1f5;color:#23272e;
   font:16px/1.95 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
-.article{max-width:680px;margin:0 auto;padding:44px 32px 80px;background:#fff;
-  box-shadow:0 1px 4px rgba(30,50,80,.06);}
-.article-title{font-size:25px;font-weight:700;line-height:1.5;margin:0 0 6px;color:#16324f;}
+.article{max-width:720px;margin:24px auto 48px;padding:54px 52px 88px;background:#fff;
+  border:1px solid #dfe6ee;box-shadow:0 12px 34px rgba(30,50,80,.07);}
+.article-title{font-size:29px;font-weight:700;line-height:1.45;margin:0 0 8px;color:#16324f;}
 .article-title::after{content:"";display:block;width:56px;height:4px;
   background:#16324f;margin-top:16px;border-radius:2px;}
 h2{font-size:19px;font-weight:700;margin:44px 0 14px;color:#16324f;
@@ -27,3 +27,7 @@ tr:nth-child(even) td{background:#f5f8fb;}
 a{color:#2c5f8a;text-decoration:none;}
 code{background:#eef2f6;padding:2px 6px;border-radius:3px;font-size:14px;
   font-family:Consolas,Menlo,monospace;color:#16324f;}
+@media (max-width:680px){
+  .article{margin:0;padding:38px 20px 64px;border-left:0;border-right:0;box-shadow:none;}
+  .article-title{font-size:24px;}
+}

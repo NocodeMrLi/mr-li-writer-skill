@@ -1,0 +1,7 @@
+interface:
+  display_name: "Mr.Li Writer"
+  short_description: "研究、策划、写作与 SEO 标题运营"
+  default_prompt: "Use $mr-li-writer to research, plan, write, humanize, title, and format a Chinese article for a specific audience and platform."
+
+policy:
+  allow_implicit_invocation: true

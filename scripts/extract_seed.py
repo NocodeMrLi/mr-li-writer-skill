@@ -1,25 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Extract DOCX, text-based PDF, and image seed materials.
+
+The script keeps names and entities by default. Use --redact-term repeatedly
+when a user explicitly wants exact terms removed from the extracted output.
+Scanned PDFs still require an OCR-capable PDF workflow.
 """
-extract_seed.py - 种子文档提取工具
 
-从 docx / 图片文件中提取文字素材，供文章二创使用：
-- .docx: 提取段落文字 + 内嵌表格 + 内嵌图片(OCR)
-- 图片(png/jpg/jpeg/bmp/webp): 直接 OCR
-
-用法:
-    python extract_seed.py <文件路径> [<文件路径2> ...]
-
-依赖:
-    python-docx            (仅处理 .docx 时需要)
-    rapidocr_onnxruntime   (仅处理图片时需要)
-
-安装(请安装到受管 venv，禁止全局安装):
-    python -m pip install python-docx rapidocr_onnxruntime
-
-输出: 结构化文本到 stdout，供后续整理为 Markdown(图片中的表格/榜单信息由调用方转写为表格)。
-"""
+import argparse
 import os
+import re
 import sys
 import tempfile
 
@@ -54,64 +44,77 @@ def ocr_image(image_path):
     result, _ = engine(image_path)
     if not result:
         return ""
-    return "\n".join(line[1] for line in result if line and len(line) > 1)
+    return "\n".join(
+        str(line[1]).strip()
+        for line in result
+        if line and len(line) > 1 and str(line[1]).strip()
+    )
+
+
+def escape_table_cell(value):
+    return value.strip().replace("\n", " ").replace("|", "\\|")
+
+
+def heading_level(style_name):
+    match = re.search(r"(?:Heading|标题)\s*([1-6])", style_name or "", re.I)
+    return int(match.group(1)) if match else None
 
 
 def extract_docx(path):
-    docx = check_dep("docx", "python-docx", "docx 文字提取")
+    docx = check_dep("docx", "python-docx", "DOCX 文字提取")
     doc = docx.Document(path)
     out = []
 
-    # 按文档顺序遍历段落与表格
     from docx.table import Table
     from docx.text.paragraph import Paragraph
 
-    body = doc.element.body
-    for child in body.iterchildren():
+    # Preserve paragraph/table order from the document body.
+    for child in doc.element.body.iterchildren():
         if child.tag.endswith("}p"):
-            p = Paragraph(child, doc)
-            text = p.text.strip()
-            if text:
-                style = (p.style.name or "") if p.style else ""
-                if style.startswith("Heading"):
-                    try:
-                        level = int(style.split()[-1])
-                    except (ValueError, IndexError):
-                        level = 2
-                    out.append("#" * min(level + 1, 6) + " " + text)
-                else:
-                    out.append(text)
+            paragraph = Paragraph(child, doc)
+            text = paragraph.text.strip()
+            if not text:
+                continue
+            level = heading_level(paragraph.style.name if paragraph.style else "")
+            out.append("#" * (level or 0) + (" " if level else "") + text)
         elif child.tag.endswith("}tbl"):
             table = Table(child, doc)
             rows = []
             for row in table.rows:
-                cells = [c.text.strip().replace("\n", " ") for c in row.cells]
+                cells = [escape_table_cell(cell.text) for cell in row.cells]
                 rows.append("| " + " | ".join(cells) + " |")
-            if rows:
-                header_sep = "|" + " --- |" * len(table.rows[0].cells)
-                out.append(rows[0])
-                out.append(header_sep)
-                out.extend(rows[1:])
+            if rows and table.rows[0].cells:
+                separator = "|" + " --- |" * len(table.rows[0].cells)
+                out.extend([rows[0], separator, *rows[1:]])
 
-    # 提取内嵌图片并 OCR
     image_parts = [
-        (rid, part)
-        for rid, part in doc.part.related_parts.items()
+        part
+        for part in doc.part.related_parts.values()
         if "image" in str(part.content_type)
     ]
     if image_parts:
-        out.append("\n[以下为文档内嵌图片的 OCR 结果]")
-        tmpdir = tempfile.mkdtemp(prefix="mr_li_seed_")
-        for idx, (rid, part) in enumerate(image_parts, 1):
-            ext = os.path.splitext(part.partname)[1] or ".png"
-            img_path = os.path.join(tmpdir, "img_%d%s" % (idx, ext))
-            with open(img_path, "wb") as f:
-                f.write(part.blob)
-            text = ocr_image(img_path)
-            out.append("\n--- 图片 %d ---" % idx)
-            out.append(text if text else "(未识别到文字)")
+        out.append("\n[以下为文档内嵌图片的 OCR 结果，请人工核验]")
+        with tempfile.TemporaryDirectory(prefix="mr_li_seed_") as tmpdir:
+            for index, part in enumerate(image_parts, 1):
+                ext = os.path.splitext(str(part.partname))[1] or ".png"
+                image_path = os.path.join(tmpdir, "img_%d%s" % (index, ext))
+                with open(image_path, "wb") as handle:
+                    handle.write(part.blob)
+                text = ocr_image(image_path)
+                out.append("\n--- 图片 %d ---" % index)
+                out.append(text if text else "(未识别到文字)")
 
     return "\n\n".join(out)
+
+
+def extract_pdf(path):
+    pypdf = check_dep("pypdf", "pypdf", "PDF 文字提取")
+    reader = pypdf.PdfReader(path)
+    pages = []
+    for index, page in enumerate(reader.pages, 1):
+        text = (page.extract_text() or "").strip()
+        pages.append("### PDF 第 %d 页\n%s" % (index, text or "(未提取到文字，可能是扫描版)"))
+    return "\n\n".join(pages)
 
 
 def extract_image(path):
@@ -119,33 +122,58 @@ def extract_image(path):
     return text if text else "(未识别到文字)"
 
 
-def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write(__doc__)
-        sys.exit(1)
+def apply_redactions(text, terms):
+    for term in terms:
+        if term:
+            text = text.replace(term, "[已按要求脱敏]")
+    return text
 
-    for path in sys.argv[1:]:
-        path = os.path.abspath(path)
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="提取 DOCX、PDF 和图片种子素材")
+    parser.add_argument("paths", nargs="+", help="待提取的文件路径")
+    parser.add_argument(
+        "--redact-term",
+        action="append",
+        default=[],
+        help="精确脱敏一个词，可重复使用；默认不自动删除人名或实体",
+    )
+    return parser.parse_args()
+
+
+def extract_path(path):
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".docx":
+        return extract_docx(path)
+    if ext == ".pdf":
+        return extract_pdf(path)
+    if ext in IMAGE_EXTS:
+        return extract_image(path)
+    raise ValueError("不支持的格式 %s" % ext)
+
+
+def main():
+    args = parse_args()
+    exit_code = 0
+    for raw_path in args.paths:
+        path = os.path.abspath(raw_path)
         if not os.path.isfile(path):
             sys.stderr.write("[警告] 文件不存在，已跳过: %s\n" % path)
+            exit_code = 1
             continue
-        ext = os.path.splitext(path)[1].lower()
         print("=" * 20)
         print("[文件] %s" % path)
         print("=" * 20)
         try:
-            if ext == ".docx":
-                print(extract_docx(path))
-            elif ext in IMAGE_EXTS:
-                print(extract_image(path))
-            else:
-                sys.stderr.write("[警告] 不支持的格式 %s，已跳过: %s\n" % (ext, path))
-                continue
+            text = apply_redactions(extract_path(path), args.redact_term)
+            print(text)
         except SystemExit:
             raise
-        except Exception as e:
-            sys.stderr.write("[错误] 处理失败 %s: %s\n" % (path, e))
+        except Exception as exc:
+            sys.stderr.write("[错误] 处理失败 %s: %s\n" % (path, exc))
+            exit_code = 1
         print()
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

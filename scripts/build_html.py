@@ -42,8 +42,13 @@ def render_inline(text):
     text = html.escape(text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", text)
-    text = re.sub(r"`([^`]+?)`", r"<code>\1</code>", text)
+    text = re.sub(
+        r"!\[([^\]]+)\]\((https?://[^)]+)\)",
+        r'<img src="\2" alt="\1" loading="lazy">',
+        text,
+    )
     text = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2" target="_blank" rel="noopener">\1</a>', text)
+    text = re.sub(r"`([^`]+?)`", r"<code>\1</code>", text)
     return text
 
 
@@ -65,9 +70,26 @@ def md_to_html(md_text):
     out = []
     i = 0
     n = len(lines)
+    in_code = False
+    code_lines = []
     while i < n:
         line = lines[i]
         stripped = line.strip()
+
+        # 围栏代码块
+        if stripped.startswith("```"):
+            if in_code:
+                out.append("<pre><code>%s</code></pre>" % html.escape("\n".join(code_lines)))
+                code_lines = []
+                in_code = False
+            else:
+                in_code = True
+            i += 1
+            continue
+        if in_code:
+            code_lines.append(line)
+            i += 1
+            continue
 
         # 空行
         if not stripped:
@@ -147,6 +169,8 @@ def md_to_html(md_text):
             i += 1
         out.append("<p>%s</p>" % render_inline("<br>".join(buf)))
 
+    if in_code:
+        out.append("<pre><code>%s</code></pre>" % html.escape("\n".join(code_lines)))
     return "\n".join(out)
 
 
@@ -157,25 +181,45 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#232323">
 <title>__TITLE__</title>
 <style>
 __CSS__
-/* 工具栏(不随主题变化) */
-.toolbar{position:sticky;top:0;z-index:99;display:flex;gap:10px;align-items:center;
-  padding:10px 16px;background:#2b2b2b;color:#eee;font:14px/1.5 -apple-system,"Microsoft YaHei",sans-serif;}
+/* 阅读层：保持克制，但补足长文阅读的层级、反馈和移动端表现 */
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+.reading-progress{position:fixed;top:0;left:0;z-index:110;width:0;height:3px;
+  background:#b8860b;transition:width .12s linear;}
+.toolbar{position:sticky;top:0;z-index:99;display:flex;gap:8px;align-items:center;
+  min-height:48px;padding:8px max(16px,calc((100vw - 760px)/2));
+  background:rgba(35,35,35,.96);color:#eee;font:13px/1.5 -apple-system,"Microsoft YaHei",sans-serif;
+  box-shadow:0 1px 0 rgba(255,255,255,.08);}
 .toolbar .tip{opacity:.75;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.toolbar button{border:none;border-radius:6px;padding:7px 14px;font-size:14px;cursor:pointer;
-  background:#b8860b;color:#fff;}
-.toolbar button.ghost{background:#4a4a4a;}
+.toolbar button{border:1px solid rgba(255,255,255,.22);border-radius:5px;padding:7px 11px;
+  font-size:13px;cursor:pointer;background:#b8860b;color:#fff;transition:background .15s,transform .15s;}
+.toolbar button:hover{background:#d09b22;}
+.toolbar button.ghost{background:transparent;color:#eee;}
+.toolbar button.ghost:hover{background:rgba(255,255,255,.1);}
 .toolbar button:active{transform:scale(.97);}
-@media print{.toolbar{display:none;}}
+.article img{display:block;max-width:100%;height:auto;margin:24px auto;border-radius:6px;}
+.article pre{overflow:auto;margin:24px 0;padding:16px;border-radius:6px;background:#202124;color:#f3f3f3;
+  font:13px/1.65 Consolas,Menlo,monospace;}
+.article table{display:block;overflow-x:auto;}
+@media (max-width:680px){
+  .toolbar{padding-left:12px;padding-right:12px;}
+  .toolbar .tip{display:none;}
+  .toolbar button{flex:1;min-height:38px;}
+}
+@media print{.toolbar,.reading-progress{display:none;}}
 </style>
 </head>
 <body>
+<div class="reading-progress" id="readingProgress" aria-hidden="true"></div>
 <div class="toolbar">
   <span class="tip">__TITLE__</span>
-  <button onclick="copyArticle()">&#128203; 一键复制正文</button>
-  <button class="ghost" onclick="downloadHtml()">&#11015; 下载 HTML</button>
+  <button type="button" title="复制正文" onclick="copyArticle()">&#128203; 复制正文</button>
+  <button class="ghost" type="button" title="下载当前 HTML" onclick="downloadHtml()">&#11015; 下载 HTML</button>
 </div>
 <main class="article" id="article">
 <h1 class="article-title">__TITLE__</h1>
@@ -205,9 +249,18 @@ function downloadHtml(){
   try{
     var blob=new Blob(['<!DOCTYPE html>'+document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});
     var a=document.createElement('a');a.href=URL.createObjectURL(blob);
-    a.download=(document.title||'article')+'.html';a.click();URL.revokeObjectURL(a.href);
+    a.download=(document.title||'article')+'.html';a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
   }catch(e){toast('下载失败,请使用浏览器另存为');}
 }
+function updateReadingProgress(){
+  var doc=document.documentElement;
+  var max=doc.scrollHeight-doc.clientHeight;
+  var value=max>0?(doc.scrollTop/max)*100:0;
+  document.getElementById('readingProgress').style.width=value+'%';
+}
+window.addEventListener('scroll',updateReadingProgress,{passive:true});
+updateReadingProgress();
 function toast(msg){
   var t=document.createElement('div');
   t.textContent=msg;

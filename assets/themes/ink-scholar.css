@@ -1,7 +1,8 @@
 /* ink-scholar —— 水墨学者风(知乎深度/文化类, 衬线留白) */
 body{margin:0;background:#f4f2ee;color:#1f1d1a;
   font:17px/2.1 "Songti SC","SimSun","Noto Serif SC",Georgia,serif;}
-.article{max-width:640px;margin:0 auto;padding:60px 28px 96px;background:#fcfbf8;}
+.article{max-width:700px;margin:24px auto 48px;padding:66px 58px 102px;background:#fcfbf8;
+  border:1px solid #e7e2d8;box-shadow:0 12px 34px rgba(50,43,33,.05);}
 .article-title{font-size:27px;font-weight:700;line-height:1.5;margin:0 0 26px;
   letter-spacing:2px;text-align:center;color:#161412;}
 .article-title::after{content:"";display:block;width:48px;height:2px;
@@ -29,3 +30,7 @@ tr:nth-child(even) td{background:#f7f4ee;}
 a{color:#9a1f1f;text-decoration:none;border-bottom:1px solid #d9b9b9;}
 code{background:#ece8df;padding:2px 6px;border-radius:3px;font-size:14px;
   font-family:Consolas,Menlo,monospace;color:#5a5349;}
+@media (max-width:680px){
+  .article{margin:0;padding:42px 22px 70px;border-left:0;border-right:0;box-shadow:none;}
+  .article-title{font-size:24px;letter-spacing:0;}
+}

@@ -1,64 +1,78 @@
 # Mr.Li Writer
 
-> A topic-driven Chinese long-form writing skill that researches and verifies facts, designs novel angles, writes in a humanized (anti-AI) voice, and delivers single-file HTML in 6 themes.
+面向中文内容创作的研究、策划、写作、SEO 标题运营和单文件 HTML 排版 skill。
 
-一个面向中文深度内容创作的 AI Skill。给它一个主题（或你的一段核心想法），它会自动完成素材提取、全网检索与事实验证、新颖角度设计、去 AI 化写作、爆款标题生成，并输出单文件排版 HTML。
+## 能做什么
 
-## 核心特性
-
-- **事实可验证**：关键数据 / 政策经多源交叉验证，文末附带带原始 URL 的参考资料
-- **角度新颖且有据**：拒绝套路化叙事，每个非主流观点都有证据和透明推理兜底，不为了新奇编证据
-- **去 AI 化**：内置中文 AI 腔黑名单 + AI 味自评打分，专治"赋能 / 综上所述 / 结论前置 / 数据轰炸开头 / 结构高度规整"
-- **干净无广告（双红线）**：屏蔽品牌词、公司名、产品名，也屏蔽素材里夹带的个人 IP / 博主名，适合直接对外发布
-- **6 套排版主题**：黑白金极简 / 商务深蓝 / 暖色杂志 / 清新绿 / 水墨学者 / 卡片现代
-- **迭代式创作**：大纲确认 → 正文确认 → 排版确认，每步用交互弹窗，不一步到位
-- **用户想法落地**：你抛出的核心想法（含天马行空的推演）照单全收，AI 负责搜证，可支撑的放大、无依据的诚实标注
-
-## 目录结构
-
-```
-mr-li-writer/
-├── SKILL.md                    # 工作流编排（触发条件 + 7 步流程）
-├── scripts/
-│   ├── extract_seed.py         # 种子文档提取：docx 文字 + 图片 OCR，自动去人名
-│   └── build_html.py           # 零依赖 Markdown→单文件 HTML（一键复制/下载，6 主题）
-├── references/
-│   ├── research-protocol.md    # 检索与事实验证、素材适配自分析、去个人 IP、文末引用规范
-│   ├── writing-rules.md        # 深度写作、开头铁律、结构反套路、情感与声音、新颖角度
-│   ├── humanize-rules.md       # 去 AI 化写作规则 + AI 味自评打分
-│   └── title-rules.md          # 爆款标题创作规则
-└── assets/themes/              # 6 套 HTML 排版主题 CSS
-```
+- 根据主题、用户想法或种子素材建立内容 brief
+- 按搜索意图和内容目标组织检索
+- 区分事实、推理、假设和观点
+- 以去 AI 味为最高优先级完成正文
+- 用 SEO 与内容运营方法设计标题，不直接凭感觉批量生成
+- 生成 SEO Title、H1、社交分发标题、Meta Description 和文章摘要
+- 输出 Markdown、平台适配版本和单文件 HTML
 
 ## 安装
 
-把整个 `mr-li-writer/` 目录放到你的 Skills 目录下：
+将整个目录放入 Codex 可发现的 skills 目录，例如：
 
-- 用户级：`~/.workbuddy/skills/mr-li-writer/`
-- 项目级：`.workbuddy/skills/mr-li-writer/`
+```text
+~/.codex/skills/mr-li-writer/
+```
 
-放入后，在对话中输入 `/mr-li-writer 你的主题` 即可调用。
+项目内使用时，也可以放在项目的 skills 目录中。
 
 ## 使用
 
-直接给它一个主题，例如：
+直接说明目标即可，例如：
 
+```text
+使用 $mr-li-writer，写一篇给职场新人看的“如何判断一个证书是否值得考”的知乎文章。
+目标：自然、有观点、不要 AI 腔；需要检索、SEO 标题策略和单文件 HTML。
 ```
-/mr-li-writer 小白如何从 0 开始学习 AI？
+
+建议同时提供：
+
+- 目标读者和发布平台
+- 想解决的问题或希望读者采取的行动
+- 已有的核心观点、素材文件或参考链接
+- 是否允许出现品牌、公司、产品和人物名称
+
+## 目录
+
+```text
+SKILL.md
+agents/openai.yaml
+references/
+  humanize-rules.md
+  research-protocol.md
+  title-rules.md
+  writing-rules.md
+scripts/
+  build_html.py
+  extract_seed.py
+  lint_article.py
+assets/themes/
 ```
 
-技能会依次：确认需求 → 检索验证 → 设计角度并展示大纲（弹窗确认）→ 写正文 → 给爆款标题 → 选主题排版交付。
+## 脚本
 
-你也可以：
+```bash
+python scripts/extract_seed.py <file.docx|file.pdf|image.png>
+python scripts/extract_seed.py <file.docx> --redact-term "需要隐藏的词"
+python scripts/lint_article.py <article.md> --require-sources
+python scripts/build_html.py <article.md> --list-themes
+python scripts/build_html.py <article.md> -t minimal-gold -o article.html --title "文章标题"
+```
 
-- 附上 docx / 图片素材，让它先提取再融合写作
-- 直接抛出你的核心想法（哪怕天马行空），由它搜证落地
+素材提取按文件类型按需安装依赖：
 
-## 可调项
+```bash
+python -m pip install python-docx pypdf rapidocr_onnxruntime
+```
 
-- 想换排版风格：编辑 `assets/themes/` 下任一 CSS，或在 `build_html.py` 的 `THEMES` 字典注册新主题
-- 想改写作风格：直接改 `references/` 下对应规范文件
+`build_html.py` 和 `lint_article.py` 只使用 Python 标准库。
 
-## License
+## 设计取向
 
-MIT
+标题先做搜索意图、用户阶段、内容承诺和平台适配分析，再生成候选并相对评分。SEO 不能牺牲自然表达，排版也保持克制、清楚和适合长时间阅读。

@@ -1,16 +1,16 @@
 /* fresh-green —— 清新绿(小红书/知乎/轻阅读) */
 body{margin:0;background:#f2f7f4;color:#26332c;
   font:16px/1.9 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
-.article{max-width:660px;margin:0 auto;padding:40px 26px 80px;background:#fff;
-  border-radius:0 0 12px 12px;}
-.article-title{font-size:23px;font-weight:700;line-height:1.55;margin:0 0 10px;
-  color:#1d5c3f;padding:14px 18px;background:#eaf5ee;border-radius:10px;}
+.article{max-width:700px;margin:24px auto 48px;padding:48px 42px 84px;background:#fff;
+  border:1px solid #dcebe1;box-shadow:0 10px 30px rgba(35,75,52,.06);}
+.article-title{font-size:27px;font-weight:700;line-height:1.48;margin:0 0 18px;
+  color:#1d5c3f;padding:0 0 18px;border-bottom:1px solid #d8e8dd;}
 h2{font-size:18.5px;font-weight:700;margin:40px 0 14px;color:#1d5c3f;}
 h2::before{content:"🌿 ";}
 h3{font-size:16.5px;font-weight:700;margin:28px 0 10px;color:#2e7d54;}
 h3::before{content:"▸ ";}
 p{margin:0 0 18px;text-align:justify;}
-strong{color:#1d7a4f;background:linear-gradient(transparent 65%,#cdeedb 65%);}
+strong{color:#176a43;border-bottom:2px solid #bfe3ca;}
 em{font-style:normal;color:#6b7f74;}
 hr{border:none;margin:34px 0;border-top:2px dashed #cfe6d8;}
 blockquote{margin:22px 0;padding:14px 18px;background:#f0f8f3;
@@ -29,3 +29,7 @@ tr:nth-child(even) td{background:#f5faf7;}
 a{color:#1d7a4f;text-decoration:none;}
 code{background:#e8f4ec;padding:2px 6px;border-radius:4px;font-size:14px;
   font-family:Consolas,Menlo,monospace;color:#1d5c3f;}
+@media (max-width:680px){
+  .article{margin:0;padding:36px 20px 64px;border-left:0;border-right:0;box-shadow:none;}
+  .article-title{font-size:23px;}
+}

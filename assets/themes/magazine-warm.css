@@ -1,7 +1,8 @@
 /* magazine-warm —— 暖色杂志风(故事性/人物稿/长阅读) */
 body{margin:0;background:#f6f1ea;color:#2b2622;
   font:16.5px/2.05 Georgia,"Songti SC","SimSun",serif;}
-.article{max-width:620px;margin:0 auto;padding:48px 26px 88px;background:#fffdf9;}
+.article{max-width:700px;margin:24px auto 48px;padding:58px 52px 94px;background:#fffdf9;
+  border:1px solid #eee2d1;box-shadow:0 12px 34px rgba(88,59,26,.06);}
 .article-title{font-size:26px;font-weight:700;line-height:1.55;margin:0 0 10px;
   text-align:center;letter-spacing:1px;color:#3a2e22;}
 .article-title::after{content:"";display:block;width:40px;height:1px;
@@ -33,3 +34,7 @@ tr:nth-child(even) td{background:#fbf7ee;}
 a{color:#b5651d;text-decoration:none;border-bottom:1px solid #e0c9a8;}
 code{background:#f5eee1;padding:2px 6px;border-radius:3px;font-size:14px;
   font-family:Consolas,Menlo,monospace;color:#6b4423;}
+@media (max-width:680px){
+  .article{margin:0;padding:42px 22px 70px;border-left:0;border-right:0;box-shadow:none;}
+  .article-title{font-size:24px;}
+}
