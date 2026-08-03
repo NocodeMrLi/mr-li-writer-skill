@@ -1,0 +1,35 @@
+/* magazine-warm —— 暖色杂志风(故事性/人物稿/长阅读) */
+body{margin:0;background:#f6f1ea;color:#2b2622;
+  font:16.5px/2.05 Georgia,"Songti SC","SimSun",serif;}
+.article{max-width:620px;margin:0 auto;padding:48px 26px 88px;background:#fffdf9;}
+.article-title{font-size:26px;font-weight:700;line-height:1.55;margin:0 0 10px;
+  text-align:center;letter-spacing:1px;color:#3a2e22;}
+.article-title::after{content:"";display:block;width:40px;height:1px;
+  background:#b5651d;margin:20px auto 0;}
+h2{font-size:19px;font-weight:700;margin:52px 0 18px;text-align:center;
+  color:#8a4b16;letter-spacing:2px;}
+h2::before,h2::after{content:"—— ";color:#c9a06a;font-weight:400;}
+h2::after{content:" ——";}
+h3{font-size:17px;font-weight:700;margin:34px 0 12px;color:#6b4423;}
+p{margin:0 0 22px;text-align:justify;text-indent:2em;}
+.article-title+p,.article-title~p:first-of-type{text-indent:2em;}
+h2+p,h3+p,blockquote+p,ul+p,ol+p,table+p{text-indent:2em;}
+strong{color:#b5651d;}
+em{font-style:normal;color:#8a7a66;}
+hr{border:none;margin:44px 0;text-align:center;}
+hr::after{content:"· · ·";color:#c9a06a;letter-spacing:8px;}
+blockquote{margin:26px 0;padding:18px 24px;background:#faf5ec;
+  border-top:1px solid #e0d3bd;border-bottom:1px solid #e0d3bd;
+  color:#5c4f40;font-size:15.5px;}
+blockquote p{margin:0;text-indent:0;}
+ul,ol{margin:0 0 22px;padding-left:26px;}
+li{margin-bottom:8px;}
+table{width:100%;border-collapse:collapse;margin:26px 0;font-size:14.5px;
+  font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+th{background:#f3ead9;color:#6b4423;padding:10px 12px;
+  border:1px solid #e0d3bd;text-align:left;}
+td{padding:10px 12px;border:1px solid #e8dfd0;}
+tr:nth-child(even) td{background:#fbf7ee;}
+a{color:#b5651d;text-decoration:none;border-bottom:1px solid #e0c9a8;}
+code{background:#f5eee1;padding:2px 6px;border-radius:3px;font-size:14px;
+  font-family:Consolas,Menlo,monospace;color:#6b4423;}

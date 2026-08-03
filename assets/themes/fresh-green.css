@@ -1,0 +1,31 @@
+/* fresh-green —— 清新绿(小红书/知乎/轻阅读) */
+body{margin:0;background:#f2f7f4;color:#26332c;
+  font:16px/1.9 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+.article{max-width:660px;margin:0 auto;padding:40px 26px 80px;background:#fff;
+  border-radius:0 0 12px 12px;}
+.article-title{font-size:23px;font-weight:700;line-height:1.55;margin:0 0 10px;
+  color:#1d5c3f;padding:14px 18px;background:#eaf5ee;border-radius:10px;}
+h2{font-size:18.5px;font-weight:700;margin:40px 0 14px;color:#1d5c3f;}
+h2::before{content:"🌿 ";}
+h3{font-size:16.5px;font-weight:700;margin:28px 0 10px;color:#2e7d54;}
+h3::before{content:"▸ ";}
+p{margin:0 0 18px;text-align:justify;}
+strong{color:#1d7a4f;background:linear-gradient(transparent 65%,#cdeedb 65%);}
+em{font-style:normal;color:#6b7f74;}
+hr{border:none;margin:34px 0;border-top:2px dashed #cfe6d8;}
+blockquote{margin:22px 0;padding:14px 18px;background:#f0f8f3;
+  border-radius:10px;color:#44604f;font-size:15px;}
+blockquote p{margin:0;}
+ul,ol{margin:0 0 18px;padding-left:24px;}
+li{margin-bottom:7px;}
+ul li::marker{color:#2e7d54;}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:22px 0;
+  font-size:14.5px;border:1px solid #d6e8dd;border-radius:10px;overflow:hidden;}
+th{background:#dff0e6;color:#1d5c3f;padding:10px 12px;
+  border-bottom:1px solid #c8e2d3;text-align:left;}
+td{padding:10px 12px;border-bottom:1px solid #e4f0e9;}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:#f5faf7;}
+a{color:#1d7a4f;text-decoration:none;}
+code{background:#e8f4ec;padding:2px 6px;border-radius:4px;font-size:14px;
+  font-family:Consolas,Menlo,monospace;color:#1d5c3f;}

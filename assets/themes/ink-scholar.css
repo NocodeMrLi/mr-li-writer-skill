@@ -1,0 +1,31 @@
+/* ink-scholar —— 水墨学者风(知乎深度/文化类, 衬线留白) */
+body{margin:0;background:#f4f2ee;color:#1f1d1a;
+  font:17px/2.1 "Songti SC","SimSun","Noto Serif SC",Georgia,serif;}
+.article{max-width:640px;margin:0 auto;padding:60px 28px 96px;background:#fcfbf8;}
+.article-title{font-size:27px;font-weight:700;line-height:1.5;margin:0 0 26px;
+  letter-spacing:2px;text-align:center;color:#161412;}
+.article-title::after{content:"";display:block;width:48px;height:2px;
+  background:#1f1d1a;margin:22px auto 0;}
+h2{font-size:20px;font-weight:700;margin:56px 0 20px;color:#161412;
+  border-left:4px solid #1f1d1a;padding-left:14px;letter-spacing:1px;}
+h3{font-size:17.5px;font-weight:700;margin:34px 0 12px;color:#33312c;}
+p{margin:0 0 24px;text-align:justify;text-indent:2em;}
+.article-title+p{text-indent:2em;}
+h2+p,h3+p,blockquote+p,ul+p,ol+p,table+p{text-indent:2em;}
+strong{color:#9a1f1f;font-weight:700;}
+em{font-style:normal;color:#6b6358;}
+hr{border:none;margin:48px 0;text-align:center;color:#bbb;letter-spacing:6px;}
+hr::after{content:"❉";font-size:14px;}
+blockquote{margin:28px 0;padding:18px 26px;background:#f7f4ee;
+  border-left:3px solid #c9c2b4;color:#4a4640;font-size:16px;}
+blockquote p{margin:0;text-indent:0;}
+ul,ol{margin:0 0 24px;padding-left:28px;}
+li{margin-bottom:9px;}
+table{width:100%;border-collapse:collapse;margin:28px 0;font-size:15px;
+  font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+th{background:#2a2722;color:#f4f2ee;padding:11px 13px;text-align:left;font-weight:600;}
+td{padding:11px 13px;border:1px solid #e3ddd1;}
+tr:nth-child(even) td{background:#f7f4ee;}
+a{color:#9a1f1f;text-decoration:none;border-bottom:1px solid #d9b9b9;}
+code{background:#ece8df;padding:2px 6px;border-radius:3px;font-size:14px;
+  font-family:Consolas,Menlo,monospace;color:#5a5349;}
