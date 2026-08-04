@@ -8,22 +8,6 @@ Mr.Li Writer 不是简单的"AI 代写模板"。它会先判断选题是否值�
 
 ---
 
-## 目录
-
-- [适合谁](#适合谁)
-- [核心能力](#核心能力)
-- [安装](#安装)
-- [快速开始](#快速开始)
-- [使用示例](#使用示例)
-- [建议提供的信息](#建议提供的信息)
-- [工作流程](#工作流程)
-- [目录结构](#目录结构)
-- [脚本说明](#脚本说明)
-- [设计边界](#设计边界)
-- [License](#license)
-
----
-
 ## 适合谁
 
 - 公众号、知乎、小红书、SEO 长文和个人 IP 内容创作者
@@ -34,98 +18,13 @@ Mr.Li Writer 不是简单的"AI 代写模板"。它会先判断选题是否值�
 
 ---
 
-## 核心能力
+## 能做什么
 
-### 1. 选题诊断与立意升级
-
-用户只提供一个标题、一句话想法或参考资料时，Skill 会先做两轮检索判断：
-
-1. **竞争语境扫描**：看市面上已有内容、常见标题、主流观点和重复风险
-2. **差异化校准**：换人群、场景、时间尺度、反方问题和关键词，寻找更好的切口
-
-如果原方向不值得写，Skill 会主动纠偏，给出更清楚、更有新意、更能兑现的方向。用户坚持原方向时，也会通过缩小范围、降低结论强度和补充边界来优化。
-
-### 2. 体裁、结构和证据密度控制
-
-不同文章不应该套同一种结构。Skill 会先识别文章体裁，再决定结构和证据密度：
-
-| 体裁类别 | 证据密度 | 特点 |
-|---|---|---|
-| 政策、行业、金融、医疗、法律 | 高 | 需要可靠来源和事实台账 |
-| 工具、职场、教育、产品 | 中 | 需要数据、案例、反方和执行建议 |
-| 情感、关系、生活、故事、随笔 | 低/极低 | 重点是场景、动作、心理和克制判断 |
-
-这可以避免所有文章都变成"数据/专家 + 三点原因 + 三点建议"的报告腔。
-
-### 3. 高完成度增强
-
-重要平台文章会进一步做：
-
-- **主题升维**：把表层问题推进到更有价值的一层，但不拔高成口号
-- **记忆点设计**：让读者带走一句判断、一个画面、一个场景或一个可转述表达
-- **开头结尾专项打磨**：避免机械导入、同质化开头和机械总结
-- **反平庸检查**：检查文章是否只是正确但普通
-- **审美编辑**：让文章更清楚、更有质感，但不文学化
-
-> 边界很明确：高完成度不等于文学化。文章必须清楚、好读、可转述，普通目标读者愿意看。
-
-### 4. 个性化开头设计
-
-根据文章主题、材料、体裁、平台和读者状态设计开头，避免：
-
-- ❌ "后台有人问""群里有人问""网上很多人问"等同质化虚拟来源开头
-- ❌ "随着……发展""在当今社会……"等宏大背景开场
-- ❌ "你是否也曾……"这类空泛设问
-- ❌ 没有真实素材支撑的假人物、假场景
-- ❌ 不必要的数据前置和定义开场
-
-> 虚拟提问、场景叙事和数据开头并非完全禁用，但需要真实、具体，且服务于当前文章。
-
-### 5. 自然表达与去 AI 味
-
-Skill 会避免：
-
-- 模板化开头和总结
-- 空洞大词和机械排比
-- 虚构第一人称经历、采访和数据
-- 所有段落都使用相同论证结构
-- 为了显得专业而强塞数据、报告和专家
-- 为了显得高级而过度文学化、散文化和抽象化
-
-> 目标不是"骗过检测器"，而是让文章像一个认真思考的人写出来：具体、诚实、有边界、有判断。
-
-### 6. SEO 与内容运营标题策划
-
-标题不会直接批量生成。Skill 会先分析：
-
-- 主搜索词和次级搜索词
-- 搜索意图和用户阶段
-- 内容承诺和平台限制
-- 标题能否被正文兑现
-- 搜索标题、正文 H1、社交分发标题和 Meta Description 是否需要区分
-
-> 标题不编造搜索量、排名概率、保证结果或无法兑现的承诺。
-
-### 7. 单文件 HTML 排版
-
-自带 Markdown 到单文件 HTML 渲染器，支持复制正文、下载 HTML 和多套本地 CSS 主题。
-
-默认使用 `auto` 主题选择：根据文章模式、发布平台、标题和正文关键词匹配候选主题，再随机选择一个。这样每次交付不固定为同一种视觉，但仍尽量匹配文章气质。
-
-内置 10 套主题：
-
-| 主题 | 适合内容 |
-|---|---|
-| `minimal-gold` | 公众号深度文、通用长文、稳重观点 |
-| `business-blue` | 政策解读、行业分析、数据报告 |
-| `magazine-warm` | 故事、人物、案例和长阅读 |
-| `fresh-green` | 小红书、知乎轻阅读、生活和成长类 |
-| `ink-scholar` | 知乎深度、文化、教育、思辨类 |
-| `card-modern` | 产品文、小红书卡片感内容、轻量清单 |
-| `editorial-red` | 评论、争议观点、社会议题和主张型文章 |
-| `calm-cyan` | 科技、AI、工具、效率和方法论 |
-| `note-paper` | 实用指南、步骤、清单、避坑和复盘 |
-| `mono-lab` | 产品分析、技术说明、极简报告 |
+- **选题诊断**：先判断方向值不值得写，避免同质化，帮你找到更好的立意角度
+- **多体裁写作**：支持公众号深度文、知乎回答、小红书长文、行业解读、实用指南、情感生活等
+- **自然表达**：去 AI 味，文章像认真思考的人写出来的，具体、诚实、有判断
+- **标题策划**：基于搜索意图和平台特性设计标题，不编造数据
+- **HTML 排版交付**：一键生成单文件 HTML，内置 10 套 CSS 主题
 
 ---
 
@@ -199,51 +98,22 @@ cp -r mr-li-writer-skill-main ~/.codex/skills/mr-li-writer/
 - 是否允许出现品牌、公司、产品和人物名称
 - 是否需要 Markdown、平台改写、SEO 元数据或单文件 HTML
 
-> 信息不足时，Skill 会使用合理默认值并标注假设，不会停在空泛提问。
-
 ---
 
-## 工作流程
+## HTML 排版主题
 
-1. **选题诊断与立意升级** —— 检索对比、判断可写性、升级立意
-2. **建立内容 brief** —— 明确目标、受众、平台、搜索意图
-3. **识别体裁、结构和证据密度** —— 匹配文章类型和可信方式
-4. **高完成度增强** —— 主题升维、记忆点设计、反平庸检查
-5. **设计文章开头** —— 个性化设计，避免模板化
-6. **提取和整理素材** —— 处理 DOCX、PDF、图片等素材
-7. **研究与证据整理** —— 建立事实台账，匹配证据密度
-8. **设计观点和大纲** —— 一句话主张、核心论点、反方意见
-9. **撰写和自检正文** —— 去 AI 味多轮检查闭环
-10. **SEO 与内容运营标题策划** —— 搜索意图分析、标题策略
-11. **交付** —— Markdown、平台版本或单文件 HTML
-
----
-
-## 目录结构
-
-```text
-mr-li-writer-skill-main/
-├── SKILL.md                              # Skill 主定义文件
-├── README.md
-├── LICENSE
-├── agents/
-│   └── openai.yaml                       # Agent 配置
-├── references/                           # 写作协议参考文档
-│   ├── ideation-protocol.md              # 选题诊断与立意升级
-│   ├── genre-structure-protocol.md       # 体裁识别与结构设计
-│   ├── high-impact-writing-protocol.md   # 高完成度增强
-│   ├── opening-design-protocol.md        # 开头设计规范
-│   ├── research-protocol.md              # 研究与证据整理
-│   ├── title-rules.md                    # 标题策划规则
-│   ├── writing-rules.md                  # 写作规则
-│   └── humanize-rules.md                 # 自然表达与去 AI 味
-├── scripts/                              # 辅助脚本
-│   ├── extract_seed.py                   # 素材提取
-│   ├── lint_article.py                   # 正文质量检查
-│   └── build_html.py                     # HTML 排版生成
-└── assets/
-    └── themes/                           # 10 套 CSS 排版主题
-```
+| 主题 | 适合内容 |
+|---|---|
+| `minimal-gold` | 公众号深度文、通用长文、稳重观点 |
+| `business-blue` | 政策解读、行业分析、数据报告 |
+| `magazine-warm` | 故事、人物、案例和长阅读 |
+| `fresh-green` | 小红书、知乎轻阅读、生活和成长类 |
+| `ink-scholar` | 知乎深度、文化、教育、思辨类 |
+| `card-modern` | 产品文、小红书卡片感内容、轻量清单 |
+| `editorial-red` | 评论、争议观点、社会议题和主张型文章 |
+| `calm-cyan` | 科技、AI、工具、效率和方法论 |
+| `note-paper` | 实用指南、步骤、清单、避坑和复盘 |
+| `mono-lab` | 产品分析、技术说明、极简报告 |
 
 ---
 
@@ -252,85 +122,44 @@ mr-li-writer-skill-main/
 ### 素材提取
 
 ```bash
-# 提取 DOCX、PDF 或图片中的素材
 python3 scripts/extract_seed.py <file.docx|file.pdf|image.png>
-
-# 提取并脱敏指定词汇
 python3 scripts/extract_seed.py <file.docx> --redact-term "需要隐藏的词"
 ```
 
-依赖安装：
-
-```bash
-pip install python-docx pypdf rapidocr_onnxruntime
-```
-
-> DOCX、可提取文本的 PDF 和常见图片格式可用；扫描版 PDF 需要 OCR 能力支持。
+依赖：`pip install python-docx pypdf rapidocr_onnxruntime`
 
 ### 正文质量检查
 
 ```bash
-# 低证据密度文章检查
-python3 scripts/lint_article.py <article.md> \
-  --genre relationship-life \
-  --evidence-density low \
-  --impact-check
-
-# 高证据密度文章检查（要求来源）
-python3 scripts/lint_article.py <article.md> \
-  --genre policy-industry \
-  --evidence-density high \
-  --require-sources \
-  --impact-check
+python3 scripts/lint_article.py <article.md> --genre relationship-life --evidence-density low --impact-check
+python3 scripts/lint_article.py <article.md> --genre policy-industry --evidence-density high --require-sources --impact-check
 ```
-
-检查项包括：
-
-- 常见模板化表达
-- 同质化开头和虚拟来源开头风险
-- 虚构第一人称经历风险
-- 低证据文章中数据、研究和专家话术是否过多
-- 高证据文章是否缺少参考资料和 URL
-- 高完成度增强是否走向过度文学化、抽象化或缺少记忆点
 
 ### 生成 HTML
 
 ```bash
-# 查看所有可用主题
 python3 scripts/build_html.py <article.md> --list-themes
-
-# 自动匹配主题（默认推荐方式）
-python3 scripts/build_html.py <article.md> \
-  -o article.html \
-  --title "文章标题" \
-  --mode opinion-analysis \
-  --platform 公众号
-
-# 手动指定主题
-python3 scripts/build_html.py <article.md> \
-  -t note-paper \
-  -o article.html \
-  --title "文章标题"
-
-# 随机主题
-python3 scripts/build_html.py <article.md> \
-  -t random \
-  -o article.html \
-  --title "文章标题"
+python3 scripts/build_html.py <article.md> -o article.html --title "文章标题" --mode opinion-analysis --platform 公众号
+python3 scripts/build_html.py <article.md> -t note-paper -o article.html --title "文章标题"
+python3 scripts/build_html.py <article.md> -t random -o article.html --title "文章标题"
 ```
-
-> `build_html.py` 只使用 Python 标准库，零外部依赖，生成单文件 HTML，适合本地预览、归档或继续编辑。
 
 ---
 
-## 设计边界
+## 目录结构
 
-- 不伪造事实、经历、采访、数据和来源
-- 不把搜索结果数量、关键词热度或标题常见程度伪装成真实搜索量
-- 不为了 SEO 牺牲自然表达
-- 不为了"高完成度"把平台文章写成普通人不愿意看的文学作品
-- 不默认删除品牌、公司、人物和产品名；是否脱敏由任务模式决定
-- 不用低质量资料硬撑刺激观点；资料不足时降低结论强度或换角度
+```text
+mr-li-writer-skill-main/
+├── README.md
+├── LICENSE
+├── agents/
+├── scripts/
+│   ├── extract_seed.py
+│   ├── lint_article.py
+│   └── build_html.py
+└── assets/
+    └── themes/
+```
 
 ---
 
