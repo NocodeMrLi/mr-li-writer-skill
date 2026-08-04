@@ -6,7 +6,7 @@
 
 > An anti-AI-tone Chinese long-form writing skill. It first evaluates whether your idea is worth writing and helps you find a distinctive angle, then designs a unique opening and title for each piece, and delivers the final draft in a concrete, opinionated, humanized voice—ready to publish across platforms.
 
-Mr.Li Writer 不是简单的"AI 代写模板"。它的核心是去 AI 味：先判断选题是否值得写、帮你找到差异化角度，再为每篇文章设计独特的开头和标题，最终以具体、有判断、人性化的语气完成正文，并交付可直接发布的多平台版本。
+它不是简单的"AI 代写模板"，而是把选题诊断、开头设计、标题策划和去 AI 味写作整合成一个完整的工作流。
 
 ---
 
