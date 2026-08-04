@@ -20,6 +20,16 @@ AI_PHRASES = (
     "拭目以待",
 )
 
+VIRTUAL_OPENING_PATTERNS = (
+    r"后台.*(有人|总有人|很多人|问)",
+    r"群里.*(有人|总有人|很多人|问)",
+    r"网上.*(有人|很多人|都在).*(问|讨论)",
+    r"评论区.*(经常|常常|总是|有人)",
+    r"有朋友问我",
+    r"最近.*很多人.*问",
+    r"每到.*(时候|季|季节|年底|年初|开学|报名).*(有人|很多人|问)",
+)
+
 EVIDENCE_PHRASES = (
     "数据显示",
     "报告显示",
@@ -108,8 +118,16 @@ def main():
     if not re.search(r"^#\s+\S+", text, re.M):
         warnings.append("缺少一级标题，HTML 可能只能使用命令行传入的标题。")
 
-    if re.search(r"^(根据|数据显示|报告显示)", text.lstrip()):
+    body_start = re.sub(r"^#.*\n+", "", text.lstrip(), count=1)
+    opening_sample = body_start[:220]
+
+    if re.search(r"^(根据|数据显示|报告显示)", body_start.lstrip()):
         warnings.append("开头直接进入来源或数据，检查是否缺少场景、问题或读者入口。")
+
+    for pattern in VIRTUAL_OPENING_PATTERNS:
+        if re.search(pattern, opening_sample):
+            warnings.append("开头疑似使用虚拟来源套话；请确认是否有真实读者提问，否则重写开头。")
+            break
 
     for phrase in AI_PHRASES:
         count = text.count(phrase)
