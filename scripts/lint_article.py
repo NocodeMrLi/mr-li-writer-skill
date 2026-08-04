@@ -30,6 +30,16 @@ VIRTUAL_OPENING_PATTERNS = (
     r"每到.*(时候|季|季节|年底|年初|开学|报名).*(有人|很多人|问)",
 )
 
+GENERIC_OPENING_PATTERNS = (
+    (r"随着.{0,20}(发展|普及|变化|到来)", "开头疑似使用“随着……”宏大背景套话。"),
+    (r"在(当今|现代|如今).{0,12}(社会|时代|背景)", "开头疑似使用宏大背景开场。"),
+    (r"(你是否也曾|你有没有发现|有没有发现|不知道你有没有)", "开头疑似使用空泛设问。"),
+    (r"所谓.{1,20}(就是|指的是)", "开头疑似使用定义式套话。"),
+    (r"(朋友|同事|读者|学员)小[A-ZＡ-Ｚ一二三四五六七八九十]", "开头疑似使用无真实素材支撑的假人物场景。"),
+    (r"最近.{0,20}(很火|刷屏|爆了|全网都在)", "开头疑似使用热点套话。"),
+    (r"每到.{0,12}(年底|年初|开学|报名|考试|毕业|换季|节假日)", "开头疑似使用泛季节/时间套话。"),
+)
+
 EVIDENCE_PHRASES = (
     "数据显示",
     "报告显示",
@@ -127,6 +137,11 @@ def main():
     for pattern in VIRTUAL_OPENING_PATTERNS:
         if re.search(pattern, opening_sample):
             warnings.append("开头疑似使用虚拟来源套话；请确认是否有真实读者提问，否则重写开头。")
+            break
+
+    for pattern, message in GENERIC_OPENING_PATTERNS:
+        if re.search(pattern, opening_sample):
+            warnings.append(message)
             break
 
     for phrase in AI_PHRASES:

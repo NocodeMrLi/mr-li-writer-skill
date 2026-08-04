@@ -229,6 +229,8 @@ python3 scripts/lint_article.py <article.md> --genre policy-industry --evidence-
 - 高证据文章是否缺少参考资料和 URL
 - 高完成度增强是否走向过度文学化、抽象化或缺少记忆点
 
+在 skill 工作流里，检查结果不是最终交付给用户的待办清单；它们用于交付前自动修正。发现明显 AI 味时，应直接重写并复检，直到没有明显 AI 味再交付。
+
 ### 生成 HTML
 
 ```bash
