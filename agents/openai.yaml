@@ -1,7 +1,4 @@
 interface:
   display_name: "Mr.Li Writer"
-  short_description: "选题诊断、研究、写作与随机排版"
+  short_description: "中文长篇写作：选题诊断、开头设计、标题策划、去 AI 味"
   default_prompt: "Use $mr-li-writer to evaluate and upgrade a Chinese article idea through web research, then research, plan, write with high-impact but readable platform style, humanize, title, and format it with an auto-matched randomized HTML theme."
-
-policy:
-  allow_implicit_invocation: true

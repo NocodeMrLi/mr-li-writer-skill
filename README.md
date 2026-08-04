@@ -2,7 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> 面向中文内容创作的 Agent Skill —— 把标题、想法、素材或模糊灵感，转化为值得写、有判断、自然可读、适合平台发布的文章。
+> 一项去 AI 味的中文长篇写作技能。它先判断选题值不值得写、帮你找到差异化角度，再为每篇文章设计独特的开头和标题，最终以具体、有判断、人性化的语气完成正文，并交付可直接发布的多平台版本。
+
+> An anti-AI-tone Chinese long-form writing skill. It first evaluates whether your idea is worth writing and helps you find a distinctive angle, then designs a unique opening and title for each piece, and delivers the final draft in a concrete, opinionated, humanized voice—ready to publish across platforms.
 
 Mr.Li Writer 不是简单的"AI 代写模板"。它会先判断选题是否值得写，再做检索、立意升级、体裁识别、开头设计、证据密度控制、正文写作、标题策划和 HTML 排版交付。
 
