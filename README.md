@@ -135,6 +135,8 @@ python3 scripts/extract_seed.py <file.docx> --redact-term "需要隐藏的词"
 
 ### 正文质量检查
 
+交付前自动检查：模板化表达、同质化开头、虚构第一人称、证据密度是否匹配文章类型、是否缺少引用来源等。
+
 ```bash
 python3 scripts/lint_article.py <article.md> --genre relationship-life --evidence-density low --impact-check
 python3 scripts/lint_article.py <article.md> --genre policy-industry --evidence-density high --require-sources --impact-check
@@ -163,7 +165,7 @@ mr-li-writer-skill-main/
 │   ├── lint_article.py
 │   └── build_html.py
 └── assets/
-    └── themes/
+    └── themes/          # 10 套 CSS 排版主题
 ```
 
 ---
