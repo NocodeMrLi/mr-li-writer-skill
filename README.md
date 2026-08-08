@@ -1,10 +1,15 @@
+<p align="center">
+  <img src="./assets/readme-banner.svg" alt="Mr.Li Writer - 写作.Skill，让想法变成文章">
+</p>
+
 # Mr.Li Writer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> 一项去 AI 味的中文内容创作技能。它先判断选题值不值得写、帮你找到差异化角度，再按发布平台生成公众号文章、知乎回答、小红书原生笔记、官网/网页文章或个人博客，并交付匹配平台的发布版本。
+一项去 AI 味的中文内容创作 Skill。  
+从一个标题、想法或素材开始，先判断值不值得写，再生成适合公众号、知乎、小红书、官网/网页和个人博客的平台原生内容。
 
-> An anti-AI-tone Chinese content writing skill. It evaluates whether your idea is worth writing, upgrades the angle, then creates platform-native drafts for WeChat, Zhihu, Xiaohongshu, websites, or blogs.
+> It evaluates whether your idea is worth writing, upgrades the angle, then creates platform-native Chinese drafts for WeChat, Zhihu, Xiaohongshu, websites, or blogs.
 
 它不是简单的"AI 代写模板"，也不是把一篇长文缩短后分发到所有平台，而是把选题诊断、开头设计、标题策划、平台原生写作和去 AI 味表达整合成一个完整的工作流。
 

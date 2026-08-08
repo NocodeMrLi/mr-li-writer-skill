@@ -1,0 +1,89 @@
+<svg width="1600" height="720" viewBox="0 0 1600 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="720" rx="0" fill="#F6F3ED"/>
+  <defs>
+    <linearGradient id="paper" x1="280" y1="90" x2="1420" y2="690" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EFE8DC"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="160" y1="130" x2="760" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D0F12"/>
+      <stop offset="1" stop-color="#32363D"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="32" flood-color="#2A241A" flood-opacity="0.14"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#B8AA94" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <path d="M-80 668C178 536 351 633 546 512C736 394 826 190 1093 191C1325 192 1435 317 1680 187V720H-80V668Z" fill="#E9E0D2"/>
+  <path d="M-30 650C218 548 379 620 552 507C721 397 846 238 1086 242C1302 246 1437 356 1635 252" stroke="#FFFFFF" stroke-width="3" opacity="0.8"/>
+  <path d="M-44 604C187 486 360 575 536 466C721 351 872 188 1110 208C1323 226 1465 315 1648 206" stroke="#D6C7B0" stroke-width="2" opacity="0.5"/>
+
+  <g opacity="0.34">
+    <path d="M90 96C190 44 331 29 471 62" stroke="#D7CDBB" stroke-width="2"/>
+    <path d="M80 125C202 61 341 55 489 82" stroke="#D7CDBB" stroke-width="2"/>
+    <path d="M75 154C214 84 357 77 509 102" stroke="#D7CDBB" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1045" y="116" width="292" height="410" rx="34" fill="url(#paper)" stroke="#E4DACB"/>
+    <rect x="1094" y="174" width="74" height="74" rx="18" fill="#FFFFFF" stroke="#E6DECF"/>
+    <text x="1131" y="224" text-anchor="middle" fill="#B49A6D" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="700">T</text>
+    <rect x="1194" y="183" width="94" height="16" rx="8" fill="#D9D1C4"/>
+    <rect x="1194" y="222" width="106" height="12" rx="6" fill="#E5DED2"/>
+    <rect x="1194" y="250" width="84" height="12" rx="6" fill="#E5DED2"/>
+    <rect x="1094" y="308" width="188" height="14" rx="7" fill="#DCD4C7"/>
+    <rect x="1094" y="344" width="154" height="14" rx="7" fill="#E7E0D4"/>
+    <rect x="1094" y="380" width="202" height="14" rx="7" fill="#E7E0D4"/>
+    <rect x="1094" y="416" width="128" height="14" rx="7" fill="#E7E0D4"/>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1258" y="256" width="132" height="132" rx="26" fill="#FFFDF9" stroke="#E6DDCF" stroke-dasharray="9 8"/>
+    <path d="M1324 298V346" stroke="#C1A678" stroke-width="4" stroke-linecap="round"/>
+    <path d="M1300 322H1348" stroke="#C1A678" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="1266" y="426" width="106" height="106" rx="24" fill="#FFFFFF" stroke="#E8DFD3"/>
+    <path d="M1319 451L1350 469V505L1319 523L1288 505V469L1319 451Z" stroke="#B89C6E" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M1289 469L1319 487L1349 469" stroke="#B89C6E" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M1319 487V522" stroke="#B89C6E" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(166 174)">
+    <rect x="0" y="0" width="86" height="86" rx="23" fill="#101113"/>
+    <path d="M43 17L68 31V58L43 72L18 58V31L43 17Z" fill="#F6F3ED"/>
+    <path d="M43 26L58 34.5V50.5L43 59L28 50.5V34.5L43 26Z" fill="#101113"/>
+    <path d="M43 17V72" stroke="#101113" stroke-width="7" stroke-linecap="round"/>
+  </g>
+
+  <text x="287" y="236" fill="url(#ink)" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="92" font-weight="800" letter-spacing="-1">
+    Mr.Li Writer
+  </text>
+  <text x="292" y="300" fill="#6C665D" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="35" font-weight="500">
+    写作.Skill，让想法变成文章
+  </text>
+  <text x="292" y="354" fill="#8B8378" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="25">
+    选题诊断 · 平台原生写作 · 去 AI 味 · 一键交付
+  </text>
+
+  <g transform="translate(292 424)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="22" font-weight="650">
+    <rect x="0" y="0" width="140" height="44" rx="22" fill="#141518"/>
+    <text x="70" y="29" text-anchor="middle" fill="#FFFFFF">公众号</text>
+    <rect x="156" y="0" width="116" height="44" rx="22" fill="#2F7D5C"/>
+    <text x="214" y="29" text-anchor="middle" fill="#FFFFFF">知乎</text>
+    <rect x="288" y="0" width="140" height="44" rx="22" fill="#D45546"/>
+    <text x="358" y="29" text-anchor="middle" fill="#FFFFFF">小红书</text>
+    <rect x="444" y="0" width="166" height="44" rx="22" fill="#406D9F"/>
+    <text x="527" y="29" text-anchor="middle" fill="#FFFFFF">官网/网页</text>
+  </g>
+
+  <g opacity="0.64">
+    <circle cx="1437" cy="108" r="5" fill="#C5AA75"/>
+    <circle cx="1465" cy="108" r="5" fill="#C5AA75"/>
+    <circle cx="1493" cy="108" r="5" fill="#C5AA75"/>
+  </g>
+</svg>
