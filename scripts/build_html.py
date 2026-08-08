@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-build_html.py - Markdown 文章 -> 单文件排版 HTML
+build_html.py - Markdown 内容 -> 单文件平台预览 HTML
 
 零外部依赖(Python 3.8+ 标准库)。产物为单个 HTML 文件:
 - 无 CDN / 无外部字体, 离线可用
-- 顶部工具栏: 一键复制正文(富文本, 粘贴到公众号编辑器保留格式) + 一键下载 HTML
-- 多套排版主题, CSS 存于 ../assets/themes/
+- 顶部工具栏: 按发布平台复制富文本或纯文本 + 一键下载 HTML
+- 自动按发布平台切换交付样式, 多套排版主题 CSS 存于 ../assets/themes/
 
 用法:
     python build_html.py <正文.md> -o <输出.html> [-t 主题名|auto|random] [--title "文章标题"]
@@ -47,15 +47,39 @@ THEME_MATCH_RULES = {
     "opinion-analysis": ["editorial-red", "minimal-gold", "ink-scholar", "magazine-warm"],
     "story-profile": ["magazine-warm", "ink-scholar", "editorial-red", "minimal-gold"],
     "platform-native": ["fresh-green", "card-modern", "note-paper", "magazine-warm"],
+    "xiaohongshu-note": ["fresh-green", "card-modern", "note-paper"],
 }
 
 PLATFORM_MATCH_RULES = {
     "公众号": ["minimal-gold", "editorial-red", "magazine-warm", "business-blue"],
     "微信": ["minimal-gold", "editorial-red", "magazine-warm", "business-blue"],
     "知乎": ["ink-scholar", "business-blue", "editorial-red", "mono-lab"],
-    "小红书": ["fresh-green", "card-modern", "note-paper", "magazine-warm"],
-    "seo": ["minimal-gold", "business-blue", "note-paper", "calm-cyan"],
+    "小红书": ["fresh-green", "card-modern", "note-paper"],
+    "官网": ["business-blue", "calm-cyan", "note-paper", "mono-lab"],
+    "网页": ["business-blue", "calm-cyan", "note-paper", "mono-lab"],
+    "个人博客": ["minimal-gold", "ink-scholar", "magazine-warm", "mono-lab"],
+    "博客": ["minimal-gold", "ink-scholar", "magazine-warm", "mono-lab"],
 }
+
+CONTENT_GOAL_MATCH_RULES = {
+    "seo": ["business-blue", "note-paper", "calm-cyan", "mono-lab"],
+    "搜索引擎优化": ["business-blue", "note-paper", "calm-cyan", "mono-lab"],
+    "geo": ["calm-cyan", "note-paper", "business-blue", "mono-lab"],
+    "生成式搜索": ["calm-cyan", "note-paper", "business-blue", "mono-lab"],
+    "转化": ["card-modern", "business-blue", "note-paper", "calm-cyan"],
+    "销售": ["card-modern", "business-blue", "note-paper", "calm-cyan"],
+    "专业报告": ["business-blue", "mono-lab", "ink-scholar"],
+}
+
+DELIVERY_STYLES = {
+    "article-html": "公众号/通用文章富文本 HTML",
+    "zhihu-answer": "知乎问答/专栏预览",
+    "xhs-note": "小红书手机笔记卡片, 纯文本复制",
+    "web-article": "官网/网页结构化文章",
+    "blog-post": "个人博客长文",
+}
+
+SPECIAL_DELIVERY_STYLES = {"auto"}
 
 KEYWORD_MATCH_RULES = [
     (["政策", "监管", "报告", "行业", "趋势", "数据", "研究", "白皮书"], ["business-blue", "mono-lab", "minimal-gold"]),
@@ -73,6 +97,7 @@ KEYWORD_MATCH_RULES = [
 def render_inline(text):
     """行内元素: 转义后处理 加粗 / 斜体 / 行内代码 / 链接"""
     text = html.escape(text)
+    text = text.replace("&lt;br&gt;", "<br>")
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", text)
     text = re.sub(
@@ -306,6 +331,112 @@ function toast(msg){
 </html>
 """
 
+XHS_HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#f6f7f5">
+<title>__TITLE__</title>
+<style>
+*{box-sizing:border-box;}
+html{background:#eef1ed;}
+body{margin:0;color:#212322;font:15px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+.toolbar{position:sticky;top:0;z-index:99;display:flex;gap:8px;align-items:center;min-height:48px;
+  padding:8px max(14px,calc((100vw - 430px)/2));background:rgba(255,255,255,.94);
+  border-bottom:1px solid rgba(30,40,34,.08);backdrop-filter:blur(10px);}
+.toolbar .tip{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#59615b;font-size:13px;}
+.toolbar button{border:1px solid rgba(30,40,34,.14);border-radius:999px;padding:7px 12px;background:#212322;color:#fff;
+  font-size:13px;cursor:pointer;}
+.toolbar button.ghost{background:#fff;color:#212322;}
+.phone-shell{max-width:430px;margin:22px auto 46px;padding:0 14px;}
+.note-card{min-height:720px;border-radius:28px;background:#fff;box-shadow:0 22px 60px rgba(28,34,30,.14);
+  overflow:hidden;border:1px solid rgba(30,40,34,.08);}
+.note-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #f0f1ef;}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#dff7e8,#ffe9ef);}
+.author{font-size:13px;font-weight:700;color:#252725;}
+.meta{font-size:11px;color:#929891;}
+.note-body{padding:18px 20px 22px;}
+.note-body h1{margin:0 0 12px;font-size:23px;line-height:1.25;letter-spacing:0;font-weight:800;color:#1f2320;}
+.note-body h2,.note-body h3{margin:20px 0 8px;font-size:16px;line-height:1.45;color:#1f2320;}
+.note-body p{margin:0 0 12px;white-space:pre-wrap;}
+.note-body ul,.note-body ol{margin:8px 0 14px;padding-left:1.25em;}
+.note-body li{margin:5px 0;}
+.note-body strong{font-weight:800;}
+.note-body blockquote{margin:14px 0;padding:10px 12px;border-left:3px solid #83cfa3;background:#f6fbf7;border-radius:8px;color:#374039;}
+.note-body code{padding:1px 5px;border-radius:5px;background:#f2f3f1;}
+.note-actions{display:flex;gap:18px;padding:12px 20px 18px;border-top:1px solid #f0f1ef;color:#687069;font-size:13px;}
+#plainText{display:none;}
+@media (max-width:480px){
+  .phone-shell{margin:12px auto 32px;padding:0 10px;}
+  .note-card{border-radius:22px;min-height:calc(100vh - 78px);}
+  .toolbar .tip{display:none;}
+  .toolbar button{flex:1;min-height:36px;}
+}
+@media print{.toolbar{display:none}.phone-shell{max-width:100%;margin:0}.note-card{box-shadow:none;border:0}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <span class="tip">小红书笔记预览：复制为纯文本，可直接发布</span>
+  <button type="button" title="复制小红书纯文本笔记" onclick="copyPlain()">&#128203; 复制笔记</button>
+  <button class="ghost" type="button" title="下载当前 HTML" onclick="downloadHtml()">&#11015; 下载预览</button>
+</div>
+<main class="phone-shell">
+  <article class="note-card">
+    <header class="note-head">
+      <div class="avatar" aria-hidden="true"></div>
+      <div>
+        <div class="author">Mr.Li Writer</div>
+        <div class="meta">小红书笔记预览</div>
+      </div>
+    </header>
+    <section class="note-body" id="article">
+      __BODY__
+    </section>
+    <footer class="note-actions">
+      <span>♡ 收藏</span><span>💬 评论</span><span>↗ 分享</span>
+    </footer>
+  </article>
+</main>
+<script type="text/plain" id="plainText">__PLAIN_TEXT__</script>
+<script>
+function copyPlain(){
+  var text=document.getElementById('plainText').textContent;
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){toast('已复制纯文本笔记');},function(){fallbackCopy(text);});
+    }else{fallbackCopy(text);}
+  }catch(e){fallbackCopy(text);}
+}
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  var ok=document.execCommand('copy');ta.remove();
+  toast(ok?'已复制纯文本笔记':'复制失败,请手动全选复制');
+}
+function downloadHtml(){
+  try{
+    var blob=new Blob(['<!DOCTYPE html>'+document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=(document.title||'xhs-note')+'.html';a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  }catch(e){toast('下载失败,请使用浏览器另存为');}
+}
+function toast(msg){
+  var t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;left:50%;bottom:36px;transform:translateX(-50%);'+
+    'background:rgba(0,0,0,.82);color:#fff;padding:9px 18px;border-radius:999px;font-size:14px;z-index:999;';
+  document.body.appendChild(t);setTimeout(function(){t.remove();},2000);
+}
+</script>
+</body>
+</html>
+"""
+
 BASE_CSS_FALLBACK = """
 body{margin:0;background:#f5f5f5;color:#222;font:16px/1.9 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
 .article{max-width:680px;margin:0 auto;padding:32px 20px 64px;background:#fff;}
@@ -322,15 +453,22 @@ def list_themes():
         print("  %-15s %s%s" % (name, desc, mark))
 
 
+def list_delivery_styles():
+    print("可用交付样式:")
+    print("  %-15s %s" % ("auto", "按发布平台和内容目标自动选择(默认)"))
+    for name, desc in DELIVERY_STYLES.items():
+        print("  %-15s %s" % (name, desc))
+
+
 def add_scores(scores, names, value):
     for name in names:
         if name in scores:
             scores[name] += value
 
 
-def infer_theme_pool(md_text, title="", mode="", platform=""):
+def infer_theme_pool(md_text, title="", mode="", platform="", content_goal=""):
     scores = {name: 0 for name in THEMES}
-    text = (title + "\n" + mode + "\n" + platform + "\n" + md_text[:5000]).lower()
+    text = (title + "\n" + mode + "\n" + platform + "\n" + content_goal + "\n" + md_text[:5000]).lower()
 
     if mode in THEME_MATCH_RULES:
         add_scores(scores, THEME_MATCH_RULES[mode], 4)
@@ -338,6 +476,10 @@ def infer_theme_pool(md_text, title="", mode="", platform=""):
     for key, names in PLATFORM_MATCH_RULES.items():
         if key.lower() in platform.lower() or key.lower() in text:
             add_scores(scores, names, 3)
+
+    for key, names in CONTENT_GOAL_MATCH_RULES.items():
+        if key.lower() in content_goal.lower():
+            add_scores(scores, names, 2)
 
     for keywords, names in KEYWORD_MATCH_RULES:
         if any(k.lower() in text for k in keywords):
@@ -366,32 +508,63 @@ def infer_theme_pool(md_text, title="", mode="", platform=""):
     return pool
 
 
-def resolve_theme(theme, md_text, title="", mode="", platform=""):
+def resolve_theme(theme, md_text, title="", mode="", platform="", content_goal=""):
     if theme == "random":
         return random.choice(list(THEMES.keys())), "random"
     if theme == "auto":
-        pool = infer_theme_pool(md_text, title=title, mode=mode, platform=platform)
+        pool = infer_theme_pool(md_text, title=title, mode=mode, platform=platform, content_goal=content_goal)
         return random.choice(pool), "auto:%s" % ",".join(pool)
     return theme, "manual"
 
 
+def resolve_delivery_style(delivery_style, platform="", mode="", content_goal=""):
+    if delivery_style != "auto":
+        return delivery_style, "manual"
+    platform_text = platform.lower()
+    mode_text = mode.lower()
+    goal_text = content_goal.lower()
+    if "小红书" in platform or "xiaohongshu" in platform_text or "xhs" in platform_text or mode_text == "xiaohongshu-note":
+        return "xhs-note", "auto:platform"
+    if "知乎" in platform:
+        return "zhihu-answer", "auto:platform"
+    if "官网" in platform or "网页" in platform or "seo" in goal_text or "geo" in goal_text:
+        return "web-article", "auto:platform/content-goal"
+    if "博客" in platform:
+        return "blog-post", "auto:platform"
+    return "article-html", "auto:platform"
+
+
+def escape_script_text(text):
+    return text.replace("</script", "<\\/script")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Markdown -> 单文件排版 HTML")
+    parser = argparse.ArgumentParser(description="Markdown -> 单文件平台预览 HTML")
     parser.add_argument("md", nargs="?", help="Markdown 正文文件路径")
     parser.add_argument("-o", "--output", help="输出 HTML 路径(默认: 与 md 同目录同名 .html)")
     parser.add_argument("-t", "--theme", default=DEFAULT_THEME, help="主题名、auto 或 random(默认 %s)" % DEFAULT_THEME)
     parser.add_argument("--title", default="", help="文章标题(默认取 md 文件名)")
-    parser.add_argument("--mode", default="", help="内容模式: research-explainer/practical-guide/opinion-analysis/story-profile/platform-native")
-    parser.add_argument("--platform", default="", help="发布平台: 公众号/知乎/小红书/SEO 等")
+    parser.add_argument("--mode", default="", help="内容模式: research-explainer/practical-guide/opinion-analysis/story-profile/platform-native/xiaohongshu-note")
+    parser.add_argument("--platform", default="", help="发布平台: 公众号/知乎/小红书/官网/网页/个人博客")
+    parser.add_argument("--content-goal", default="", help="内容目标: 普通传播/GEO/SEO/转化销售/专业报告")
+    parser.add_argument(
+        "--delivery-style",
+        default="auto",
+        help="交付样式: auto/article-html/zhihu-answer/xhs-note/web-article/blog-post",
+    )
     parser.add_argument("--list-themes", action="store_true", help="列出可用主题")
+    parser.add_argument("--list-delivery-styles", action="store_true", help="列出可用交付样式")
     args = parser.parse_args()
 
     if args.list_themes:
         list_themes()
         return
+    if args.list_delivery_styles:
+        list_delivery_styles()
+        return
 
     if not args.md:
-        parser.error("缺少 Markdown 文件路径(或用 --list-themes 查看主题)")
+        parser.error("缺少 Markdown 文件路径(或用 --list-themes / --list-delivery-styles 查看选项)")
 
     md_path = os.path.abspath(args.md)
     if not os.path.isfile(md_path):
@@ -401,6 +574,11 @@ def main():
     if args.theme not in THEMES and args.theme not in SPECIAL_THEMES:
         sys.stderr.write("[错误] 未知主题 '%s'\n" % args.theme)
         list_themes()
+        sys.exit(1)
+
+    if args.delivery_style not in DELIVERY_STYLES and args.delivery_style not in SPECIAL_DELIVERY_STYLES:
+        sys.stderr.write("[错误] 未知交付样式 '%s'\n" % args.delivery_style)
+        list_delivery_styles()
         sys.exit(1)
 
     with open(md_path, "r", encoding="utf-8") as f:
@@ -413,6 +591,13 @@ def main():
         title=title,
         mode=args.mode,
         platform=args.platform,
+        content_goal=args.content_goal,
+    )
+    delivery_style, delivery_reason = resolve_delivery_style(
+        args.delivery_style,
+        platform=args.platform,
+        mode=args.mode,
+        content_goal=args.content_goal,
     )
 
     css_file = os.path.join(THEMES_DIR, THEMES[selected_theme][0])
@@ -428,14 +613,21 @@ def main():
     out_path = args.output or os.path.splitext(md_path)[0] + ".html"
     out_path = os.path.abspath(out_path)
 
-    page = (HTML_TEMPLATE
-            .replace("__TITLE__", html.escape(title))
-            .replace("__CSS__", css)
-            .replace("__BODY__", body))
+    if delivery_style == "xhs-note":
+        page = (XHS_HTML_TEMPLATE
+                .replace("__TITLE__", html.escape(title))
+                .replace("__BODY__", body)
+                .replace("__PLAIN_TEXT__", escape_script_text(md_text)))
+    else:
+        page = (HTML_TEMPLATE
+                .replace("__TITLE__", html.escape(title))
+                .replace("__CSS__", css)
+                .replace("__BODY__", body))
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(page)
 
+    print("[完成] 交付样式=%s (%s)" % (delivery_style, delivery_reason))
     print("[完成] 主题=%s (%s)" % (selected_theme, theme_reason))
     print("[输出] %s" % out_path)
 

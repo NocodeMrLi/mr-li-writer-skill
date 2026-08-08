@@ -82,17 +82,41 @@ LOW_EVIDENCE_GENRES = {
     "story-profile",
     "personal-essay",
     "platform-light",
+    "platform-native",
 }
 
 HIGH_RISK_MODES = {
     "research-explainer",
 }
 
+XHS_MODULE_PATTERNS = (
+    r"适合(谁|人群|你)",
+    r"不适合(谁|人群|你)",
+    r"避坑",
+    r"判断标准",
+    r"可收藏|收藏清单|建议收藏",
+)
+
+XHS_LONGFORM_PATTERNS = (
+    r"本文将从",
+    r"接下来.{0,12}(展开|分析|讨论)",
+    r"从以下.{0,8}(方面|维度)",
+    r"随着.{0,20}(发展|普及|变化|到来)",
+    r"在(当今|现代|如今).{0,12}(社会|时代|背景)",
+    r"综上所述",
+    r"总而言之",
+)
+
+EMOJI_OR_SYMBOL_PATTERN = re.compile(
+    r"[\U0001F300-\U0001FAFF]|[✅⚠️📌✨🔥💡🌟👉❗️❤️⭐️]"
+)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="检查文章结构、引用和常见 AI 腔")
     parser.add_argument("markdown", help="Markdown 文件")
     parser.add_argument("--mode", default="research-explainer", help="内容模式")
+    parser.add_argument("--platform", default="", help="发布平台，如 公众号/知乎/小红书/官网/网页/个人博客")
     parser.add_argument("--genre", default="", help="文章体裁，如 relationship-life/policy-industry/product-tool")
     parser.add_argument(
         "--evidence-density",
@@ -124,6 +148,7 @@ def main():
     text = path.read_text(encoding="utf-8")
     warnings = []
     errors = []
+    platform = args.platform.strip().lower()
 
     if not re.search(r"^#\s+\S+", text, re.M):
         warnings.append("缺少一级标题，HTML 可能只能使用命令行传入的标题。")
@@ -203,6 +228,59 @@ def main():
         if not re.search(r"(不是.+而是|真正|关键|核心|换句话说|说到底|更准确地说)", text):
             warnings.append("未发现清晰的核心判断提示；检查文章是否缺少可转述记忆点。")
 
+    is_xhs = (
+        "小红书" in args.platform
+        or "xiaohongshu" in platform
+        or "xhs" in platform
+        or args.mode == "xiaohongshu-note"
+    )
+    if is_xhs:
+        heading_match = re.search(r"^#\s+(.+)$", text, re.M)
+        if heading_match:
+            title = heading_match.group(1).strip()
+            if len(title) > 32:
+                warnings.append("小红书标题偏长；检查是否仍是 SEO/公众号长标题。")
+        else:
+            warnings.append("小红书笔记缺少一级标题。")
+
+        emoji_hits = len(EMOJI_OR_SYMBOL_PATTERN.findall(text))
+        if emoji_hits < 3:
+            warnings.append("小红书笔记少于 3 个 emoji 或符号化段落提示。")
+        if emoji_hits > 18:
+            warnings.append("小红书笔记 emoji/符号较多；检查是否满屏表情影响阅读。")
+
+        tags = re.findall(r"(?<!\S)#([A-Za-z0-9_\-\u4e00-\u9fff]+)", text)
+        if len(tags) < 6 or len(tags) > 10:
+            warnings.append("小红书标签数量应为 6-10 个，当前为 %d 个。" % len(tags))
+
+        module_hits = sum(1 for pattern in XHS_MODULE_PATTERNS if re.search(pattern, text))
+        if module_hits < 2:
+            warnings.append("小红书笔记缺少适合谁/不适合谁/避坑/判断标准/可收藏清单中的至少两个模块。")
+
+        paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+        body_paragraphs = [p for p in paragraphs if not p.startswith("#") and not p.startswith("标签")]
+        long_xhs_paragraphs = [
+            p for p in body_paragraphs
+            if len(re.sub(r"\s+", "", p)) > 120 and not re.search(r"^[-*]\s+", p)
+        ]
+        if len(long_xhs_paragraphs) >= 2:
+            warnings.append("小红书笔记存在多个过长段落；检查是否仍是公众号长文节奏。")
+
+        section_like_headings = len(re.findall(r"^#{2,3}\s+", text, re.M))
+        if section_like_headings >= 3:
+            warnings.append("小红书笔记出现较多长文小标题层级；检查是否像公众号/知乎结构。")
+
+        for pattern in XHS_LONGFORM_PATTERNS:
+            if re.search(pattern, text):
+                warnings.append("小红书笔记疑似出现公众号腔、长文铺垫或报告腔。")
+                break
+
+        if len(text) > 3200:
+            warnings.append("小红书笔记全文较长；检查是否只是把长文缩短而非原生笔记。")
+
+        if not re.search(r"标签\s*\n", text):
+            warnings.append("小红书笔记末尾建议使用“标签”区域集中放置话题标签。")
+
     for warning in warnings:
         print("[警告] %s" % warning)
     for error in errors:
@@ -211,6 +289,8 @@ def main():
     if errors:
         return 1
     suffix = args.mode
+    if args.platform:
+        suffix += "/%s" % args.platform
     if args.genre:
         suffix += "/%s" % args.genre
     if args.evidence_density:
