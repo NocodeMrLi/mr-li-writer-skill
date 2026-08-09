@@ -5,6 +5,7 @@
 # Mr.Li Writer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![WeChat Layout: AGPL-3.0](https://img.shields.io/badge/WeChat%20Layout-AGPL--3.0-blue.svg)](assets/gzh-design/LICENSE)
 
 一项去 AI 味的中文内容创作 Skill。  
 从一个标题、想法或素材开始，先判断值不值得写，再生成适合公众号、知乎、小红书、官网/网页和个人博客的平台原生内容。
@@ -33,7 +34,7 @@
 - **平台原生写作**：公众号写成文章，知乎写成回答/专栏，小红书写成原生笔记，官网/网页写成结构化网页内容
 - **去 AI 味写作**：文章像认真思考的人写出来的，具体、诚实、有判断，没有空洞排比和虚构经历
 - **多体裁覆盖**：支持公众号深度文、知乎回答、小红书笔记、行业解读、实用指南、情感生活等
-- **平台化交付**：自动匹配文章排版、问答/专栏样式、小红书手机笔记卡片、网页文章或博客长文
+- **平台化交付**：公众号使用 6 套内联 HTML 排版主题，小红书使用手机笔记卡片，官网/网页和博客使用对应预览
 
 ---
 
@@ -147,7 +148,7 @@ cp -r mr-li-writer-skill-main ~/.codex/skills/mr-li-writer/
 
 | 发布平台 | 默认交付样式 |
 |---|---|
-| 公众号 | 文章排版主题，适合富文本复制 |
+| 公众号 | 内联 HTML 排版主题 + 复制预览页 |
 | 知乎 | 问答/专栏样式 |
 | 小红书 | 手机笔记卡片 / 清爽纯文本笔记 |
 | 官网/网页 | 网页文章 / SEO-GEO 结构化样式 |
@@ -157,20 +158,20 @@ cp -r mr-li-writer-skill-main ~/.codex/skills/mr-li-writer/
 
 ---
 
-## HTML 排版主题
+## 公众号排版主题
 
-| 主题 | 适合内容 |
+公众号排版风格来自 `gzh-design-skill` 的 6 套主题，生成的是可粘贴到公众号编辑器的内联 HTML，并会同时生成带“复制到公众号”按钮的预览页。
+
+| 主题标识 | 中文名 | 适合内容 |
 |---|---|
-| `minimal-gold` | 公众号深度文、通用长文、稳重观点 |
-| `business-blue` | 政策解读、行业分析、数据报告 |
-| `magazine-warm` | 故事、人物、案例和长阅读 |
-| `fresh-green` | 小红书笔记预览、知乎轻阅读、生活和成长类 |
-| `ink-scholar` | 知乎深度、文化、教育、思辨类 |
-| `card-modern` | 产品文、小红书卡片感内容、轻量清单 |
-| `editorial-red` | 评论、争议观点、社会议题和主张型文章 |
-| `calm-cyan` | 科技、AI、工具、效率和方法论 |
-| `note-paper` | 实用指南、步骤、清单、避坑和复盘 |
-| `mono-lab` | 产品分析、技术说明、极简报告 |
+| `moyu-green` | 摸鱼绿 | 教程、测评、清单、工具盘点 |
+| `red-white` | 红白色系 | 深度分析、观点、力量感话题 |
+| `graphite-minimal` | 石墨极简风 | 设计、科技评论、专业观点 |
+| `zen-whitespace` | 留白禅意风 | 随笔、极简生活、沉静表达 |
+| `moyu-ticket` | 摸鱼票据风 | 工具对比、创意评测 |
+| `olive-journal` | 橄榄手记 | 案例复盘、内刊手记、系统说明 |
+
+如果用户没有指定主题，系统会先推荐适合的公众号主题；用户明确说“直接排”“不用问”时会自动匹配。
 
 ---
 
@@ -201,11 +202,16 @@ python3 scripts/lint_article.py <note.md> --platform 小红书 --mode xiaohongsh
 python3 scripts/build_html.py <article.md> --list-themes
 python3 scripts/build_html.py <article.md> --list-delivery-styles
 python3 scripts/build_html.py <article.md> -o article.html --title "文章标题" --mode opinion-analysis --platform 公众号
+python3 scripts/build_html.py <article.md> -o article.html --title "文章标题" --platform 公众号 -t red-white
+python3 scripts/build_gzh_html.py <article.md> -o article_gzh.html --title "文章标题" -t moyu-green
 python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mode xiaohongshu-note --platform 小红书
 python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO
-python3 scripts/build_html.py <article.md> -t note-paper -o article.html --title "文章标题"
-python3 scripts/build_html.py <article.md> -t random -o article.html --title "文章标题"
 ```
+
+公众号排版会输出两份文件：
+
+- 干净正文片段：用于校验和手动粘贴兜底
+- 复制预览页：浏览器打开后点击“复制到公众号”，再粘贴到公众号编辑器
 
 ---
 
@@ -219,13 +225,18 @@ mr-li-writer-skill-main/
 ├── scripts/
 │   ├── extract_seed.py
 │   ├── lint_article.py
-│   └── build_html.py
+│   ├── build_html.py
+│   ├── build_gzh_html.py
+│   └── validate_gzh_html.py
 └── assets/
-    └── themes/          # 10 套 CSS 排版主题
+    ├── readme-banner.svg
+    └── gzh-design/      # gzh-design-skill 许可证与来源说明
 ```
 
 ---
 
 ## License
 
-[MIT](LICENSE) © 2026 NocodeMrLi
+项目原创部分采用 [MIT](LICENSE) © 2026 NocodeMrLi。
+
+公众号排版相关能力改编自 `gzh-design-skill`，遵循 [GNU AGPL-3.0](assets/gzh-design/LICENSE)，来源说明见 [assets/gzh-design/NOTICE.md](assets/gzh-design/NOTICE.md)。

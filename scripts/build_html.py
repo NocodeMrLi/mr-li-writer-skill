@@ -3,76 +3,38 @@
 """
 build_html.py - Markdown 内容 -> 单文件平台预览 HTML
 
-零外部依赖(Python 3.8+ 标准库)。产物为单个 HTML 文件:
+零外部依赖(Python 3.8+ 标准库)。产物为 HTML 文件:
 - 无 CDN / 无外部字体, 离线可用
 - 顶部工具栏: 按发布平台复制富文本或纯文本 + 一键下载 HTML
-- 自动按发布平台切换交付样式, 多套排版主题 CSS 存于 ../assets/themes/
+- 自动按发布平台切换交付样式。公众号使用 gzh-design 风格的内联 HTML 主题。
 
 用法:
     python build_html.py <正文.md> -o <输出.html> [-t 主题名|auto|random] [--title "文章标题"]
     python build_html.py --list-themes
-
-新增主题: 在 ../assets/themes/ 添加一个 .css 文件, 并在下方 THEMES 中注册即可。
 """
 import argparse
 import html
 import os
 import random
 import re
+import subprocess
 import sys
-
-THEMES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "themes")
-
-# 主题注册表: 名称 -> (css 文件名, 一句话说明)
-THEMES = {
-    "minimal-gold": ("minimal-gold.css", "黑白金极简风(公众号深度文)"),
-    "business-blue": ("business-blue.css", "商务深蓝报告风(政策解读/行业分析)"),
-    "magazine-warm": ("magazine-warm.css", "暖色杂志风(故事性/人物稿)"),
-    "fresh-green": ("fresh-green.css", "清新绿(小红书/知乎/轻阅读)"),
-    "ink-scholar": ("ink-scholar.css", "水墨学者风(知乎深度/文化类, 衬线留白)"),
-    "card-modern": ("card-modern.css", "卡片现代风(圆角卡片, 小红书/产品文)"),
-    "editorial-red": ("editorial-red.css", "编辑部红黑风(评论/观点/社会议题)"),
-    "calm-cyan": ("calm-cyan.css", "冷静青蓝风(科技/工具/方法论)"),
-    "note-paper": ("note-paper.css", "便签纸风(实用指南/清单/复盘)"),
-    "mono-lab": ("mono-lab.css", "黑白实验室风(产品分析/技术说明/极简报告)"),
-}
 
 DEFAULT_THEME = "auto"
 SPECIAL_THEMES = {"auto", "random"}
 
-
-THEME_MATCH_RULES = {
-    "research-explainer": ["business-blue", "ink-scholar", "minimal-gold", "mono-lab"],
-    "practical-guide": ["note-paper", "fresh-green", "calm-cyan", "card-modern"],
-    "opinion-analysis": ["editorial-red", "minimal-gold", "ink-scholar", "magazine-warm"],
-    "story-profile": ["magazine-warm", "ink-scholar", "editorial-red", "minimal-gold"],
-    "platform-native": ["fresh-green", "card-modern", "note-paper", "magazine-warm"],
-    "xiaohongshu-note": ["fresh-green", "card-modern", "note-paper"],
-}
-
-PLATFORM_MATCH_RULES = {
-    "公众号": ["minimal-gold", "editorial-red", "magazine-warm", "business-blue"],
-    "微信": ["minimal-gold", "editorial-red", "magazine-warm", "business-blue"],
-    "知乎": ["ink-scholar", "business-blue", "editorial-red", "mono-lab"],
-    "小红书": ["fresh-green", "card-modern", "note-paper"],
-    "官网": ["business-blue", "calm-cyan", "note-paper", "mono-lab"],
-    "网页": ["business-blue", "calm-cyan", "note-paper", "mono-lab"],
-    "个人博客": ["minimal-gold", "ink-scholar", "magazine-warm", "mono-lab"],
-    "博客": ["minimal-gold", "ink-scholar", "magazine-warm", "mono-lab"],
-}
-
-CONTENT_GOAL_MATCH_RULES = {
-    "seo": ["business-blue", "note-paper", "calm-cyan", "mono-lab"],
-    "搜索引擎优化": ["business-blue", "note-paper", "calm-cyan", "mono-lab"],
-    "geo": ["calm-cyan", "note-paper", "business-blue", "mono-lab"],
-    "生成式搜索": ["calm-cyan", "note-paper", "business-blue", "mono-lab"],
-    "转化": ["card-modern", "business-blue", "note-paper", "calm-cyan"],
-    "销售": ["card-modern", "business-blue", "note-paper", "calm-cyan"],
-    "专业报告": ["business-blue", "mono-lab", "ink-scholar"],
+GZH_THEMES = {
+    "moyu-green": "摸鱼绿 - 教程、测评、清单、工具盘点",
+    "red-white": "红白色系 - 深度分析、观点、力量感话题",
+    "graphite-minimal": "石墨极简风 - 设计、科技评论、专业观点",
+    "zen-whitespace": "留白禅意风 - 随笔、极简生活、沉静表达",
+    "moyu-ticket": "摸鱼票据风 - 工具对比、创意评测",
+    "olive-journal": "橄榄手记 - 案例复盘、内刊手记、系统说明",
 }
 
 DELIVERY_STYLES = {
-    "article-html": "公众号/通用文章富文本 HTML",
+    "gzh-article": "公众号内联 HTML + 复制预览页",
+    "article-html": "通用文章 HTML",
     "zhihu-answer": "知乎问答/专栏预览",
     "xhs-note": "小红书手机笔记卡片, 纯文本复制",
     "web-article": "官网/网页结构化文章",
@@ -80,17 +42,6 @@ DELIVERY_STYLES = {
 }
 
 SPECIAL_DELIVERY_STYLES = {"auto"}
-
-KEYWORD_MATCH_RULES = [
-    (["政策", "监管", "报告", "行业", "趋势", "数据", "研究", "白皮书"], ["business-blue", "mono-lab", "minimal-gold"]),
-    (["科技", "ai", "人工智能", "工具", "效率", "自动化", "产品", "教程", "方法论"], ["calm-cyan", "mono-lab", "note-paper"]),
-    (["指南", "步骤", "清单", "避坑", "怎么", "如何", "复盘", "计划"], ["note-paper", "fresh-green", "card-modern"]),
-    (["故事", "人物", "访谈", "成长", "经历", "案例", "现场"], ["magazine-warm", "ink-scholar", "editorial-red"]),
-    (["观点", "争议", "为什么", "不要", "反思", "评论", "真相"], ["editorial-red", "minimal-gold", "ink-scholar"]),
-    (["文化", "教育", "阅读", "历史", "心理", "哲学"], ["ink-scholar", "magazine-warm", "minimal-gold"]),
-    (["小红书", "种草", "生活", "新人", "家长", "职场"], ["fresh-green", "card-modern", "note-paper"]),
-]
-
 
 # ---------------- Markdown 解析(轻量, 覆盖文章常用语法) ----------------
 
@@ -438,19 +389,23 @@ function toast(msg){
 """
 
 BASE_CSS_FALLBACK = """
-body{margin:0;background:#f5f5f5;color:#222;font:16px/1.9 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
-.article{max-width:680px;margin:0 auto;padding:32px 20px 64px;background:#fff;}
+body{margin:0;background:#f6f7f8;color:#232323;font:16px/1.9 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+.article{max-width:720px;margin:0 auto;padding:34px 22px 68px;background:#fff;}
+.article h1{font-size:30px;line-height:1.35;margin:0 0 26px;}
+.article h2{font-size:22px;margin:36px 0 14px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;}
+.article h3{font-size:18px;margin:26px 0 12px;}
+.article p{margin:0 0 18px;}
+.article blockquote{margin:22px 0;padding:12px 16px;border-left:4px solid #9ca3af;background:#f8fafc;color:#4b5563;}
+.article a{color:#2563eb;text-decoration:none;border-bottom:1px solid #bfdbfe;}
 """
 
 
 def list_themes():
-    print("可用主题:")
-    print("  %-15s %s" % ("auto", "按内容模式、平台、标题和正文关键词匹配候选主题后随机选择(默认)"))
-    print("  %-15s %s" % ("random", "从全部可用主题中随机选择"))
-    for name, (css, desc) in THEMES.items():
-        exists = os.path.isfile(os.path.join(THEMES_DIR, css))
-        mark = "" if exists else "  [缺少 CSS 文件!]"
-        print("  %-15s %s%s" % (name, desc, mark))
+    print("可用公众号排版主题:")
+    print("  %-18s %s" % ("auto", "按题材自动匹配，默认推荐摸鱼绿"))
+    print("  %-18s %s" % ("random", "从 6 套公众号主题中随机选择"))
+    for name, desc in GZH_THEMES.items():
+        print("  %-18s %s" % (name, desc))
 
 
 def list_delivery_styles():
@@ -460,69 +415,14 @@ def list_delivery_styles():
         print("  %-15s %s" % (name, desc))
 
 
-def add_scores(scores, names, value):
-    for name in names:
-        if name in scores:
-            scores[name] += value
-
-
-def infer_theme_pool(md_text, title="", mode="", platform="", content_goal=""):
-    scores = {name: 0 for name in THEMES}
-    text = (title + "\n" + mode + "\n" + platform + "\n" + content_goal + "\n" + md_text[:5000]).lower()
-
-    if mode in THEME_MATCH_RULES:
-        add_scores(scores, THEME_MATCH_RULES[mode], 4)
-
-    for key, names in PLATFORM_MATCH_RULES.items():
-        if key.lower() in platform.lower() or key.lower() in text:
-            add_scores(scores, names, 3)
-
-    for key, names in CONTENT_GOAL_MATCH_RULES.items():
-        if key.lower() in content_goal.lower():
-            add_scores(scores, names, 2)
-
-    for keywords, names in KEYWORD_MATCH_RULES:
-        if any(k.lower() in text for k in keywords):
-            add_scores(scores, names, 2)
-
-    if len(md_text) > 7000:
-        add_scores(scores, ["minimal-gold", "ink-scholar", "magazine-warm", "business-blue"], 1)
-    if md_text.count("|") >= 10:
-        add_scores(scores, ["business-blue", "mono-lab", "calm-cyan"], 1)
-    if len(re.findall(r"^\s*[-*]\s+", md_text, flags=re.M)) >= 6:
-        add_scores(scores, ["note-paper", "fresh-green", "card-modern"], 1)
-
-    top_score = max(scores.values())
-    if top_score <= 0:
-        return ["minimal-gold", "business-blue", "magazine-warm", "fresh-green"]
-
-    threshold = max(1, top_score - 2)
-    pool = [name for name, score in scores.items() if score >= threshold]
-    if len(pool) < 3:
-        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
-        for name, score in ranked:
-            if score > 0 and name not in pool:
-                pool.append(name)
-            if len(pool) >= 3:
-                break
-    return pool
-
-
-def resolve_theme(theme, md_text, title="", mode="", platform="", content_goal=""):
-    if theme == "random":
-        return random.choice(list(THEMES.keys())), "random"
-    if theme == "auto":
-        pool = infer_theme_pool(md_text, title=title, mode=mode, platform=platform, content_goal=content_goal)
-        return random.choice(pool), "auto:%s" % ",".join(pool)
-    return theme, "manual"
-
-
 def resolve_delivery_style(delivery_style, platform="", mode="", content_goal=""):
     if delivery_style != "auto":
         return delivery_style, "manual"
     platform_text = platform.lower()
     mode_text = mode.lower()
     goal_text = content_goal.lower()
+    if "公众号" in platform or "微信" in platform:
+        return "gzh-article", "auto:platform"
     if "小红书" in platform or "xiaohongshu" in platform_text or "xhs" in platform_text or mode_text == "xiaohongshu-note":
         return "xhs-note", "auto:platform"
     if "知乎" in platform:
@@ -534,6 +434,16 @@ def resolve_delivery_style(delivery_style, platform="", mode="", content_goal=""
     return "article-html", "auto:platform"
 
 
+def run_gzh_builder(args):
+    builder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build_gzh_html.py")
+    cmd = [sys.executable, builder, args.md, "--theme", args.theme]
+    if args.output:
+        cmd.extend(["-o", args.output])
+    if args.title:
+        cmd.extend(["--title", args.title])
+    return subprocess.call(cmd)
+
+
 def escape_script_text(text):
     return text.replace("</script", "<\\/script")
 
@@ -542,7 +452,7 @@ def main():
     parser = argparse.ArgumentParser(description="Markdown -> 单文件平台预览 HTML")
     parser.add_argument("md", nargs="?", help="Markdown 正文文件路径")
     parser.add_argument("-o", "--output", help="输出 HTML 路径(默认: 与 md 同目录同名 .html)")
-    parser.add_argument("-t", "--theme", default=DEFAULT_THEME, help="主题名、auto 或 random(默认 %s)" % DEFAULT_THEME)
+    parser.add_argument("-t", "--theme", default=DEFAULT_THEME, help="公众号主题名、auto 或 random(默认 %s)" % DEFAULT_THEME)
     parser.add_argument("--title", default="", help="文章标题(默认取 md 文件名)")
     parser.add_argument("--mode", default="", help="内容模式: research-explainer/practical-guide/opinion-analysis/story-profile/platform-native/xiaohongshu-note")
     parser.add_argument("--platform", default="", help="发布平台: 公众号/知乎/小红书/官网/网页/个人博客")
@@ -550,7 +460,7 @@ def main():
     parser.add_argument(
         "--delivery-style",
         default="auto",
-        help="交付样式: auto/article-html/zhihu-answer/xhs-note/web-article/blog-post",
+        help="交付样式: auto/gzh-article/article-html/zhihu-answer/xhs-note/web-article/blog-post",
     )
     parser.add_argument("--list-themes", action="store_true", help="列出可用主题")
     parser.add_argument("--list-delivery-styles", action="store_true", help="列出可用交付样式")
@@ -571,8 +481,8 @@ def main():
         sys.stderr.write("[错误] 文件不存在: %s\n" % md_path)
         sys.exit(1)
 
-    if args.theme not in THEMES and args.theme not in SPECIAL_THEMES:
-        sys.stderr.write("[错误] 未知主题 '%s'\n" % args.theme)
+    if args.theme not in GZH_THEMES and args.theme not in SPECIAL_THEMES:
+        sys.stderr.write("[错误] 未知公众号主题 '%s'\n" % args.theme)
         list_themes()
         sys.exit(1)
 
@@ -585,14 +495,6 @@ def main():
         md_text = f.read()
 
     title = args.title or os.path.splitext(os.path.basename(md_path))[0]
-    selected_theme, theme_reason = resolve_theme(
-        args.theme,
-        md_text,
-        title=title,
-        mode=args.mode,
-        platform=args.platform,
-        content_goal=args.content_goal,
-    )
     delivery_style, delivery_reason = resolve_delivery_style(
         args.delivery_style,
         platform=args.platform,
@@ -600,13 +502,9 @@ def main():
         content_goal=args.content_goal,
     )
 
-    css_file = os.path.join(THEMES_DIR, THEMES[selected_theme][0])
-    if os.path.isfile(css_file):
-        with open(css_file, "r", encoding="utf-8") as f:
-            css = f.read()
-    else:
-        sys.stderr.write("[警告] 主题 CSS 缺失, 使用内置基础样式: %s\n" % css_file)
-        css = BASE_CSS_FALLBACK
+    if delivery_style == "gzh-article":
+        return_code = run_gzh_builder(args)
+        sys.exit(return_code)
 
     body = md_to_html(md_text)
 
@@ -621,14 +519,15 @@ def main():
     else:
         page = (HTML_TEMPLATE
                 .replace("__TITLE__", html.escape(title))
-                .replace("__CSS__", css)
+                .replace("__CSS__", BASE_CSS_FALLBACK)
                 .replace("__BODY__", body))
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(page)
 
     print("[完成] 交付样式=%s (%s)" % (delivery_style, delivery_reason))
-    print("[完成] 主题=%s (%s)" % (selected_theme, theme_reason))
+    if args.theme != "auto":
+        print("[提示] 非公众号平台未使用公众号主题=%s" % args.theme)
     print("[输出] %s" % out_path)
 
 
