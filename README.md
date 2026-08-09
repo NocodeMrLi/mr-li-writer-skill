@@ -236,8 +236,14 @@ python3 scripts/validate_gzh_html.py article_gzh.html
 ```text
 mr-li-writer-skill-main/
 ├── README.md
+├── SKILL.md
 ├── LICENSE
 ├── agents/
+├── references/
+│   ├── ideation-protocol.md
+│   ├── platform-native-protocol.md
+│   ├── writing-rules.md
+│   └── ...
 ├── scripts/
 │   ├── extract_seed.py
 │   ├── lint_article.py

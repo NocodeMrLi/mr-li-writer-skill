@@ -131,6 +131,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 GZH_REF_DIR = os.path.join(ROOT_DIR, "assets", "gzh-design", "references")
 COMPONENT_HEADING_RE = re.compile(r"^##\s+组件\s+\d+\s+(.+)$", re.M)
+COMPONENT_BLOCK_RE = re.compile(r"^##\s+组件\s+(\d+)\s+(.+?)(?=^##\s+组件\s+\d+\s+|^##\s+完整文章模板骨架|^##\s+多行代码块|^---\s*$|\Z)", re.M | re.S)
+HTML_CODE_RE = re.compile(r"```html\s*\n(.*?)```", re.S)
+PLACEHOLDER_RE = re.compile(r"{{([^{}]+)}}")
 
 
 def leaf(text):
@@ -256,6 +259,343 @@ def parse_blocks(md_text):
             i += 1
         blocks.append(("paragraph", " ".join(para)))
     return blocks
+
+
+def split_title(text, max_len=12):
+    clean = re.sub(r"\s+", "", text or "")
+    if len(clean) <= max_len:
+        return clean, ""
+    cut = min(max_len, max(6, len(clean) // 2))
+    return clean[:cut], clean[cut:]
+
+
+def short_text(text, limit=34):
+    clean = re.sub(r"\s+", " ", text or "").strip()
+    if len(clean) <= limit:
+        return clean
+    return clean[:limit].rstrip("，。；、 ") + "…"
+
+
+def pick_first_paragraph(blocks):
+    for block in blocks:
+        if block[0] == "paragraph":
+            return block[1]
+        if block[0] == "quote":
+            return block[1]
+    return "把一个想法整理成更清楚、更适合发布的文章。"
+
+
+def pick_last_paragraph(blocks):
+    for block in reversed(blocks):
+        if block[0] == "paragraph":
+            return block[1]
+    return "真正重要的不是多写一点，而是把值得说的话说清楚。"
+
+
+def html_text(text):
+    text = str(text or "")
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"==(.+?)==", r"\1", text)
+    text = re.sub(r"\+\+(.+?)\+\+", r"\1", text)
+    text = re.sub(r"<u>(.+?)</u>", r"\1", text)
+    text = re.sub(r"~~(.+?)~~", r"\1", text)
+    text = re.sub(r"`(.+?)`", r"\1", text)
+    return html.escape(normalize_cn_punctuation(text))
+
+
+def load_theme_components(theme_key):
+    path = os.path.join(GZH_REF_DIR, "theme-%s.md" % theme_key)
+    if not os.path.isfile(path):
+        return {}
+    text = open(path, encoding="utf-8", errors="replace").read()
+    components = {}
+    for match in COMPONENT_BLOCK_RE.finditer(text):
+        number = int(match.group(1))
+        title = match.group(2).strip()
+        codes = [code.strip() for code in HTML_CODE_RE.findall(match.group(0))]
+        if codes:
+            components[number] = {"title": title, "codes": codes}
+    return components
+
+
+def select_code(components, number, variant=0):
+    item = components.get(number)
+    if not item or not item["codes"]:
+        return ""
+    codes = item["codes"]
+    if variant < 0:
+        variant = 0
+    return codes[min(variant, len(codes) - 1)]
+
+
+def strip_optional_old_title(snippet, replacements):
+    value = replacements.get("旧标题占位") or replacements.get("划线旧认知")
+    if value:
+        return snippet
+    return re.sub(r'\n\s*<p[^>]*>\s*<span leaf="">\{\{(?:旧标题占位|划线旧认知)\}\}</span>\s*</p>', "", snippet)
+
+
+def apply_component(snippet, replacements):
+    snippet = strip_optional_old_title(snippet, replacements)
+
+    def repl(match):
+        key = match.group(1).strip()
+        before = snippet[:match.start()]
+        in_tag = before.rfind("<") > before.rfind(">")
+        in_leaf = "leaf" in before[max(0, len(before) - 48):]
+        if key in replacements:
+            value = html_text(replacements[key])
+            if value and not in_tag and not in_leaf:
+                return '<span leaf="">%s</span>' % value
+            return value
+        if "作者名" in key:
+            return "Mr.Li Writer"
+        if "一句话简介" in key:
+            return "让想法变成文章"
+        if "图片URL" in key or "个人名片" in key:
+            return ""
+        if "标签" in key:
+            return "写作"
+        if "标题" in key:
+            return html_text(replacements.get("标题", replacements.get("主标题", "文章标题")))
+        if "正文" in key or "内容" in key or "段落" in key or "说明" in key:
+            return html_text(replacements.get("正文内容", replacements.get("内容", "")))
+        if "编号" in key or key == "01":
+            return html_text(replacements.get("编号", "01"))
+        return html_text(replacements.get(key, ""))
+
+    return PLACEHOLDER_RE.sub(repl, snippet)
+
+
+def component_container(components, theme):
+    snippet = select_code(components, 1)
+    m = re.search(r"(<section\b[^>]*>)", snippet)
+    if not m:
+        return container_start(theme), "</section>"
+    return m.group(1), "</section>"
+
+
+def component_hero(theme_key, components, title, blocks):
+    intro = pick_first_paragraph(blocks)
+    line1, line2 = split_title(title, 13)
+    today = __import__("datetime").date.today().strftime("%Y.%m.%d")
+    base = {
+        "标题": title,
+        "主标题": title,
+        "主标题行1": line1 or title,
+        "主标题行2": line2 or "写得更清楚",
+        "绿色高亮词": line2[:6] if line2 else "更清楚",
+        "强调词": "判断",
+        "顶部标签": "MR.LI WRITER",
+        "内刊标签": "MR.LI WRITER",
+        "头部标签": "MR.LI WRITER",
+        "日期": today,
+        "副标题关键词": short_text(intro, 28),
+        "副标题说明": short_text(intro, 34),
+        "底部左侧文字": short_text(pick_last_paragraph(blocks), 30),
+        "底部摘要": short_text(pick_last_paragraph(blocks), 30),
+        "标签1": "公众号排版",
+        "标签2": "深度文章",
+        "#标签1": "#写作",
+        "#标签2": "#公众号",
+        "#标签3": "#排版",
+        "大标题": title,
+        "副标题": short_text(intro, 28),
+        "简介段落": short_text(intro, 38),
+        "作者名": "Mr.Li Writer",
+        "作者身份": "中文内容创作 Skill",
+        "等级": "精选",
+        "编号": "001",
+        "竖排文字": "WRITER",
+    }
+    if theme_key == "moyu-green":
+        # 无右侧图片版更接近常规文章排版。
+        return apply_component(select_code(components, 2, 1), base)
+    return apply_component(select_code(components, 2, 0), base)
+
+
+def component_toc(theme_key, components, headings):
+    selected = [h[2] for h in headings if h[1] == 2][:3]
+    if len(selected) < 2:
+        return ""
+    if theme_key in {"moyu-green", "red-white", "graphite-minimal"}:
+        repl = {}
+        for idx, text in enumerate(selected, 1):
+            repl["看点%s" % "一二三"[idx - 1]] = text
+            repl["章节名"] = text
+            repl["副标题"] = "CHAPTER %02d" % idx
+            repl["N"] = "%02d" % idx
+        return apply_component(select_code(components, 3, 0), repl)
+    return ""
+
+
+SECTION_COMPONENT = {
+    "moyu-green": 4,
+    "red-white": 5,
+    "graphite-minimal": 5,
+    "zen-whitespace": 5,
+    "moyu-ticket": 3,
+    "olive-journal": 3,
+}
+
+PARAGRAPH_COMPONENT = {
+    "moyu-green": 5,
+    "red-white": 6,
+    "graphite-minimal": 6,
+    "zen-whitespace": 6,
+    "moyu-ticket": 5,
+    "olive-journal": 10,
+}
+
+QUOTE_COMPONENT = {
+    "moyu-green": 9,
+    "red-white": 8,
+    "graphite-minimal": 8,
+    "zen-whitespace": 8,
+    "moyu-ticket": 11,
+    "olive-journal": 15,
+}
+
+FOOTER_COMPONENT = {
+    "moyu-green": 13,
+    "red-white": 16,
+    "graphite-minimal": 16,
+    "zen-whitespace": 15,
+    "moyu-ticket": 13,
+    "olive-journal": 28,
+}
+
+
+def component_section_title(theme_key, components, title, number):
+    snippet = select_code(components, SECTION_COMPONENT.get(theme_key, 3), 0)
+    if not snippet:
+        return ""
+    return apply_component(snippet, {
+        "编号": "%02d" % number,
+        "01": "%02d" % number,
+        "中文标题": title,
+        "中文章节标题": title,
+        "标题": title,
+        "副标题": "CHAPTER %02d" % number,
+        "ENGLISH TAG": "CHAPTER",
+        "ENGLISH · 英文副标题": "CHAPTER %02d" % number,
+    })
+
+
+def component_paragraph(theme_key, components, text):
+    snippet = select_code(components, PARAGRAPH_COMPONENT.get(theme_key, 5), 0)
+    if not snippet:
+        return paragraph(text, THEMES[theme_key])
+    return apply_component(snippet, {
+        "正文内容": text,
+        "文字": text,
+        "内容": text,
+        "前半句": text[: max(1, len(text) // 2)],
+        "后半句": text[max(1, len(text) // 2):],
+        "需要强调的关键短语": short_text(text, 8),
+    })
+
+
+def component_subheading(theme_key, components, text, number):
+    if theme_key == "olive-journal":
+        snippet = select_code(components, 9, 0)
+        return apply_component(snippet, {"前导词": "POINT %02d" % number, "标题": text, "说明": ""})
+    if theme_key == "moyu-ticket":
+        snippet = select_code(components, 4, 0)
+        return apply_component(snippet, {"小节标题": text})
+    if theme_key == "moyu-green":
+        snippet = select_code(components, 9, 2)
+        return apply_component(snippet, {"小标题": text, "副标题": ""})
+    return component_paragraph(theme_key, components, "【%s】" % text)
+
+
+def component_quote(theme_key, components, text):
+    snippet = select_code(components, QUOTE_COMPONENT.get(theme_key, 9), 0)
+    if not snippet:
+        return quote(text, THEMES[theme_key])
+    return apply_component(snippet, {
+        "引用内容，可嵌入绿色加粗等内联样式": text,
+        "重点观点": text,
+        "补充说明": "",
+        "金句前段": text,
+        "金句中段": text,
+        "金句收尾": "",
+        "高亮关键词": short_text(text, 8),
+        "正文内容": text,
+        "内容": text,
+    })
+
+
+def component_list(theme_key, components, items, ordered=False):
+    if theme_key == "olive-journal":
+        rows = "".join(
+            '<li style="margin:0 0 8px;font-size:14px;line-height:1.8;color:#4d4f46;"><span leaf="">%s</span></li>' % html_text(item)
+            for item in items
+        )
+        return '<section style="margin-top:24px;background:#eeefe9;border:1px solid #bfc1b7;border-radius:6px;padding:16px 20px;"><ul style="margin:0;padding-left:18px;">%s</ul></section>' % rows
+    return list_block(items, THEMES[theme_key], ordered=ordered)
+
+
+def component_footer(theme_key, components, blocks):
+    snippet = select_code(components, FOOTER_COMPONENT.get(theme_key, 13), 0)
+    if not snippet:
+        return signature(THEMES[theme_key])
+    return apply_component(snippet, {
+        "作者名": "Mr.Li Writer",
+        "一句话简介，如：热衷于分享 AI 观察与干货": "让写作如此简单",
+        "文末互动引导": "如果你觉得今天这篇有收获，欢迎点赞、在看、转发，我们下篇见",
+        "互动文案": "如果这篇文章对你有帮助，欢迎点赞、在看、转发。",
+    })
+
+
+def build_component_section(md_text, title, theme_key):
+    components = load_theme_components(theme_key)
+    if len(components) < 5:
+        raise RuntimeError("完整组件库不可用: %s" % theme_key)
+    theme = THEMES[theme_key]
+    blocks = parse_blocks(md_text)
+    if not title:
+        for block in blocks:
+            if block[0] == "heading" and block[1] == 1:
+                title = block[2]
+                break
+    title = title or "公众号文章"
+    headings = [b for b in blocks if b[0] == "heading"]
+
+    open_tag, close_tag = component_container(components, theme)
+    parts = [open_tag, component_hero(theme_key, components, title, blocks), component_toc(theme_key, components, headings)]
+    chapter = 0
+    sub_count = 0
+    for block in blocks:
+        kind = block[0]
+        if kind == "heading":
+            level, text = block[1], block[2]
+            if level == 1:
+                continue
+            if level == 2:
+                chapter += 1
+                parts.append(component_section_title(theme_key, components, text, chapter))
+            else:
+                sub_count += 1
+                parts.append(component_subheading(theme_key, components, text, sub_count))
+        elif kind == "paragraph":
+            parts.append(component_paragraph(theme_key, components, block[1]))
+        elif kind == "quote":
+            parts.append(component_quote(theme_key, components, block[1]))
+        elif kind == "list":
+            parts.append(component_list(theme_key, components, block[1], ordered=False))
+        elif kind == "olist":
+            parts.append(component_list(theme_key, components, block[1], ordered=True))
+        elif kind == "code":
+            parts.append(code_block(block[2], block[1], theme))
+        elif kind == "image":
+            parts.append(image_block(block[1], block[2], theme))
+        elif kind == "hr":
+            parts.append(hr(theme))
+    parts.append(component_footer(theme_key, components, blocks))
+    parts.append(close_tag)
+    parts.append('<p style="display:none;"><mp-style-type data-value="3"></mp-style-type></p>')
+    return "\n".join(p for p in parts if p)
 
 
 def infer_theme(md_text, title=""):
@@ -564,7 +904,13 @@ def main():
     title = args.title or os.path.splitext(os.path.basename(md_path))[0]
     theme_key, reason = resolve_theme(args.theme, md_text, title)
     theme = THEMES[theme_key]
-    section = build_section(md_text, title, theme)
+    try:
+        section = build_component_section(md_text, title, theme_key)
+        render_mode = "component-library"
+    except Exception as exc:
+        print("[警告] 完整组件库渲染失败，回退到快速预览器: %s" % exc, file=sys.stderr)
+        section = build_section(md_text, title, theme)
+        render_mode = "fallback"
 
     out_path = os.path.abspath(args.output or os.path.splitext(md_path)[0] + "_gzh.html")
     with open(out_path, "w", encoding="utf-8") as f:
@@ -578,7 +924,7 @@ def main():
     if not args.no_preview:
         preview = write_preview(section, out_path, title, theme)
 
-    print("[完成] 公众号主题=%s/%s (%s)" % (theme["name"], theme_key, reason))
+    print("[完成] 公众号主题=%s/%s (%s), 渲染模式=%s" % (theme["name"], theme_key, reason, render_mode))
     print("[输出] 干净正文片段: %s" % out_path)
     if preview:
         print("[输出] 复制预览页: %s" % preview)

@@ -217,8 +217,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Mr.Li Writer - 核心方法论文件，不对外公开
-SKILL.md
-references/
+# Mr.Li Writer
 !assets/gzh-design/references/
 !assets/gzh-design/references/**
