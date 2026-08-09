@@ -5,6 +5,11 @@
 The 6 built-in styles are adapted from gzh-design-skill (AGPL-3.0):
 Moyu Green, Red & White, Graphite Minimal, Zen Whitespace, Moyu Ticket,
 and Olive Journal.
+
+The full gzh-design component libraries are vendored under
+assets/gzh-design/references/. This script is a deterministic CLI renderer and
+quick preview helper; agent-driven final layout should read the selected theme
+library and assemble richer article-specific components from that source.
 """
 
 import argparse
@@ -123,6 +128,9 @@ THEMES = {
 
 SPECIAL_THEMES = {"auto", "random"}
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+GZH_REF_DIR = os.path.join(ROOT_DIR, "assets", "gzh-design", "references")
+COMPONENT_HEADING_RE = re.compile(r"^##\s+组件\s+\d+\s+(.+)$", re.M)
 
 
 def leaf(text):
@@ -497,6 +505,31 @@ def list_themes():
     print("  %-18s %s" % ("random", "从 6 套公众号主题中随机选择"))
     for key, item in THEMES.items():
         print("  %-18s %s - %s" % (key, item["name"], item["desc"]))
+    if os.path.isdir(GZH_REF_DIR):
+        print("\n完整组件库: %s" % GZH_REF_DIR)
+        print("查看组件清单: python3 scripts/gzh_component_inventory.py .")
+    else:
+        print("\n[提示] 未找到完整组件库目录: %s" % GZH_REF_DIR)
+
+
+def list_components():
+    if not os.path.isdir(GZH_REF_DIR):
+        print("[错误] 未找到完整组件库目录: %s" % GZH_REF_DIR, file=sys.stderr)
+        return 1
+    total = 0
+    for key in THEMES:
+        path = os.path.join(GZH_REF_DIR, "theme-%s.md" % key)
+        if not os.path.isfile(path):
+            print("[缺失] %s -> %s" % (key, path))
+            continue
+        with open(path, encoding="utf-8", errors="replace") as f:
+            components = COMPONENT_HEADING_RE.findall(f.read())
+        total += len(components)
+        print("%s/%s: %d 个组件" % (THEMES[key]["name"], key, len(components)))
+        for item in components:
+            print("  - %s" % item.strip())
+    print("总计: %d 个主题组件" % total)
+    return 0
 
 
 def main():
@@ -507,11 +540,14 @@ def main():
     parser.add_argument("--title", default="", help="文章标题")
     parser.add_argument("--no-preview", action="store_true", help="只生成干净 HTML，不生成复制预览页")
     parser.add_argument("--list-themes", action="store_true", help="列出公众号主题")
+    parser.add_argument("--list-components", action="store_true", help="列出已接入的 gzh-design 完整组件库")
     args = parser.parse_args()
 
     if args.list_themes:
         list_themes()
         return 0
+    if args.list_components:
+        return list_components()
     if not args.md:
         parser.error("缺少 Markdown 文件路径")
     if args.theme not in THEMES and args.theme not in SPECIAL_THEMES:

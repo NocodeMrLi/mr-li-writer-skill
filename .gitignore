@@ -220,3 +220,5 @@ __marimo__/
 # Mr.Li Writer - 核心方法论文件，不对外公开
 SKILL.md
 references/
+!assets/gzh-design/references/
+!assets/gzh-design/references/**

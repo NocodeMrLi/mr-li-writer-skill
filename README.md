@@ -34,7 +34,7 @@
 - **平台原生写作**：公众号写成文章，知乎写成回答/专栏，小红书写成原生笔记，官网/网页写成结构化网页内容
 - **去 AI 味写作**：文章像认真思考的人写出来的，具体、诚实、有判断，没有空洞排比和虚构经历
 - **多体裁覆盖**：支持公众号深度文、知乎回答、小红书笔记、行业解读、实用指南、情感生活等
-- **平台化交付**：公众号使用 6 套内联 HTML 排版主题，小红书使用手机笔记卡片，官网/网页和博客使用对应预览
+- **平台化交付**：公众号使用完整组件库式内联 HTML 排版，小红书使用手机笔记卡片，官网/网页和博客使用对应预览
 
 ---
 
@@ -160,7 +160,7 @@ cp -r mr-li-writer-skill-main ~/.codex/skills/mr-li-writer/
 
 ## 公众号排版主题
 
-公众号排版风格来自 `gzh-design-skill` 的 6 套主题，生成的是可粘贴到公众号编辑器的内联 HTML，并会同时生成带“复制到公众号”按钮的预览页。
+公众号排版风格来自 `gzh-design-skill` 的 6 套主题。项目已内置主题索引、公共组件和完整主题组件库，生成的是可粘贴到公众号编辑器的内联 HTML，并会同时生成带“复制到公众号”按钮的预览页。
 
 | 主题标识 | 中文名 | 适合内容 |
 |---|---|
@@ -172,6 +172,14 @@ cp -r mr-li-writer-skill-main ~/.codex/skills/mr-li-writer/
 | `olive-journal` | 橄榄手记 | 案例复盘、内刊手记、系统说明 |
 
 如果用户没有指定主题，系统会先推荐适合的公众号主题；用户明确说“直接排”“不用问”时会自动匹配。
+
+公众号主题组件库位于：
+
+```text
+assets/gzh-design/references/
+```
+
+组件库覆盖封面、目录、章节标题、正文段落、引用、提示卡、标签、列表、数据/要点卡、图片、FAQ、时间线、作者签名和结尾互动等常用公众号排版区块。正式精排时会按文章类型选择对应主题和组件组合，而不是只做颜色替换。
 
 ---
 
@@ -213,6 +221,14 @@ python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --plat
 - 干净正文片段：用于校验和手动粘贴兜底
 - 复制预览页：浏览器打开后点击“复制到公众号”，再粘贴到公众号编辑器
 
+公众号组件库检查：
+
+```bash
+python3 scripts/gzh_component_inventory.py .
+python3 scripts/component_lint.py .
+python3 scripts/validate_gzh_html.py article_gzh.html
+```
+
 ---
 
 ## 目录结构
@@ -227,10 +243,18 @@ mr-li-writer-skill-main/
 │   ├── lint_article.py
 │   ├── build_html.py
 │   ├── build_gzh_html.py
-│   └── validate_gzh_html.py
+│   ├── validate_gzh_html.py
+│   ├── component_lint.py
+│   ├── gzh_component_inventory.py
+│   └── wrap_gzh_preview.py
 └── assets/
     ├── readme-banner.svg
-    └── gzh-design/      # gzh-design-skill 许可证与来源说明
+    └── gzh-design/
+        ├── LICENSE
+        ├── NOTICE.md
+        ├── assets/
+        │   └── preview-template.html
+        └── references/  # gzh-design-skill 主题索引、公共组件和完整主题组件库
 ```
 
 ---
@@ -239,4 +263,4 @@ mr-li-writer-skill-main/
 
 项目原创部分采用 [MIT](LICENSE) © 2026 NocodeMrLi。
 
-公众号排版相关能力改编自 `gzh-design-skill`，遵循 [GNU AGPL-3.0](assets/gzh-design/LICENSE)，来源说明见 [assets/gzh-design/NOTICE.md](assets/gzh-design/NOTICE.md)。
+公众号排版主题与组件库来自 [gzh-design-skill](https://github.com/isjiamu/gzh-design-skill)，相关排版代码和派生部分遵循 [GNU AGPL-3.0](assets/gzh-design/LICENSE)，来源说明见 [assets/gzh-design/NOTICE.md](assets/gzh-design/NOTICE.md)。
