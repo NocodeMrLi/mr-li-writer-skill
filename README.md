@@ -216,6 +216,8 @@ python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mo
 python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO
 ```
 
+通用 HTML 支持 Markdown 图片语法，例如 `![说明](assets/example.svg)`，会转换为带说明文字的 `<figure><img><figcaption>` 结构。
+
 公众号排版会输出两份文件：
 
 - 干净正文片段：用于校验和手动粘贴兜底
@@ -241,6 +243,7 @@ mr-li-writer-skill-main/
 ├── agents/
 ├── references/
 │   ├── ideation-protocol.md
+│   ├── lint-checks.md
 │   ├── platform-native-protocol.md
 │   ├── writing-rules.md
 │   └── ...

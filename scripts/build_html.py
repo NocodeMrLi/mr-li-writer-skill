@@ -51,14 +51,16 @@ def render_inline(text):
     text = text.replace("&lt;br&gt;", "<br>")
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", text)
-    text = re.sub(
-        r"!\[([^\]]+)\]\((https?://[^)]+)\)",
-        r'<img src="\2" alt="\1" loading="lazy">',
-        text,
-    )
     text = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2" target="_blank" rel="noopener">\1</a>', text)
     text = re.sub(r"`([^`]+?)`", r"<code>\1</code>", text)
     return text
+
+
+def render_image(alt, src):
+    alt = html.escape(alt or "")
+    src = html.escape(src or "")
+    caption = '<figcaption>%s</figcaption>' % alt if alt else ""
+    return '<figure><img src="%s" alt="%s" loading="lazy">%s</figure>' % (src, alt, caption)
 
 
 def is_table_sep(line):
@@ -110,6 +112,13 @@ def md_to_html(md_text):
         if m:
             level = len(m.group(1))
             out.append("<h%d>%s</h%d>" % (level, render_inline(m.group(2)), level))
+            i += 1
+            continue
+
+        # 图片: 支持 http(s) 与相对路径，如 ![说明](assets/a.svg)
+        m_img = re.match(r"^!\[([^\]]*)\]\(([^)]+)\)$", stripped)
+        if m_img:
+            out.append(render_image(m_img.group(1).strip(), m_img.group(2).strip()))
             i += 1
             continue
 
@@ -212,6 +221,9 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
 .toolbar button.ghost:hover{background:rgba(255,255,255,.1);}
 .toolbar button:active{transform:scale(.97);}
 .article img{display:block;max-width:100%;height:auto;margin:24px auto;border-radius:6px;}
+.article figure{margin:24px 0;text-align:center;}
+.article figure img{margin:0 auto 8px;}
+.article figcaption{font-size:13px;line-height:1.6;color:#7a7f87;}
 .article pre{overflow:auto;margin:24px 0;padding:16px;border-radius:6px;background:#202124;color:#f3f3f3;
   font:13px/1.65 Consolas,Menlo,monospace;}
 .article table{display:block;overflow-x:auto;}

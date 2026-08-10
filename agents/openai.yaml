@@ -5,7 +5,9 @@ interface:
     Use $mr-li-writer to evaluate and upgrade a Chinese content idea through web
     research, separate publishing platform from content goal, then research,
     plan, write in platform-native form, humanize, title, and deliver with the
-    platform-specific style. For WeChat Official Account, do not use a generic
+    platform-specific style. Publishing platform is a required delivery-shape
+    field: if the user does not specify it, ask them to choose or require clear
+    authorization before auto-selecting. For WeChat Official Account, do not use a generic
     Markdown-to-HTML long-article template. Read
     assets/gzh-design/references/theme-index.md, then read the selected
     theme-*.md and common-components.md. Assemble the final WeChat HTML from
