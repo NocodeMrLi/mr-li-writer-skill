@@ -364,7 +364,64 @@ def apply_component(snippet, replacements):
             return html_text(replacements.get("编号", "01"))
         return html_text(replacements.get(key, ""))
 
-    return PLACEHOLDER_RE.sub(repl, snippet)
+    rendered = PLACEHOLDER_RE.sub(repl, snippet)
+    return re.sub(r"\n?\s*<!--.*?-->\s*", "\n", rendered, flags=re.S)
+
+
+def zen_hero(title, blocks):
+    intro = pick_first_paragraph(blocks)
+    return """
+<section style="margin:32px 16px 48px;padding:40px 24px;border-top:1px solid #E8E8E8;border-bottom:1px solid #E8E8E8;text-align:center;">
+  <p style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:19px;font-weight:600;color:#2B2B2B;margin:0 0 24px;line-height:1.85;letter-spacing:0.8px;">
+    <span leaf="">%s</span>
+  </p>
+  <p style="font-size:12px;color:#A3A3A3;margin:0;letter-spacing:1.5px;">
+    <span leaf="">%s</span>
+  </p>
+</section>""" % (html_text(title), html_text("— " + short_text(intro, 22)))
+
+
+def zen_section_title(text, number):
+    label = "∞ · POSTSCRIPT" if re.search(r"(结语|总结|最后|尾声|写在最后)", text) else "%02d · CHAPTER" % number
+    return """
+<section style="margin-top:64px;margin-bottom:32px;padding:0 16px;">
+  <p style="font-size:10px;color:#4A5D52;font-weight:600;letter-spacing:4px;margin:0 0 10px;text-transform:uppercase;">
+    <span leaf="">%s</span>
+  </p>
+  <h3 style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#2B2B2B;margin:0 0 16px;letter-spacing:0.5px;line-height:1.4;">
+    <span leaf="">%s</span>
+  </h3>
+  <section style="width:40px;height:2px;background:#4A5D52;"><span leaf=""><br></span></section>
+</section>""" % (html_text(label), html_text(text))
+
+
+def zen_paragraph(text):
+    return """
+<p style="margin-bottom:26px;font-size:15px;line-height:1.9;text-align:justify;color:#525252;padding:0 16px;">
+  <span leaf="">%s</span>
+</p>""" % html_text(text)
+
+
+def zen_quote(text):
+    return """
+<section style="margin:40px 16px;padding:36px 20px;border-top:1px solid #E8E8E8;border-bottom:1px solid #E8E8E8;text-align:center;">
+  <p style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:17px;font-weight:600;color:#2B2B2B;margin:0;line-height:1.9;letter-spacing:0.8px;">
+    <span leaf="">「%s」</span>
+  </p>
+</section>""" % html_text(text.strip("「」"))
+
+
+def zen_list(items, ordered=False):
+    rows = []
+    for idx, item in enumerate(items, 1):
+        label = "%02d" % idx if ordered else "•"
+        rows.append(
+            '<section style="display:flex;align-items:baseline;padding:12px 0;border-bottom:1px solid #E8E8E8;">'
+            '<p style="font-size:11px;color:#4A5D52;font-weight:600;letter-spacing:1px;margin:0;min-width:28px;"><span leaf="">%s</span></p>'
+            '<p style="font-size:14px;color:#2B2B2B;margin:0;line-height:1.7;padding-left:12px;"><span leaf="">%s</span></p>'
+            '</section>' % (html_text(label), html_text(item))
+        )
+    return '<section style="margin:0 16px 32px;border-top:1px solid #E8E8E8;">%s</section>' % "".join(rows)
 
 
 def component_container(components, theme):
@@ -376,6 +433,8 @@ def component_container(components, theme):
 
 
 def component_hero(theme_key, components, title, blocks):
+    if theme_key == "zen-whitespace":
+        return zen_hero(title, blocks)
     intro = pick_first_paragraph(blocks)
     line1, line2 = split_title(title, 13)
     today = __import__("datetime").date.today().strftime("%Y.%m.%d")
@@ -467,6 +526,8 @@ FOOTER_COMPONENT = {
 
 
 def component_section_title(theme_key, components, title, number):
+    if theme_key == "zen-whitespace":
+        return zen_section_title(title, number)
     snippet = select_code(components, SECTION_COMPONENT.get(theme_key, 3), 0)
     if not snippet:
         return ""
@@ -483,6 +544,8 @@ def component_section_title(theme_key, components, title, number):
 
 
 def component_paragraph(theme_key, components, text):
+    if theme_key == "zen-whitespace":
+        return zen_paragraph(text)
     snippet = select_code(components, PARAGRAPH_COMPONENT.get(theme_key, 5), 0)
     if not snippet:
         return paragraph(text, THEMES[theme_key])
@@ -497,6 +560,8 @@ def component_paragraph(theme_key, components, text):
 
 
 def component_subheading(theme_key, components, text, number):
+    if theme_key == "zen-whitespace":
+        return zen_paragraph("【%s】" % text)
     if theme_key == "olive-journal":
         snippet = select_code(components, 9, 0)
         return apply_component(snippet, {"前导词": "POINT %02d" % number, "标题": text, "说明": ""})
@@ -510,6 +575,8 @@ def component_subheading(theme_key, components, text, number):
 
 
 def component_quote(theme_key, components, text):
+    if theme_key == "zen-whitespace":
+        return zen_quote(text)
     snippet = select_code(components, QUOTE_COMPONENT.get(theme_key, 9), 0)
     if not snippet:
         return quote(text, THEMES[theme_key])
@@ -527,6 +594,8 @@ def component_quote(theme_key, components, text):
 
 
 def component_list(theme_key, components, items, ordered=False):
+    if theme_key == "zen-whitespace":
+        return zen_list(items, ordered=ordered)
     if theme_key == "olive-journal":
         rows = "".join(
             '<li style="margin:0 0 8px;font-size:14px;line-height:1.8;color:#4d4f46;"><span leaf="">%s</span></li>' % html_text(item)
