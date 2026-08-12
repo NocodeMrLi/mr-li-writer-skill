@@ -53,6 +53,17 @@ EVIDENCE_PHRASES = (
     "公开资料显示",
 )
 
+PROCESS_LEAK_PATTERNS = (
+    (r"(抓取|爬取|采集)(到|自|于|时间|结果|数据|页面|信息)?", "出现“抓取/爬取/采集”等后台采集动作词"),
+    (r"(检索|搜索|查询)(结果|显示|发现|到|出来)", "出现“检索/搜索结果”等生产过程表述"),
+    (r"(我|我们)?(通过|使用|借助).{0,12}(搜索引擎|爬虫|脚本|工具|模型|AI|大模型|提示词|prompt)", "暴露搜索、工具、模型或提示词过程"),
+    (r"(由|通过).{0,12}(AI|模型|大模型|系统).{0,12}(生成|整理|撰写|输出)", "暴露 AI/模型生成过程"),
+    (r"(资料|数据|信息)(抓取|爬取|采集|清洗|抽取|汇总|整理)(时间|结果|口径)?", "把内部资料处理动作写进了正文"),
+    (r"(本次|这次).{0,8}(整理|检索|搜索|抓取|采集).{0,12}(发现|得到|结果)", "出现任务执行过程口吻"),
+    (r"(截至|截止)\s*\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)", "时间备注使用了后台动作词"),
+    (r"\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)", "时间备注使用了后台动作词"),
+)
+
 OVER_LITERARY_PHRASES = (
     "命运的齿轮",
     "时代的洪流",
@@ -173,6 +184,17 @@ def main():
         count = text.count(phrase)
         if count:
             warnings.append("发现疑似模板化表达“%s” %d 次。" % (phrase, count))
+
+    process_leaks = []
+    for pattern, message in PROCESS_LEAK_PATTERNS:
+        matches = re.findall(pattern, text, re.I)
+        if matches:
+            process_leaks.append(message)
+    if process_leaks:
+        warnings.append(
+            "正文疑似暴露内容生产/资料处理过程：%s。请改为读者可接受的来源口径，如“信息截至 YYYY-MM-DD”“据官网当前页面”“公开资料显示”，不要出现抓取、爬取、采集、检索结果、AI 生成、提示词等后台动作。"
+            % "；".join(dict.fromkeys(process_leaks))
+        )
 
     if re.search(r"我亲自|我亲身|我翻了[一二三四五六七八九十0-9]+份|我采访过", text):
         warnings.append("发现可能未经证实的第一人称经历或采访表达，请核对来源。")

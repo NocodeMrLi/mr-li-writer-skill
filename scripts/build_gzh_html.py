@@ -21,6 +21,29 @@ import subprocess
 import sys
 
 
+PROCESS_LEAK_PATTERNS = (
+    r"(抓取|爬取|采集)(到|自|于|时间|结果|数据|页面|信息)?",
+    r"(检索|搜索|查询)(结果|显示|发现|到|出来)",
+    r"(我|我们)?(通过|使用|借助).{0,12}(搜索引擎|爬虫|脚本|工具|模型|AI|大模型|提示词|prompt)",
+    r"(由|通过).{0,12}(AI|模型|大模型|系统).{0,12}(生成|整理|撰写|输出)",
+    r"(资料|数据|信息)(抓取|爬取|采集|清洗|抽取|汇总|整理)(时间|结果|口径)?",
+    r"(本次|这次).{0,8}(整理|检索|搜索|抓取|采集).{0,12}(发现|得到|结果)",
+    r"(截至|截止)\s*\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)",
+    r"\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)",
+)
+
+
+def warn_process_leaks(text, label="正文"):
+    for pattern in PROCESS_LEAK_PATTERNS:
+        if re.search(pattern, text, re.I):
+            print(
+                "[警告] %s疑似暴露内容生产/资料处理过程；请改为“信息截至 YYYY-MM-DD”“据官网当前页面”“公开资料显示”等读者口径，避免抓取/爬取/采集/检索结果/AI 生成/提示词等词。"
+                % label,
+                file=sys.stderr,
+            )
+            return
+
+
 THEMES = {
     "moyu-green": {
         "name": "摸鱼绿",
@@ -969,6 +992,7 @@ def main():
         return 1
     with open(md_path, encoding="utf-8") as f:
         md_text = f.read()
+    warn_process_leaks(md_text)
 
     title = args.title or os.path.splitext(os.path.basename(md_path))[0]
     theme_key, reason = resolve_theme(args.theme, md_text, title)
