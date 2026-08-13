@@ -5,6 +5,13 @@
 # Mr.Li Writer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![AI Writing](https://img.shields.io/badge/AI-Writing-blue)
+![中文](https://img.shields.io/badge/中文-内容-red)
+![Writing Assistant](https://img.shields.io/badge/Writing-Assistant-9cf)
+![Markdown](https://img.shields.io/badge/Markdown-✓-green)
+![HTML](https://img.shields.io/badge/HTML-Single--File-orange)
+![WeChat](https://img.shields.io/badge/WeChat-公众号-07c160)
+![Zhihu](https://img.shields.io/badge/Zhihu-知乎-0084ff)
 [![WeChat Layout: AGPL-3.0](https://img.shields.io/badge/WeChat%20Layout-AGPL--3.0-blue.svg)](assets/gzh-design/LICENSE)
 
 一项去 AI 味的中文内容创作 Skill。  
