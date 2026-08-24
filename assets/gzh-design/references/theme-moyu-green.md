@@ -172,7 +172,7 @@
 
 ## 组件 3 目录 toc-scroll（横向滚动目录）
 
-2 个及以上章节时生成。第一个卡片绿色高亮，最后一个固定为"写在最后"（PART ///）。
+2 个及以上章节时生成。按实际章节重复卡片，第一个卡片绿色高亮；只有原文确有结语/总结章时才使用“写在最后”变体。章节标题超过 12 个汉字时优先缩写为不失真的短标题；仍较长时允许卡片向下增高，不缩小字号、不截断正文。
 
 ```html
 <section style="margin:0 20px 32px;">
@@ -184,13 +184,13 @@
       <span leaf="">👉 滑动</span>
     </p>
   </section>
-  <section style="overflow-x:scroll;-webkit-overflow-scrolling:touch;white-space:nowrap;padding-bottom:8px;">
+  <section style="overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;padding-bottom:8px;">
     <!-- 第一个（当前高亮，绿色背景） -->
-    <section style="display:inline-block;white-space:normal;vertical-align:top;width:110px;background:linear-gradient(135deg,#059669,#10B981);border-radius:12px;padding:12px;margin-right:8px;">
+    <section style="display:inline-block;white-space:normal;vertical-align:top;width:42vw;min-width:140px;max-width:180px;box-sizing:border-box;background:linear-gradient(135deg,#059669,#10B981);border-radius:12px;padding:12px;margin-right:8px;">
       <p style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:1px;margin:0 0 5px;">
-        <span leaf="">PART 01</span>
+        <span leaf="">PART {{编号}}</span>
       </p>
-      <p style="font-size:13px;font-weight:800;color:#fff;margin:0 0 3px;">
+      <p style="font-size:13px;font-weight:800;color:#fff;margin:0 0 3px;line-height:1.5;min-height:39px;word-break:break-word;overflow-wrap:anywhere;">
         <span leaf="">{{章节名}}</span>
       </p>
       <p style="font-size:10px;color:rgba(255,255,255,0.7);margin:0;">
@@ -198,11 +198,11 @@
       </p>
     </section>
     <!-- 后续章节（白色背景），按需重复 -->
-    <section style="display:inline-block;white-space:normal;vertical-align:top;width:110px;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px;margin-right:8px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+    <section style="display:inline-block;white-space:normal;vertical-align:top;width:42vw;min-width:140px;max-width:180px;box-sizing:border-box;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px;margin-right:8px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
       <p style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:1px;margin:0 0 5px;">
         <span leaf="">PART 02</span>
       </p>
-      <p style="font-size:13px;font-weight:800;color:#111827;margin:0 0 3px;">
+      <p style="font-size:13px;font-weight:800;color:#111827;margin:0 0 3px;line-height:1.5;min-height:39px;word-break:break-word;overflow-wrap:anywhere;">
         <span leaf="">{{章节名}}</span>
       </p>
       <p style="font-size:10px;color:#9CA3AF;margin:0;">
@@ -210,11 +210,11 @@
       </p>
     </section>
     <!-- 最后一个（写在最后） -->
-    <section style="display:inline-block;white-space:normal;vertical-align:top;width:110px;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+    <section style="display:inline-block;white-space:normal;vertical-align:top;width:42vw;min-width:140px;max-width:180px;box-sizing:border-box;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
       <p style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:1px;margin:0 0 5px;">
         <span leaf="">PART ///</span>
       </p>
-      <p style="font-size:13px;font-weight:800;color:#111827;margin:0 0 3px;">
+      <p style="font-size:13px;font-weight:800;color:#111827;margin:0 0 3px;line-height:1.5;min-height:39px;word-break:break-word;overflow-wrap:anywhere;">
         <span leaf="">写在最后</span>
       </p>
       <p style="font-size:10px;color:#9CA3AF;margin:0;">
@@ -236,7 +236,7 @@
   <section style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
     <section style="text-align:center;flex-shrink:0;">
       <p style="margin:0;font-size:28px;font-weight:900;color:#059669;line-height:1;letter-spacing:-2px;">
-        <span leaf="">{{01}}</span>
+        <span leaf="">{{编号}}</span>
       </p>
       <p style="margin:0;font-size:8px;font-weight:700;color:#D1D5DB;letter-spacing:2px;">
         <span leaf="">PART</span>
@@ -571,7 +571,7 @@
 ```html
 <section style="background:#F9FAFB;padding:16px;border-radius:12px;border:1px solid #F3F4F6;margin-bottom:24px;">
   <section style="display:flex;align-items:stretch;justify-content:center;gap:6px;">
-    <section style="flex:1;text-align:center;padding:10px 8px;background:linear-gradient(135deg,#059669,#10B981);border-radius:8px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;text-align:center;padding:10px 8px;background:linear-gradient(135deg,#059669,#10B981);border-radius:8px;word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:13px;font-weight:800;color:#fff;margin:0 0 3px;">
         <span leaf="">{{步骤1标题}}</span>
       </p>
@@ -582,7 +582,7 @@
     <section style="display:flex;align-items:center;color:#D1D5DB;font-size:14px;padding:0 4px;">
       <span leaf="">→</span>
     </section>
-    <section style="flex:1;text-align:center;padding:10px 8px;background:#fff;border:1px solid #E5E7EB;border-radius:8px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;text-align:center;padding:10px 8px;background:#fff;border:1px solid #E5E7EB;border-radius:8px;word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:13px;font-weight:800;color:#111827;margin:0 0 3px;">
         <span leaf="">{{步骤2标题}}</span>
       </p>
@@ -593,7 +593,7 @@
     <section style="display:flex;align-items:center;color:#D1D5DB;font-size:14px;padding:0 4px;">
       <span leaf="">→</span>
     </section>
-    <section style="flex:1;text-align:center;padding:10px 8px;background:#fff;border:1px solid #A7F3D0;border-radius:8px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;text-align:center;padding:10px 8px;background:#fff;border:1px solid #A7F3D0;border-radius:8px;word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:13px;font-weight:800;color:#059669;margin:0 0 3px;">
         <span leaf="">{{步骤3标题}}</span>
       </p>
@@ -615,7 +615,7 @@
 ```html
 <section style="background:#F9FAFB;padding:16px;border-radius:12px;border:1px solid #F3F4F6;margin-bottom:28px;">
   <section style="display:flex;align-items:stretch;justify-content:center;gap:6px;">
-    <section style="flex:1;text-align:center;padding:10px 8px;background:linear-gradient(135deg,#059669,#10B981);border-radius:8px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;text-align:center;padding:10px 8px;background:linear-gradient(135deg,#059669,#10B981);border-radius:8px;word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:13px;font-weight:800;color:#fff;margin:0 0 3px;">
         <span leaf="">{{卡片1标题}}</span>
       </p>
@@ -623,7 +623,7 @@
         <span leaf="">{{卡片1描述}}</span>
       </p>
     </section>
-    <section style="flex:1;text-align:center;padding:10px 8px;background:#fff;border:1px solid #E5E7EB;border-radius:8px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;text-align:center;padding:10px 8px;background:#fff;border:1px solid #E5E7EB;border-radius:8px;word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:13px;font-weight:800;color:#111827;margin:0 0 3px;">
         <span leaf="">{{卡片2标题}}</span>
       </p>
@@ -631,7 +631,7 @@
         <span leaf="">{{卡片2描述}}</span>
       </p>
     </section>
-    <section style="flex:1;text-align:center;padding:10px 8px;background:#fff;border:1px solid #E5E7EB;border-radius:8px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;text-align:center;padding:10px 8px;background:#fff;border:1px solid #E5E7EB;border-radius:8px;word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:13px;font-weight:800;color:#111827;margin:0 0 3px;">
         <span leaf="">{{卡片3标题}}</span>
       </p>
@@ -655,7 +655,7 @@
       <span leaf=""><br></span>
     </section>
   </section>
-  <section style="flex:1;padding-bottom:12px;">
+  <section style="flex:1;min-width:0;padding-bottom:12px;word-break:break-word;overflow-wrap:anywhere;">
     <section style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
       <span style="display:inline-block;background:#111827;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;"><span leaf="">{{CASE 01}}</span></span>
       <h4 style="font-size:15px;font-weight:800;color:#111827;margin:0;">
@@ -737,19 +737,19 @@
 <section style="margin-bottom:24px;">
   <section style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
     <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#059669;color:#fff;font-size:11px;font-weight:700;border-radius:50%;flex-shrink:0;margin-top:2px;"><span leaf="">1</span></span>
-    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;">
+    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;">
       <span leaf="">{{列表项内容}}</span>
     </p>
   </section>
   <section style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
     <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#059669;color:#fff;font-size:11px;font-weight:700;border-radius:50%;flex-shrink:0;margin-top:2px;"><span leaf="">2</span></span>
-    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;">
+    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;">
       <span leaf="">{{列表项内容}}</span>
     </p>
   </section>
   <section style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
     <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#059669;color:#fff;font-size:11px;font-weight:700;border-radius:50%;flex-shrink:0;margin-top:2px;"><span leaf="">3</span></span>
-    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;">
+    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;">
       <span leaf="">{{列表项内容}}</span>
     </p>
   </section>

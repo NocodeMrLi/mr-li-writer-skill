@@ -77,22 +77,22 @@
     <section style="color:#fffef8;font-size:11px;letter-spacing:2px;"><span leaf="">★★★★★</span></section>
   </section>
   <section style="display:flex;">
-    <section style="flex:1;padding:24px 20px;border-right:2px dashed #A7F3D0;">
-      <section style="font-size:24px;font-weight:900;color:#1a1a1a;letter-spacing:0.5px;margin-bottom:4px;text-shadow:0.5px 0 0 #1a1a1a;"><span leaf="">{{大标题}}</span></section>
-      <section style="font-size:14px;color:#666;letter-spacing:1px;margin-bottom:20px;"><span leaf="">{{副标题}}</span></section>
+    <section style="flex:1;min-width:0;box-sizing:border-box;padding:24px 20px;border-right:2px dashed #A7F3D0;word-break:break-word;overflow-wrap:anywhere;">
+      <section style="font-size:24px;font-weight:900;color:#1a1a1a;letter-spacing:0.5px;margin-bottom:4px;text-shadow:0.5px 0 0 #1a1a1a;word-break:break-word;overflow-wrap:anywhere;"><span leaf="">{{大标题}}</span></section>
+      <section style="font-size:14px;color:#666;letter-spacing:1px;margin-bottom:20px;word-break:break-word;overflow-wrap:anywhere;"><span leaf="">{{副标题}}</span></section>
       <section style="border-top:1px dashed #A7F3D0;margin-bottom:16px;"><span leaf=""><br></span></section>
       <section style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
         <!-- 有作者头像图时插入 <img> 到下面这个圆框里；无头像时整块删除该 section -->
         <section style="width:48px;height:48px;border-radius:50%;overflow:hidden;border:2px solid #059669;flex-shrink:0;"><span leaf=""><br></span></section>
-        <section>
+        <section style="min-width:0;word-break:break-word;overflow-wrap:anywhere;">
           <section style="font-size:15px;color:#1a1a1a;font-weight:700;"><span leaf="">{{作者名}}</span></section>
           <section style="font-size:12px;color:#888;"><span leaf="">{{作者身份}}</span></section>
         </section>
       </section>
-      <section style="font-size:13px;color:#555;line-height:1.8;padding:12px;background:#F0FDF4;border:1px solid #A7F3D0;">
+      <section style="font-size:13px;color:#555;line-height:1.8;padding:12px;background:#F0FDF4;border:1px solid #A7F3D0;word-break:break-word;overflow-wrap:anywhere;">
         <span leaf="">{{简介段落}}</span>
       </section>
-      <section style="display:flex;gap:8px;margin-top:16px;">
+      <section style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
         <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签1}}</span></section>
         <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签2}}</span></section>
         <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签3}}</span></section>

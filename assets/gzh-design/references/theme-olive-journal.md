@@ -502,12 +502,12 @@
 <section style="margin-top:24px;">
   <section style="background:#eeefe9;padding:16px;border-radius:6px;border:1px solid #bfc1b7;font-family:'IBM Plex Sans',-apple-system,sans-serif;">
     <section style="display:flex;align-items:stretch;justify-content:center;gap:8px;">
-      <section style="flex:1;text-align:center;padding:10px 8px;background:#1e1f23;border-radius:6px;border:1px solid #23251d;">
+      <section style="flex:1;min-width:0;box-sizing:border-box;text-align:center;padding:10px 8px;background:#1e1f23;border-radius:6px;border:1px solid #23251d;word-break:break-word;overflow-wrap:anywhere;">
         <p style="font-size:13px;font-weight:800;color:#fff;margin:0 0 3px;"><span leaf="">{{左侧标题}}</span></p>
         <p style="font-size:10px;color:rgba(255,255,255,0.75);margin:0;line-height:1.5;"><span leaf="">{{左侧说明}}</span></p>
       </section>
       <section style="display:flex;align-items:center;color:#bfc1b7;font-size:14px;padding:0 4px;"><span leaf="">vs</span></section>
-      <section style="flex:1;text-align:center;padding:10px 8px;background:#fdfdf8;border:1px solid #bfc1b7;border-radius:6px;">
+      <section style="flex:1;min-width:0;box-sizing:border-box;text-align:center;padding:10px 8px;background:#fdfdf8;border:1px solid #bfc1b7;border-radius:6px;word-break:break-word;overflow-wrap:anywhere;">
         <p style="font-size:13px;font-weight:800;color:#23251d;margin:0 0 3px;"><span leaf="">{{右侧标题}}</span></p>
         <p style="font-size:10px;color:#65675e;margin:0;line-height:1.5;"><span leaf="">{{右侧说明}}</span></p>
       </section>

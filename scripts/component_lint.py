@@ -38,10 +38,21 @@ CHECKS = [
 # 四周虚线框：border: ... dashed（不含方向，如 border-left dashed 不算）
 FOURSIDE_DASHED = re.compile(r"border\s*:\s*[^;{}]*dashed", re.I)
 CENTERED = re.compile(r"text-align\s*:\s*center", re.I)
+COMPONENT_BLOCK = re.compile(
+    r"^##\s+组件\s+\d+\s+(.+?)\n(.*?)(?=^##\s+组件\s+\d+\s+|^##\s+完整文章模板骨架|\Z)",
+    re.M | re.S,
+)
+PUBLIC_PROCESS_LABEL = re.compile(r"公众号排版|深度文章|中文内容创作\s*Skill", re.I)
+NARROW_FIXED_CARD = re.compile(r"width\s*:\s*(?:[6-9]\d|1[01]\d|120)px", re.I)
+ADAPTIVE_CARD_COMPONENT = re.compile(
+    r"数据|要点卡|对比|布局组件|flow-cards|three-col|ticket-cover|票据封面",
+    re.I,
+)
 
 
 def lint_file(path):
-    text = open(path, encoding="utf-8", errors="replace").read()
+    with open(path, encoding="utf-8", errors="replace") as source:
+        text = source.read()
     name = os.path.basename(path).replace("公众号排版组件库 —— ", "").replace(".md", "")
     found = []  # (level, msg)
     seen = set()
@@ -58,6 +69,22 @@ def lint_file(path):
                 add(level, msg)
         # 原 gzh-design 主题中部分引用框、亮点卡和素材占位会刻意使用
         # 四周虚线作为设计语言；这里不把 dashed 本身视为源头问题。
+
+    for match in COMPONENT_BLOCK.finditer(text):
+        title, body = match.group(1), match.group(2)
+        snippets = re.findall(r"```html\s*\n(.*?)```", body, re.S)
+        html = "\n".join(snippets)
+        if re.search(r"章节标题|section-title|chapter-title", title, re.I):
+            if "{{编号}}" not in html:
+                add("ERROR", "章节标题组件未使用 {{编号}} 动态占位，容易让所有章节都保留 01")
+        if re.search(r"目录|导读|toc", title, re.I):
+            if NARROW_FIXED_CARD.search(html) and "overflow-wrap:anywhere" not in html:
+                add("ERROR", "目录/导读含窄固定宽度卡片但没有长文本换行兜底")
+        if ADAPTIVE_CARD_COMPONENT.search(title) and "flex:1" in html:
+            if "min-width:0" not in html or "overflow-wrap:anywhere" not in html:
+                add("ERROR", "多列卡片缺少 min-width:0 或 overflow-wrap:anywhere，长文本可能溢出")
+        if PUBLIC_PROCESS_LABEL.search(html):
+            add("ERROR", "组件可见文本含公众号排版/深度文章/内容创作 Skill 等生产标签")
     return name, found
 
 

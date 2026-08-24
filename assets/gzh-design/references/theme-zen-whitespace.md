@@ -126,10 +126,10 @@
 ```html
 <section style="margin-top: 64px;margin-bottom: 32px;padding: 0 16px;">
   <p style="font-size: 10px;color: #4A5D52;font-weight: 600;letter-spacing: 4px;margin: 0 0 10px;text-transform: uppercase;">
-    <span leaf="">01 · CHAPTER ONE</span>
+    <span leaf="">{{编号}} · {{ENGLISH TAG}}</span>
   </p>
   <h3 style="font-family: 'Noto Serif SC', Georgia, 'Times New Roman', serif;font-size: 22px;font-weight: 700;color: #2B2B2B;margin: 0 0 16px;letter-spacing: 0.5px;line-height: 1.4;">
-    <span leaf="">中文章节大标题</span>
+    <span leaf="">{{中文章节标题}}</span>
   </h3>
   <section style="width: 40px;height: 2px;background: #4A5D52;">
     <span leaf=""><br></span>

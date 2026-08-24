@@ -64,6 +64,12 @@ PROCESS_LEAK_PATTERNS = (
     (r"\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)", "时间备注使用了后台动作词"),
 )
 
+COMMERCIAL_SOURCE_EXPOSURE_PATTERNS = (
+    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:51CTO|希赛网)",
+    r"(?:51CTO|希赛网).{0,30}(?:公开汇总|数据|资料|统计|显示)",
+    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训|网校|辅导|题库|课堂)",
+)
+
 OVER_LITERARY_PHRASES = (
     "命运的齿轮",
     "时代的洪流",
@@ -146,6 +152,11 @@ def parse_args():
         action="store_true",
         help="检查高完成度增强是否走向过度文学化、抽象化或缺少记忆点",
     )
+    parser.add_argument(
+        "--allow-commercial-source-names",
+        action="store_true",
+        help="文章本身在评测/介绍相关商业机构时，允许正文显名并要求说明利益关系",
+    )
     return parser.parse_args()
 
 
@@ -194,6 +205,13 @@ def main():
         warnings.append(
             "正文疑似暴露内容生产/资料处理过程：%s。请改为读者可接受的来源口径，如“信息截至 YYYY-MM-DD”“据官网当前页面”“公开资料显示”，不要出现抓取、爬取、采集、检索结果、AI 生成、提示词等后台动作。"
             % "；".join(dict.fromkeys(process_leaks))
+        )
+
+    if not args.allow_commercial_source_names and any(
+        re.search(pattern, text, re.I) for pattern in COMMERCIAL_SOURCE_EXPOSURE_PATTERNS
+    ):
+        warnings.append(
+            "正文疑似把商业相关第三方机构写成资料背书。硬信息应优先使用官方来源；第三方仅作辅助核对时，请改为“相关机构公开汇总”，不要在正文显名宣传。"
         )
 
     if re.search(r"我亲自|我亲身|我翻了[一二三四五六七八九十0-9]+份|我采访过", text):

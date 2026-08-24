@@ -54,6 +54,11 @@ PROCESS_LEAK_PATTERNS = (
     r"\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)",
 )
 
+COMMERCIAL_SOURCE_EXPOSURE = re.compile(
+    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:51CTO|希赛网|(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训|网校|辅导|题库|课堂))",
+    re.I,
+)
+
 
 def warn_process_leaks(text, label="正文"):
     hits = []
@@ -63,6 +68,14 @@ def warn_process_leaks(text, label="正文"):
     if hits:
         sys.stderr.write(
             "[警告] %s疑似暴露内容生产/资料处理过程；请改为“信息截至 YYYY-MM-DD”“据官网当前页面”“公开资料显示”等读者口径，避免抓取/爬取/采集/检索结果/AI 生成/提示词等词。\n"
+            % label
+        )
+
+
+def warn_commercial_source_exposure(text, label="正文"):
+    if COMMERCIAL_SOURCE_EXPOSURE.search(text):
+        sys.stderr.write(
+            "[警告] %s疑似把商业相关第三方机构写成资料背书；请优先使用官方来源，第三方仅作辅助核对时改为“相关机构公开汇总”。\n"
             % label
         )
 
@@ -529,6 +542,7 @@ def main():
     with open(md_path, "r", encoding="utf-8") as f:
         md_text = f.read()
     warn_process_leaks(md_text)
+    warn_commercial_source_exposure(md_text)
 
     title = args.title or os.path.splitext(os.path.basename(md_path))[0]
     delivery_style, delivery_reason = resolve_delivery_style(

@@ -32,6 +32,11 @@ PROCESS_LEAK_PATTERNS = (
     r"\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)",
 )
 
+COMMERCIAL_SOURCE_EXPOSURE = re.compile(
+    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:51CTO|希赛网|(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训|网校|辅导|题库|课堂))",
+    re.I,
+)
+
 
 def warn_process_leaks(text, label="正文"):
     for pattern in PROCESS_LEAK_PATTERNS:
@@ -42,6 +47,14 @@ def warn_process_leaks(text, label="正文"):
                 file=sys.stderr,
             )
             return
+
+
+def warn_commercial_source_exposure(text, label="正文"):
+    if COMMERCIAL_SOURCE_EXPOSURE.search(text):
+        print(
+            "[警告] %s疑似把商业相关第三方机构写成资料背书；请优先使用官方来源，第三方仅作辅助核对时改为“相关机构公开汇总”。" % label,
+            file=sys.stderr,
+        )
 
 
 THEMES = {
@@ -299,6 +312,23 @@ def short_text(text, limit=34):
     return clean[:limit].rstrip("，。；、 ") + "…"
 
 
+def public_topic_tags(title, blocks):
+    """Return reader-facing topic labels, never production metadata."""
+    text = "%s\n%s" % (title, "\n".join(block[2] if block[0] == "heading" else str(block[1]) for block in blocks if len(block) > 1))
+    rules = (
+        (("教程", "安装", "步骤", "指南", "怎么", "如何"), ("实用指南", "行动清单")),
+        (("测评", "对比", "选择", "避坑"), ("选择参考", "避坑提醒")),
+        (("复盘", "案例", "实战"), ("案例复盘", "经验总结")),
+        (("科技", "AI", "产品", "设计"), ("科技观察", "产品思考")),
+        (("报名", "考试", "政策", "时间"), ("信息指南", "时间提醒")),
+        (("关系", "情感", "生活", "成长"), ("生活观察", "关系思考")),
+    )
+    for keywords, labels in rules:
+        if any(keyword.lower() in text.lower() for keyword in keywords):
+            return labels
+    return "问题拆解", "方法参考"
+
+
 def pick_first_paragraph(blocks):
     for block in blocks:
         if block[0] == "paragraph":
@@ -330,7 +360,8 @@ def load_theme_components(theme_key):
     path = os.path.join(GZH_REF_DIR, "theme-%s.md" % theme_key)
     if not os.path.isfile(path):
         return {}
-    text = open(path, encoding="utf-8", errors="replace").read()
+    with open(path, encoding="utf-8", errors="replace") as source:
+        text = source.read()
     components = {}
     for match in COMPONENT_BLOCK_RE.finditer(text):
         number = int(match.group(1))
@@ -460,13 +491,17 @@ def component_hero(theme_key, components, title, blocks):
         return zen_hero(title, blocks)
     intro = pick_first_paragraph(blocks)
     line1, line2 = split_title(title, 13)
+    highlight_len = min(4, max(2, len(line1) // 3)) if len(line1) > 2 else 0
+    line1_text = line1[:-highlight_len] if highlight_len else line1
+    line1_highlight = line1[-highlight_len:] if highlight_len else ""
     today = __import__("datetime").date.today().strftime("%Y.%m.%d")
+    topic_tag_1, topic_tag_2 = public_topic_tags(title, blocks)
     base = {
         "标题": title,
         "主标题": title,
-        "主标题行1": line1 or title,
-        "主标题行2": line2 or "写得更清楚",
-        "绿色高亮词": line2[:6] if line2 else "更清楚",
+        "主标题行1": line1_text or title,
+        "主标题行2": line2,
+        "绿色高亮词": line1_highlight,
         "强调词": "判断",
         "顶部标签": "MR.LI WRITER",
         "内刊标签": "MR.LI WRITER",
@@ -476,16 +511,16 @@ def component_hero(theme_key, components, title, blocks):
         "副标题说明": short_text(intro, 34),
         "底部左侧文字": short_text(pick_last_paragraph(blocks), 30),
         "底部摘要": short_text(pick_last_paragraph(blocks), 30),
-        "标签1": "公众号排版",
-        "标签2": "深度文章",
-        "#标签1": "#写作",
-        "#标签2": "#公众号",
-        "#标签3": "#排版",
+        "标签1": topic_tag_1,
+        "标签2": topic_tag_2,
+        "#标签1": "#%s" % topic_tag_1,
+        "#标签2": "#%s" % topic_tag_2,
+        "#标签3": "#阅读笔记",
         "大标题": title,
         "副标题": short_text(intro, 28),
         "简介段落": short_text(intro, 38),
         "作者名": "Mr.Li Writer",
-        "作者身份": "中文内容创作 Skill",
+        "作者身份": "写作与内容观察",
         "等级": "精选",
         "编号": "001",
         "竖排文字": "WRITER",
@@ -500,13 +535,38 @@ def component_toc(theme_key, components, headings):
     selected = [h[2] for h in headings if h[1] == 2][:3]
     if len(selected) < 2:
         return ""
-    if theme_key in {"moyu-green", "red-white", "graphite-minimal"}:
+    if theme_key == "moyu-green":
+        cards = []
+        for idx, text in enumerate(selected, 1):
+            active = idx == 1
+            background = "linear-gradient(135deg,#059669,#10B981)" if active else "#fff"
+            color = "#fff" if active else "#111827"
+            muted = "rgba(255,255,255,0.72)" if active else "#9CA3AF"
+            border = "border:1px solid #E5E7EB;" if not active else ""
+            shadow = "" if active else "box-shadow:0 2px 6px rgba(0,0,0,0.04);"
+            cards.append(
+                '<section style="display:inline-block;white-space:normal;vertical-align:top;width:42vw;min-width:140px;max-width:180px;box-sizing:border-box;'
+                'background:%s;%sborder-radius:12px;padding:12px;margin-right:8px;%s">'
+                '<p style="font-size:9px;font-weight:700;color:%s;letter-spacing:1px;margin:0 0 5px;"><span leaf="">PART %02d</span></p>'
+                '<p style="font-size:13px;font-weight:800;color:%s;margin:0 0 3px;line-height:1.5;min-height:39px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;">'
+                '<span leaf="">%s</span></p>'
+                '<p style="font-size:10px;color:%s;margin:0;"><span leaf="">CHAPTER %02d</span></p>'
+                '</section>'
+                % (background, border, shadow, muted, idx, color, html_text(short_text(text, 24)), muted, idx)
+            )
+        return (
+            '<section style="margin:0 20px 32px;">'
+            '<section style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+            '<p style="font-size:10px;color:#9CA3AF;margin:0;letter-spacing:2px;font-weight:600;"><span leaf="">%02d PARTS</span></p>'
+            '<p style="font-size:10px;color:#9CA3AF;margin:0;"><span leaf="">滑动查看</span></p>'
+            '</section>'
+            '<section style="overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;padding-bottom:8px;">%s</section>'
+            '</section>' % (len(selected), "".join(cards))
+        )
+    if theme_key in {"red-white", "graphite-minimal"}:
         repl = {}
         for idx, text in enumerate(selected, 1):
             repl["看点%s" % "一二三"[idx - 1]] = text
-            repl["章节名"] = text
-            repl["副标题"] = "CHAPTER %02d" % idx
-            repl["N"] = "%02d" % idx
         return apply_component(select_code(components, 3, 0), repl)
     return ""
 
@@ -993,6 +1053,7 @@ def main():
     with open(md_path, encoding="utf-8") as f:
         md_text = f.read()
     warn_process_leaks(md_text)
+    warn_commercial_source_exposure(md_text)
 
     title = args.title or os.path.splitext(os.path.basename(md_path))[0]
     theme_key, reason = resolve_theme(args.theme, md_text, title)

@@ -92,17 +92,17 @@
     <span leaf="">本文看点</span>
   </p>
   <section style="display:flex;justify-content:space-between;">
-    <section style="flex:1;background:#FAFAFA;border-top:1px solid #E4E4E7;padding:18px 12px 16px;margin-right:8px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;background:#FAFAFA;border-top:1px solid #E4E4E7;padding:18px 12px 16px;margin-right:8px;">
       <p style="font-size:11px;color:#A1A1AA;font-weight:500;margin:0 0 8px;letter-spacing:1px;"><span leaf="">01</span></p>
-      <p style="font-size:13px;font-weight:700;color:#27272A;margin:0;line-height:1.5;"><span leaf="">{{看点一}}</span></p>
+      <p style="font-size:13px;font-weight:700;color:#27272A;margin:0;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;"><span leaf="">{{看点一}}</span></p>
     </section>
-    <section style="flex:1;background:#FAFAFA;border-top:1px solid #E4E4E7;padding:18px 12px 16px;margin-right:8px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;background:#FAFAFA;border-top:1px solid #E4E4E7;padding:18px 12px 16px;margin-right:8px;">
       <p style="font-size:11px;color:#A1A1AA;font-weight:500;margin:0 0 8px;letter-spacing:1px;"><span leaf="">02</span></p>
-      <p style="font-size:13px;font-weight:700;color:#27272A;margin:0;line-height:1.5;"><span leaf="">{{看点二}}</span></p>
+      <p style="font-size:13px;font-weight:700;color:#27272A;margin:0;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;"><span leaf="">{{看点二}}</span></p>
     </section>
-    <section style="flex:1;background:#FAFAFA;border-top:1px solid #E4E4E7;padding:18px 12px 16px;">
+    <section style="flex:1;min-width:0;box-sizing:border-box;background:#FAFAFA;border-top:1px solid #E4E4E7;padding:18px 12px 16px;">
       <p style="font-size:11px;color:#A1A1AA;font-weight:500;margin:0 0 8px;letter-spacing:1px;"><span leaf="">03</span></p>
-      <p style="font-size:13px;font-weight:700;color:#27272A;margin:0;line-height:1.5;"><span leaf="">{{看点三}}</span></p>
+      <p style="font-size:13px;font-weight:700;color:#27272A;margin:0;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;"><span leaf="">{{看点三}}</span></p>
     </section>
   </section>
 </section>
@@ -132,7 +132,7 @@
 <section style="margin-top:56px;margin-bottom:32px;padding:0 10px;">
   <section style="position:relative;padding-bottom:20px;border-bottom:1px solid #E4E4E7;">
     <p style="font-size:48px;font-weight:900;color:#E4E4E7;margin:0;line-height:1;letter-spacing:-2px;">
-      <span leaf="">01</span>
+      <span leaf="">{{编号}}</span>
     </p>
     <section style="margin-top:-8px;">
       <p style="font-size:10px;color:#A1A1AA;font-weight:500;letter-spacing:3px;margin:0 0 6px;text-transform:uppercase;">
@@ -457,11 +457,11 @@
 
 ```html
 <section style="display:flex;margin:0 10px 28px;">
-  <section style="flex:1;border:1px solid #E4E4E7;padding:22px 16px;margin-right:8px;text-align:center;">
+  <section style="flex:1;min-width:0;box-sizing:border-box;border:1px solid #E4E4E7;padding:22px 16px;margin-right:8px;text-align:center;word-break:break-word;overflow-wrap:anywhere;">
     <p style="font-size:32px;font-weight:900;color:#27272A;margin:0 0 6px;line-height:1;letter-spacing:-1px;"><span leaf="">{{数字}}</span></p>
     <p style="font-size:11px;color:#A1A1AA;margin:0;letter-spacing:1px;"><span leaf="">{{说明}}</span></p>
   </section>
-  <section style="flex:1;border:1px solid #E4E4E7;padding:22px 16px;text-align:center;">
+  <section style="flex:1;min-width:0;box-sizing:border-box;border:1px solid #E4E4E7;padding:22px 16px;text-align:center;word-break:break-word;overflow-wrap:anywhere;">
     <p style="font-size:32px;font-weight:900;color:#27272A;margin:0 0 6px;line-height:1;letter-spacing:-1px;"><span leaf="">{{数字}}</span></p>
     <p style="font-size:11px;color:#A1A1AA;margin:0;letter-spacing:1px;"><span leaf="">{{说明}}</span></p>
   </section>
@@ -472,17 +472,17 @@
 
 ```html
 <section style="display:flex;margin:0 10px 28px;">
-  <section style="flex:1;border-top:2px solid #27272A;padding:18px 12px 16px;margin-right:8px;">
+  <section style="flex:1;min-width:0;box-sizing:border-box;border-top:2px solid #27272A;padding:18px 12px 16px;margin-right:8px;word-break:break-word;overflow-wrap:anywhere;">
     <p style="font-size:11px;color:#A1A1AA;margin:0 0 8px;letter-spacing:1px;font-weight:500;"><span leaf="">01</span></p>
     <p style="font-size:13px;font-weight:700;color:#27272A;margin:0 0 6px;line-height:1.4;"><span leaf="">{{要点标题}}</span></p>
     <p style="font-size:12px;color:#71717A;margin:0;line-height:1.6;"><span leaf="">{{要点说明}}</span></p>
   </section>
-  <section style="flex:1;border-top:2px solid #27272A;padding:18px 12px 16px;margin-right:8px;">
+  <section style="flex:1;min-width:0;box-sizing:border-box;border-top:2px solid #27272A;padding:18px 12px 16px;margin-right:8px;word-break:break-word;overflow-wrap:anywhere;">
     <p style="font-size:11px;color:#A1A1AA;margin:0 0 8px;letter-spacing:1px;font-weight:500;"><span leaf="">02</span></p>
     <p style="font-size:13px;font-weight:700;color:#27272A;margin:0 0 6px;line-height:1.4;"><span leaf="">{{要点标题}}</span></p>
     <p style="font-size:12px;color:#71717A;margin:0;line-height:1.6;"><span leaf="">{{要点说明}}</span></p>
   </section>
-  <section style="flex:1;border-top:2px solid #27272A;padding:18px 12px 16px;">
+  <section style="flex:1;min-width:0;box-sizing:border-box;border-top:2px solid #27272A;padding:18px 12px 16px;word-break:break-word;overflow-wrap:anywhere;">
     <p style="font-size:11px;color:#A1A1AA;margin:0 0 8px;letter-spacing:1px;font-weight:500;"><span leaf="">03</span></p>
     <p style="font-size:13px;font-weight:700;color:#27272A;margin:0 0 6px;line-height:1.4;"><span leaf="">{{要点标题}}</span></p>
     <p style="font-size:12px;color:#71717A;margin:0;line-height:1.6;"><span leaf="">{{要点说明}}</span></p>
