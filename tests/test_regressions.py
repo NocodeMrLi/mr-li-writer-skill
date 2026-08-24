@@ -54,6 +54,30 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("相关机构公开汇总", text)
 
 
+class ReadmeDocumentationTests(unittest.TestCase):
+    def test_markdown_table_separators_match_header_width(self):
+        lines = (ROOT / "README.md").read_text(encoding="utf-8").splitlines()
+        separator = re.compile(r"^\|(?:\s*:?-{3,}:?\s*\|)+$")
+        for index, line in enumerate(lines):
+            if separator.fullmatch(line):
+                with self.subTest(line=index + 1):
+                    self.assertGreater(index, 0)
+                    self.assertEqual(lines[index - 1].count("|"), line.count("|"))
+
+    def test_installation_is_runnable_from_the_public_repository(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "git clone https://github.com/NocodeMrLi/mr-li-writer-skill.git",
+            text,
+        )
+
+    def test_directory_tree_mentions_delivery_protocol_and_tests(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("delivery-protocol.md", text)
+        self.assertIn("├── tests/", text)
+        self.assertIn("test_regressions.py", text)
+
+
 class ArticleLintTests(unittest.TestCase):
     def test_lint_warns_when_training_vendors_are_named_as_sources(self):
         article = """# 软考报名时间

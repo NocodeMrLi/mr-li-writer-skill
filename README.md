@@ -14,8 +14,9 @@
 ![Zhihu](https://img.shields.io/badge/Zhihu-知乎-0084ff)
 [![WeChat Layout: AGPL-3.0](https://img.shields.io/badge/WeChat%20Layout-AGPL--3.0-blue.svg)](assets/gzh-design/LICENSE)
 
-一项去 AI 味的中文内容创作 Skill。  
-从一个标题、想法或素材开始，先判断值不值得写，再生成适合公众号、知乎、小红书、官网/网页和个人博客的平台原生内容。
+一个面向中文内容创作的去 AI 味写作 Skill。
+
+只需提供一个标题、核心想法、零散素材或参考资料，它会先判断值不值得写、寻找更有差异的角度，再生成适合公众号、知乎、小红书、官网/网页和个人博客的平台原生内容。
 
 > It evaluates whether your idea is worth writing, upgrades the angle, then creates platform-native Chinese drafts for WeChat, Zhihu, Xiaohongshu, websites, or blogs.
 
@@ -39,7 +40,8 @@
 - **开头设计**：拒绝"后台有人问""随着……发展"等模板化开头，为每篇文章设计专属入口
 - **标题策划**：基于搜索意图和平台特性策划标题，不编造数据、不做标题党
 - **平台原生写作**：公众号写成文章，知乎写成回答/专栏，小红书写成原生笔记，官网/网页写成结构化网页内容
-- **去 AI 味写作**：文章像认真思考的人写出来的，具体、诚实、有判断，没有空洞排比和虚构经历
+- **去 AI 味写作**：至少经过两轮检查与直接改写，处理套话、重复结构、虚构经历和不匹配的证据腔
+- **来源控制**：硬信息优先使用官方一手资料，避免把利益相关培训或服务机构写成正文背书
 - **交付口径清理**：保留必要来源和时间备注，但不把抓取、爬取、检索结果、AI 生成等后台动作写进正文
 - **多体裁覆盖**：支持公众号深度文、知乎回答、小红书笔记、行业解读、实用指南、情感生活等
 - **平台化交付**：公众号使用完整组件库式内联 HTML 排版，小红书使用手机笔记卡片，官网/网页和博客使用对应预览
@@ -49,13 +51,27 @@
 
 ## 安装
 
-将整个目录放入 Codex 可发现的 skills 目录：
+选择一个宿主能够发现的 Skills 目录进行安装。通用 Agent Skills 目录：
 
 ```bash
-cp -r mr-li-writer-skill-main ~/.codex/skills/mr-li-writer/
+mkdir -p ~/.agents/skills
+git clone https://github.com/NocodeMrLi/mr-li-writer-skill.git ~/.agents/skills/mr-li-writer
 ```
 
-项目内使用时，也可以放在项目的 `skills` 目录中。
+Codex 专用目录：
+
+```bash
+mkdir -p ~/.codex/skills
+git clone https://github.com/NocodeMrLi/mr-li-writer-skill.git ~/.codex/skills/mr-li-writer
+```
+
+已经安装时，可以在对应目录更新：
+
+```bash
+git -C ~/.agents/skills/mr-li-writer pull
+```
+
+其他支持 `SKILL.md` 的宿主，请将仓库放入该宿主声明的用户级或项目级 Skills 目录。宿主需要具备联网检索能力才能完成全网对比研究；没有联网工具时，Skill 会基于用户提供的资料写作并保留事实边界。
 
 ---
 
@@ -64,6 +80,19 @@ cp -r mr-li-writer-skill-main ~/.codex/skills/mr-li-writer/
 ```text
 使用 $mr-li-writer，我想写"[你的主题]"，帮我判断这个方向值不值得写，再给我更好的立意。
 ```
+
+Codex 可使用 `$mr-li-writer` 调用；采用斜杠命令的宿主可尝试 `/mr-li-writer`，也可以直接用自然语言明确要求使用 Mr.Li Writer。
+
+---
+
+## 工作流程
+
+1. 接收标题、想法、素材、文件或参考链接。
+2. 在宿主支持联网时进行至少两轮语境检索，判断同质化程度、资料条件和可写性。
+3. 区分发布平台与内容目标，确认读者、文章类型、证据密度和交付样式。
+4. 个性化设计立意、标题、开头、结构和正文，不套用固定文章框架。
+5. 完成至少两轮去 AI 味检查并直接修改，仍有明显问题时继续修正。
+6. 按平台交付 Markdown、纯文本、内联 HTML 或预览文件，并优先使用宿主原生附件。
 
 ---
 
@@ -169,10 +198,10 @@ cp -r mr-li-writer-skill-main ~/.codex/skills/mr-li-writer/
 
 ## 公众号排版主题
 
-公众号排版风格来自 `gzh-design-skill` 的 6 套主题。项目已内置主题索引、公共组件和完整主题组件库，生成的是可粘贴到公众号编辑器的内联 HTML，并会同时生成带“复制到公众号”按钮的预览页。
+公众号排版风格来自 [gzh-design-skill](https://github.com/isjiamu/gzh-design-skill) 的 6 套主题。项目已内置主题索引、公共组件和完整主题组件库，当前共接入 109 个组件；生成的是可粘贴到公众号编辑器的内联 HTML，并会同时生成带“复制到公众号”按钮的预览页。
 
 | 主题标识 | 中文名 | 适合内容 |
-|---|---|
+| :--- | :--- | :--- |
 | `moyu-green` | 摸鱼绿 | 教程、测评、清单、工具盘点 |
 | `red-white` | 红白色系 | 深度分析、观点、力量感话题 |
 | `graphite-minimal` | 石墨极简风 | 设计、科技评论、专业观点 |
@@ -205,7 +234,7 @@ python3 scripts/extract_seed.py <file.docx> --redact-term "需要隐藏的词"
 
 ### 正文质量检查
 
-交付前自动检查：模板化表达、同质化开头、虚构第一人称、证据密度是否匹配文章类型、是否缺少引用来源、是否暴露后台资料处理动作等。
+交付前自动检查：模板化表达、同质化开头、虚构第一人称、证据密度是否匹配文章类型、是否缺少引用来源、是否暴露后台资料处理动作，以及是否把利益相关第三方机构写成正文背书等。
 
 ```bash
 python3 scripts/lint_article.py <article.md> --genre relationship-life --evidence-density low --impact-check
@@ -247,15 +276,17 @@ python3 scripts/validate_gzh_html.py article_gzh.html
 ## 目录结构
 
 ```text
-mr-li-writer-skill-main/
+mr-li-writer-skill/
 ├── README.md
 ├── SKILL.md
 ├── LICENSE
 ├── agents/
 ├── references/
+│   ├── delivery-protocol.md
 │   ├── ideation-protocol.md
 │   ├── lint-checks.md
 │   ├── platform-native-protocol.md
+│   ├── research-protocol.md
 │   ├── writing-rules.md
 │   └── ...
 ├── scripts/
@@ -267,6 +298,9 @@ mr-li-writer-skill-main/
 │   ├── component_lint.py
 │   ├── gzh_component_inventory.py
 │   └── wrap_gzh_preview.py
+├── tests/
+│   ├── test_regressions.py
+│   └── fixtures/
 └── assets/
     ├── readme-banner.svg
     └── gzh-design/
@@ -279,7 +313,7 @@ mr-li-writer-skill-main/
 
 ---
 
-## License
+## 许可证
 
 项目原创部分采用 [MIT](LICENSE) © 2026 NocodeMrLi。
 
