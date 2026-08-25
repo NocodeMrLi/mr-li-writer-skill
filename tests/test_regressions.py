@@ -441,6 +441,15 @@ class EditorialInnovationProtocolTests(unittest.TestCase):
 
 
 class GzhThemeRegressionTests(unittest.TestCase):
+    LONG_QUOTE_MD = """# 软考含金量
+
+> 含金量 = 证书权威性 × 用途契合度 × 环境认可度
+
+## 第一部分：先判断证书
+
+正文一。
+"""
+
     def test_moyu_cover_renders_title_once_without_repeated_fragment(self):
         title = "一份不会把复杂问题写复杂的完整安装与避坑指南"
         rendered = build_gzh.build_component_section(SAMPLE_MD, title, "moyu-green")
@@ -552,6 +561,33 @@ class GzhThemeRegressionTests(unittest.TestCase):
                 component = text.split(start, 1)[1].split(end, 1)[0]
                 self.assertIn("min-width:0", component)
                 self.assertIn("overflow-wrap:anywhere", component)
+
+    def test_long_visual_quotes_are_balanced_before_wechat_wrapping(self):
+        for theme in build_gzh.THEMES:
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(self.LONG_QUOTE_MD, "软考含金量", theme)
+                self.assertIn('data-balanced="quote"', rendered)
+                balanced = re.search(r'<section data-balanced="quote".*?</section>', rendered, re.S)
+                self.assertIsNotNone(balanced)
+                self.assertIn("<br>", balanced.group(0))
+
+    def test_public_topic_tags_do_not_expose_editorial_posture_words(self):
+        labels = build_gzh.public_topic_tags("软考含金量中立深度解读", [])
+        self.assertNotIn("中立", labels)
+        self.assertEqual(labels, ("深度解读", "判断参考"))
+
+    def test_validator_rejects_forbidden_reader_facing_badges(self):
+        validator = load_module("validate_gzh_html_front_badge", "scripts/validate_gzh_html.py")
+        source = '<section><span style="padding:2px 8px;border-radius:4px;"><span leaf="">中立</span></span></section>'
+        errors, _, _ = validator.validate(source)
+        self.assertTrue(any("前端标签" in error for error in errors), errors)
+
+    def test_skill_documents_frontend_badge_and_title_linebreak_guards(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        protocol = (ROOT / "references/delivery-protocol.md").read_text(encoding="utf-8")
+        for text in (skill, protocol):
+            self.assertIn("前端标签白名单", text)
+            self.assertIn("标题/金句换行", text)
 
 
 if __name__ == "__main__":

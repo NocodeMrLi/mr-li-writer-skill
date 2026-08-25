@@ -339,7 +339,22 @@ def split_title(text, max_len=12):
     clean = re.sub(r"\s+", "", text or "")
     if len(clean) <= max_len:
         return clean, ""
-    cut = min(max_len, max(6, len(clean) // 2))
+    target = min(max_len, max(6, len(clean) // 2))
+    candidates = []
+    for match in re.finditer(r"[，。！？；、：:：?？!！]", clean):
+        pos = match.end()
+        if 5 <= pos <= len(clean) - 5:
+            candidates.append((abs(pos - target), pos))
+    for match in re.finditer(r"(不是|而是|在|由|靠|和|与|但|所以|因为|答案)", clean):
+        pos = match.start()
+        if 5 <= pos <= len(clean) - 5:
+            candidates.append((abs(pos - target) + 1, pos))
+    if candidates:
+        cut = min(candidates)[1]
+    else:
+        cut = target
+        if len(clean) - cut < 5:
+            cut = max(5, len(clean) - 5)
     return clean[:cut], clean[cut:]
 
 
@@ -350,10 +365,32 @@ def short_text(text, limit=34):
     return clean[:limit].rstrip("，。；、 ") + "…"
 
 
+FORBIDDEN_FRONT_LABELS = {
+    "中立",
+    "客观中立",
+    "模型生成",
+    "AI生成",
+    "AI 生成",
+    "提示词",
+    "Prompt",
+    "公众号排版",
+    "深度文章",
+    "内部标签",
+}
+
+
+def safe_front_label(label, fallback="判断参考"):
+    clean = re.sub(r"\s+", "", str(label or "")).strip("#：:，,。 ")
+    if not clean or any(word.lower() in clean.lower() for word in FORBIDDEN_FRONT_LABELS):
+        return fallback
+    return short_text(clean, 8)
+
+
 def public_topic_tags(title, blocks):
     """Return reader-facing topic labels, never production metadata."""
     text = "%s\n%s" % (title, "\n".join(block[2] if block[0] == "heading" else str(block[1]) for block in blocks if len(block) > 1))
     rules = (
+        (("含金量", "证书", "职称资格", "软考"), ("深度解读", "判断参考")),
         (("教程", "安装", "步骤", "指南", "怎么", "如何"), ("实用指南", "行动清单")),
         (("测评", "对比", "选择", "避坑"), ("选择参考", "避坑提醒")),
         (("复盘", "案例", "实战"), ("案例复盘", "经验总结")),
@@ -363,8 +400,55 @@ def public_topic_tags(title, blocks):
     )
     for keywords, labels in rules:
         if any(keyword.lower() in text.lower() for keyword in keywords):
-            return labels
+            return tuple(safe_front_label(label) for label in labels)
     return "问题拆解", "方法参考"
+
+
+def split_display_lines(text, max_len=15, min_last=5, max_lines=3):
+    clean = re.sub(r"\s+", " ", normalize_cn_punctuation(str(text or ""))).strip(" 「」")
+    if len(clean) <= max_len:
+        return [clean] if clean else []
+
+    lines = []
+    rest = clean
+    break_chars = "，。！？；、：: =×+-／/·"
+    while len(rest) > max_len and len(lines) < max_lines - 1:
+        window = rest[: max_len + 1]
+        candidates = []
+        for idx, char in enumerate(window):
+            pos = idx + 1
+            if char in break_chars and 5 <= pos <= len(rest) - min_last:
+                candidates.append((abs(pos - max_len), pos))
+        for match in re.finditer(r"(不是|而是|在|由|靠|和|与|但|所以|因为|答案|制度|标准)", window):
+            pos = match.start()
+            if 5 <= pos <= len(rest) - min_last:
+                candidates.append((abs(pos - max_len) + 1, pos))
+        if candidates:
+            cut = min(candidates)[1]
+        else:
+            cut = max_len
+            if len(rest) - cut < min_last:
+                cut = max(5, len(rest) - min_last)
+        lines.append(rest[:cut].strip())
+        rest = rest[cut:].strip()
+
+    if rest:
+        lines.append(rest)
+
+    if len(lines) >= 2 and len(lines[-1]) < min_last:
+        tail = lines.pop()
+        prev = lines.pop()
+        merged = prev + tail
+        if len(merged) <= max_len + 5:
+            lines.append(merged)
+        else:
+            split_at = max(5, len(merged) - min_last)
+            lines.extend([merged[:split_at], merged[split_at:]])
+    return [line for line in lines if line]
+
+
+def balanced_leaf_lines(text, max_len=15):
+    return "<br>".join('<span leaf="">%s</span>' % html_text(line) for line in split_display_lines(text, max_len=max_len))
 
 
 def pick_first_paragraph(blocks):
@@ -696,6 +780,8 @@ def component_subheading(theme_key, components, text, number):
 
 
 def component_quote(theme_key, components, text):
+    if len(re.sub(r"\s+", "", text or "")) >= 16:
+        return balanced_quote(theme_key, text)
     if theme_key == "zen-whitespace":
         return zen_quote(text)
     snippet = select_code(components, QUOTE_COMPONENT.get(theme_key, 9), 0)
@@ -708,10 +794,67 @@ def component_quote(theme_key, components, text):
         "金句前段": text,
         "金句中段": text,
         "金句收尾": "",
+        "核心观点或关键金句": text,
+        "居中金句": text,
+        "亮点内容": text,
+        "高亮内容": text,
+        "结尾金句": text,
         "高亮关键词": short_text(text, 8),
         "正文内容": text,
         "内容": text,
     })
+
+
+def balanced_quote(theme_key, text):
+    theme = THEMES[theme_key]
+    content = balanced_leaf_lines(text, max_len=15)
+    if theme_key == "moyu-green":
+        return (
+            '<section data-balanced="quote" style="background:#FFF;border:1px dashed #BBF7D0;'
+            'border-radius:8px;padding:14px 16px;margin-bottom:24px;text-align:center;overflow:hidden;">'
+            '<p style="margin:0;line-height:1.75;">'
+            '<span style="font-size:15px;color:#059669;font-weight:bold;border-bottom:3px solid #FDE68A;padding-bottom:2px;">%s</span>'
+            '</p></section>' % content
+        )
+    if theme_key == "red-white":
+        return (
+            '<section data-balanced="quote" style="background:#FEF2F2;border-radius:0 10px 10px 0;'
+            'border-left:4px solid #DC2626;padding:18px 22px;margin-bottom:24px;overflow:hidden;">'
+            '<p style="font-size:16px;font-weight:800;color:#991B1B;margin:0;line-height:1.85;text-align:left;">「%s」</p>'
+            '</section>' % content
+        )
+    if theme_key == "graphite-minimal":
+        return (
+            '<section data-balanced="quote" style="border-left:3px solid #52525B;padding:16px 0 16px 24px;'
+            'margin:0 10px 28px;overflow:hidden;">'
+            '<p style="font-size:16px;font-weight:700;color:#27272A;margin:0;line-height:1.85;letter-spacing:0.5px;">「%s」</p>'
+            '</section>' % content
+        )
+    if theme_key == "zen-whitespace":
+        return (
+            '<section data-balanced="quote" style="margin:40px 16px;padding:36px 20px;border-top:1px solid #E8E8E8;'
+            'border-bottom:1px solid #E8E8E8;text-align:center;overflow:hidden;">'
+            '<p style="font-family:\'Noto Serif SC\',Georgia,\'Times New Roman\',serif;font-size:17px;font-weight:600;'
+            'color:#2B2B2B;margin:0;line-height:1.95;letter-spacing:0.8px;">「%s」</p></section>' % content
+        )
+    if theme_key == "moyu-ticket":
+        return (
+            '<section data-balanced="quote" style="margin:0 10px 26px;background:#fffef8;border:2px solid #1a1a1a;'
+            'box-shadow:4px 4px 0 #1a1a1a;padding:18px 18px;overflow:hidden;">'
+            '<p style="font-size:16px;font-weight:900;color:#064E3B;line-height:1.85;margin:0;">%s</p></section>' % content
+        )
+    if theme_key == "olive-journal":
+        return (
+            '<section data-balanced="quote" style="margin:0 0 24px;background:#fffaf0;border:1px solid #d8d1c4;'
+            'border-left:4px solid #ed7b2f;border-radius:8px;padding:18px 20px;overflow:hidden;">'
+            '<p style="font-size:16px;line-height:1.85;color:#1E1F23;font-weight:800;margin:0;">%s</p></section>' % content
+        )
+    return (
+        '<section data-balanced="quote" style="margin:0 10px 24px;background:%s;border-left:4px solid %s;'
+        'border-radius:0 10px 10px 0;padding:16px 18px;overflow:hidden;">'
+        '<p style="font-size:16px;font-weight:800;color:%s;margin:0;line-height:1.85;">%s</p></section>'
+        % (theme["light"], theme["main"], theme["deep"], content)
+    )
 
 
 def component_list(theme_key, components, items, ordered=False):

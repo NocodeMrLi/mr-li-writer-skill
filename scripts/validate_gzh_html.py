@@ -35,6 +35,13 @@ RAW_MARKDOWN_TABLE = re.compile(
     re.I,
 )
 
+FORBIDDEN_FRONT_BADGE = re.compile(
+    r"<(?:span|section)\b[^>]*style=\"[^\"]*(?:border-radius|padding|background)[^\"]*\"[^>]*>\s*"
+    r"(?:<span leaf=\"\">)?\s*(中立|客观中立|模型生成|AI\s*生成|提示词|Prompt|公众号排版|深度文章|内部标签)\s*"
+    r"(?:</span>)?",
+    re.I,
+)
+
 CJK = re.compile(r"[一-鿿㐀-䶿]")
 SKIP_TAGS = {"head", "title", "style", "script"}
 HALF_PUNCT = re.compile(r"[一-鿿㐀-䶿][,;!?]")
@@ -97,6 +104,8 @@ def validate(html, name="<input>"):
             (errors if level == "ERROR" else warnings).append("%s（命中 %d 处）" % (msg, hits))
     if RAW_MARKDOWN_TABLE.search(html):
         errors.append("检测到未转换的 Markdown 表格；必须渲染为语义化 <table> 后再交付")
+    if FORBIDDEN_FRONT_BADGE.search(html):
+        errors.append("检测到不适合暴露给读者的前端标签词；请改为信息指南、判断参考、深度解读、避坑提醒等读者口径")
 
     checker = LeafChecker()
     try:
