@@ -107,6 +107,32 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("reader job", text)
         self.assertIn("speaking position", text)
 
+    def test_zhihu_and_xiaohongshu_require_layout_confirmation(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        platform = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
+        agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+        for text in (skill, platform):
+            self.assertIn("是否需要 HTML 排版预览", text)
+            self.assertIn("不要询问", text)
+        self.assertIn("ask whether HTML layout preview is needed", agent)
+
+    def test_platform_protocol_defines_minimum_necessary_confirmation_matrix(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        platform = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
+        for phrase in (
+            "最低必要询问",
+            "公众号排版主题",
+            "回答还是专栏",
+            "内容目标",
+            "发布环境",
+            "Markdown / CMS 富文本 / 静态 HTML",
+            "一次合并询问",
+            "不重复询问",
+        ):
+            self.assertIn(phrase, platform)
+        self.assertIn("必要询问矩阵", skill)
+        self.assertIn("一次合并", skill)
+
     def test_non_layout_platform_bundle_requires_title_and_native_source_only(self):
         validator = ROOT / "scripts/validate_delivery_bundle.py"
         with tempfile.TemporaryDirectory() as tmp:
@@ -280,6 +306,18 @@ class ReadmeDocumentationTests(unittest.TestCase):
         self.assertIn("需要排版", text)
         self.assertIn("不需要排版", text)
         self.assertIn("不机械凑四件套", text)
+
+    def test_readme_explains_zhihu_xiaohongshu_layout_confirmation(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("选择知乎或小红书后", text)
+        self.assertIn("是否需要 HTML 排版预览", text)
+
+    def test_readme_explains_platform_confirmation_points(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("执行中会确认什么", text)
+        for platform in ("公众号", "知乎", "小红书", "官网/网页", "个人博客"):
+            self.assertIn(platform, text)
+        self.assertIn("一次合并询问", text)
 
 
 class ArticleLintTests(unittest.TestCase):

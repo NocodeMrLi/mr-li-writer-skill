@@ -16,7 +16,15 @@ interface:
     on every platform. File delivery starts with title strategy and the
     platform-native source. Add clean layout HTML and copy-preview HTML only
     when the platform or user requires layout; websites require HTML by
-    default, while Zhihu and Xiaohongshu default to native text. For WeChat
+    default. After Zhihu or Xiaohongshu is selected, ask whether HTML layout preview is needed
+    before drafting unless the user already chose or explicitly said not to
+    ask and to auto-match. Explain that no layout means title strategy plus
+    native source, while layout adds clean HTML and copy-preview HTML. Apply
+    minimum necessary questions to every platform: ask for a WeChat theme,
+    Zhihu answer-versus-column when unclear, website content goal and publishing
+    environment, and blog format (Markdown, CMS rich text, or static HTML).
+    Merge missing decisions into one short confirmation and never repeat facts
+    the user already supplied. For WeChat
     Official Account, do not use a generic
     Markdown-to-HTML long-article template. Read
     assets/gzh-design/references/theme-index.md, then read the selected
