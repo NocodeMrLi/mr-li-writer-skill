@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-build_html.py - Markdown 内容 -> 单文件平台预览 HTML
+build_html.py - Markdown 内容 -> 平台 HTML / 复制预览 HTML
 
-零外部依赖(Python 3.8+ 标准库)。产物为 HTML 文件:
+零外部依赖(Python 3.8+ 标准库)。可生成单个预览页，或在排版交付时生成干净页 + 复制预览页:
 - 无 CDN / 无外部字体, 离线可用
 - 顶部工具栏: 按发布平台复制富文本或纯文本 + 一键下载 HTML
 - 自动按发布平台切换交付样式。公众号使用 gzh-design 风格的内联 HTML 主题。
@@ -496,8 +496,21 @@ def escape_script_text(text):
     return text.replace("</script", "<\\/script")
 
 
+def clean_page_from_preview(page):
+    """Remove preview controls while retaining the platform-styled article."""
+    page = re.sub(r'<div class="reading-progress".*?</div>\s*', "", page, flags=re.S)
+    page = re.sub(r'<div class="toolbar">.*?</div>\s*', "", page, count=1, flags=re.S)
+    page = re.sub(r'<script(?:\s+type="text/plain")?.*?</script>\s*', "", page, flags=re.S)
+    return page
+
+
+def preview_path_for(output_path):
+    stem, suffix = os.path.splitext(output_path)
+    return stem + "-preview" + (suffix or ".html")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Markdown -> 单文件平台预览 HTML")
+    parser = argparse.ArgumentParser(description="Markdown -> 平台 HTML / 复制预览 HTML")
     parser.add_argument("md", nargs="?", help="Markdown 正文文件路径")
     parser.add_argument("-o", "--output", help="输出 HTML 路径(默认: 与 md 同目录同名 .html)")
     parser.add_argument("-t", "--theme", default=DEFAULT_THEME, help="公众号主题名、auto 或 random(默认 %s)" % DEFAULT_THEME)
@@ -512,6 +525,11 @@ def main():
     )
     parser.add_argument("--list-themes", action="store_true", help="列出可用主题")
     parser.add_argument("--list-delivery-styles", action="store_true", help="列出可用交付样式")
+    parser.add_argument(
+        "--emit-pair",
+        action="store_true",
+        help="同时生成干净排版 HTML 和带复制功能的 -preview.html；用于非公众号排版交付",
+    )
     args = parser.parse_args()
 
     if args.list_themes:
@@ -572,13 +590,22 @@ def main():
                 .replace("__CSS__", BASE_CSS_FALLBACK)
                 .replace("__BODY__", body))
 
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(page)
+    if args.emit_pair:
+        preview_path = preview_path_for(out_path)
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(clean_page_from_preview(page))
+        with open(preview_path, "w", encoding="utf-8") as f:
+            f.write(page)
+    else:
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(page)
 
     print("[完成] 交付样式=%s (%s)" % (delivery_style, delivery_reason))
     if args.theme != "auto":
         print("[提示] 非公众号平台未使用公众号主题=%s" % args.theme)
     print("[输出] %s" % out_path)
+    if args.emit_pair:
+        print("[复制预览] %s" % preview_path)
 
 
 if __name__ == "__main__":

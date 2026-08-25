@@ -101,6 +101,136 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("semantic", text)
         self.assertIn("validate_delivery_bundle.py", text)
 
+    def test_agent_entrypoint_routes_reader_value_before_novelty(self):
+        text = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+        self.assertIn("minimum necessary innovation", text)
+        self.assertIn("reader job", text)
+        self.assertIn("speaking position", text)
+
+    def test_non_layout_platform_bundle_requires_title_and_native_source_only(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "知乎"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("平台原生正文", result.stdout)
+            self.assertNotIn("跳过", result.stdout)
+
+    def test_formatted_non_wechat_bundle_requires_clean_and_copy_html(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
+            missing = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "知乎", "--layout"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(missing.returncode, 0)
+
+            (delivery / "article.html").write_text("<main>正文</main>", encoding="utf-8")
+            (delivery / "article-preview.html").write_text(
+                "<button>复制正文</button><script>navigator.clipboard.writeText('正文')</script>",
+                encoding="utf-8",
+            )
+            complete = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "知乎", "--layout"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+
+    def test_xiaohongshu_bundle_accepts_plain_text_native_source(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            (delivery / "note-source.txt").write_text("测试笔记\n\n#话题一 #话题二", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "小红书"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("平台原生正文", result.stdout)
+            self.assertNotIn("跳过", result.stdout)
+
+    def test_website_platform_requires_html_pair_by_default(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            (delivery / "web-source.md").write_text("# 网页正文\n\n内容。", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "官网/网页"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("平台排版 HTML", result.stdout)
+            self.assertIn("复制预览 HTML", result.stdout)
+
+            (delivery / "web.html").write_text("<main>网页正文</main>", encoding="utf-8")
+            (delivery / "web-preview.html").write_text(
+                "<button>复制正文</button><script>function copyArticle(){}</script>",
+                encoding="utf-8",
+            )
+            complete = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "官网/网页"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+            for role in ("标题策略 Markdown", "平台原生正文", "平台排版 HTML", "复制预览 HTML"):
+                self.assertIn(role, complete.stdout)
+
+    def test_generic_builder_can_emit_clean_and_copy_preview_html(self):
+        builder = ROOT / "scripts/build_html.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            output = directory / "article.html"
+            source.write_text("# 测试标题\n\n正文内容。", encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "知乎",
+                    "--emit-pair",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            preview = directory / "article-preview.html"
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(output.is_file())
+            self.assertTrue(preview.is_file())
+            self.assertNotIn("copyArticle", output.read_text(encoding="utf-8"))
+            self.assertIn("copyArticle", preview.read_text(encoding="utf-8"))
+
 
 class ReadmeDocumentationTests(unittest.TestCase):
     def test_markdown_table_separators_match_header_width(self):
@@ -132,6 +262,24 @@ class ReadmeDocumentationTests(unittest.TestCase):
         self.assertIn("article-gzh_preview.html", text)
         self.assertIn("python3 -m unittest discover -s tests -v", text)
         self.assertIn("重要文章发布前", text)
+
+    def test_readme_documents_adaptive_innovation_and_human_writing_inspiration(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        for phrase in ("最低必要创新", "读者任务", "点击契约", "说话位置"):
+            self.assertIn(phrase, text)
+        self.assertIn("https://github.com/KKKKhazix/human-writing", text)
+
+    def test_public_notices_do_not_expose_local_source_paths(self):
+        notice = (ROOT / "assets/gzh-design/NOTICE.md").read_text(encoding="utf-8")
+        self.assertNotIn("/Users/", notice)
+
+    def test_readme_explains_original_product_strengths_and_conditional_delivery(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        for phrase in ("不是拼装式提示词", "编辑路由", "最低必要创新", "写作到交付闭环"):
+            self.assertIn(phrase, text)
+        self.assertIn("需要排版", text)
+        self.assertIn("不需要排版", text)
+        self.assertIn("不机械凑四件套", text)
 
 
 class ArticleLintTests(unittest.TestCase):
@@ -165,6 +313,93 @@ class ArticleLintTests(unittest.TestCase):
                     code = lint_article.main()
         self.assertEqual(code, 0)
         self.assertNotIn("商业相关第三方机构", output.getvalue())
+
+    def test_impact_lint_does_not_require_formulaic_insight_markers(self):
+        article = """# 普通工作日为什么更能检验健身计划
+
+周二晚上六点，外面下着雨，人刚加完班。健身房还要坐四站地铁。
+
+办卡只用一分钟，去一次却要换衣服、出门、训练、洗澡。计划能不能坚持，应该拿这样的普通一天来算。
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "article.md"
+            path.write_text(article, encoding="utf-8")
+            output = io.StringIO()
+            with mock.patch.object(
+                sys,
+                "argv",
+                ["lint_article.py", str(path), "--impact-check", "--genre", "relationship-life"],
+            ):
+                with contextlib.redirect_stdout(output):
+                    code = lint_article.main()
+        self.assertEqual(code, 0)
+        self.assertNotIn("未发现清晰的核心判断提示", output.getvalue())
+
+    def test_lint_warns_on_semantic_reversal_posture(self):
+        article = """# 为什么计划总会失败
+
+你以为自己缺的是自律，其实真正的问题藏在时间安排里。
+
+很多计划只写目标，没有给普通工作日留下执行空间。
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "article.md"
+            path.write_text(article, encoding="utf-8")
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", ["lint_article.py", str(path)]):
+                with contextlib.redirect_stdout(output):
+                    code = lint_article.main()
+        self.assertEqual(code, 0)
+        self.assertIn("翻案", output.getvalue())
+
+
+class EditorialInnovationProtocolTests(unittest.TestCase):
+    def test_skill_routes_editorial_value_before_innovation(self):
+        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("editorial-routing-protocol.md", text)
+        self.assertIn("最低必要创新", text)
+        self.assertIn("读者任务", text)
+        self.assertNotIn("保留完整创作流程：选题诊断、立意升级", text)
+
+    def test_editorial_router_defines_four_innovation_levels(self):
+        path = ROOT / "references/editorial-routing-protocol.md"
+        self.assertTrue(path.exists())
+        text = path.read_text(encoding="utf-8")
+        for level in ("直给型", "微创新型", "视角转换型", "概念创新型"):
+            self.assertIn(level, text)
+        for reader_job in ("找答案", "做选择", "避风险", "被理解", "看故事"):
+            self.assertIn(reader_job, text)
+        self.assertIn("读者收益", text)
+        self.assertIn("理解成本", text)
+
+    def test_title_rules_use_click_contract_not_novelty_as_default(self):
+        text = (ROOT / "references/title-rules.md").read_text(encoding="utf-8")
+        self.assertIn("点击契约", text)
+        self.assertIn("此刻相关性", text)
+        self.assertIn("理解成本", text)
+        self.assertIn("自然口语感", text)
+        self.assertIn("熟悉的问题", text)
+        self.assertIn("差异化不是必选项", text)
+
+    def test_humanize_rules_define_positive_human_voice(self):
+        text = (ROOT / "references/humanize-rules.md").read_text(encoding="utf-8")
+        for phrase in ("说话位置", "选择性取舍", "每段新增", "承认不知道", "先写后审"):
+            self.assertIn(phrase, text)
+
+    def test_high_impact_protocol_has_optional_enhancement_levels(self):
+        text = (ROOT / "references/high-impact-writing-protocol.md").read_text(encoding="utf-8")
+        for level in ("基础发布", "编辑增强", "深度增强"):
+            self.assertIn(level, text)
+        self.assertIn("不需要升维", text)
+
+    def test_editorial_benchmark_covers_twelve_cross_genre_cases(self):
+        protocol = (ROOT / "references/editorial-evaluation-protocol.md").read_text(encoding="utf-8")
+        cases = (ROOT / "tests/fixtures/editorial-routing-cases.md").read_text(encoding="utf-8")
+        self.assertEqual(cases.count("## CASE-"), 12)
+        for dimension in ("点击意愿", "理解成本", "可信度", "活人感", "平台原生度"):
+            self.assertIn(dimension, protocol)
+        self.assertIn("同题多跑", protocol)
+        self.assertIn("盲评", protocol)
 
 
 class GzhThemeRegressionTests(unittest.TestCase):

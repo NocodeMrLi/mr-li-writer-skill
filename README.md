@@ -12,15 +12,14 @@
 ![HTML](https://img.shields.io/badge/HTML-Single--File-orange)
 ![WeChat](https://img.shields.io/badge/WeChat-公众号-07c160)
 ![Zhihu](https://img.shields.io/badge/Zhihu-知乎-0084ff)
-[![WeChat Layout: AGPL-3.0](https://img.shields.io/badge/WeChat%20Layout-AGPL--3.0-blue.svg)](assets/gzh-design/LICENSE)
 
-一个面向中文内容创作的去 AI 味写作 Skill。
+一个从模糊想法走到平台原生交付的中文写作 Skill。
 
-只需提供一个标题、核心想法、零散素材或参考资料，它会先判断值不值得写、寻找更有差异的角度，再生成适合公众号、知乎、小红书、官网/网页和个人博客的平台原生内容。
+只需提供一个标题、核心想法、零散素材或参考资料，它会先识别读者任务、材料条件和创新是否必要，再生成适合公众号、知乎、小红书、官网/网页和个人博客的平台原生内容。
 
-> It evaluates whether your idea is worth writing, upgrades the angle, then creates platform-native Chinese drafts for WeChat, Zhihu, Xiaohongshu, websites, or blogs.
+> It identifies the reader's job, checks the material basis, applies only the innovation the topic needs, then creates platform-native Chinese content.
 
-它不是简单的"AI 代写模板"，也不是把一篇长文缩短后分发到所有平台，而是把选题诊断、开头设计、标题策划、平台原生写作和去 AI 味表达整合成一个完整的工作流。
+Mr.Li Writer 不是拼装式提示词，也不是把一篇长文缩短后分发到所有平台。它以本项目原创的编辑路由为主线，把读者任务、材料条件、创新必要性、体裁结构、标题承诺、平台表达、去 AI 味修改和真实文件交付连成一套可验证的写作系统。
 
 ---
 
@@ -36,17 +35,47 @@
 
 ## 能做什么
 
-- **选题诊断**：先判断方向值不值得写，避免同质化，帮你找到更好的立意角度
+- **编辑路由**：先识别读者要找答案、做选择、避风险、学方法、被理解还是看故事，再决定文章需要多深
+- **最低必要创新**：可直接写清楚的题不强行升维；确有同质化风险时，再从微创新、视角转换或概念创新中选择合适档位
 - **开头设计**：拒绝"后台有人问""随着……发展"等模板化开头，为每篇文章设计专属入口
-- **标题策划**：基于搜索意图和平台特性策划标题，不编造数据、不做标题党
+- **标题策划**：先建立标题对读者的点击契约，兼顾此刻相关性、理解成本、自然口语感和平台特性，不编造数据、不做标题党
 - **平台原生写作**：公众号写成文章，知乎写成回答/专栏，小红书写成原生笔记，官网/网页写成结构化网页内容
-- **去 AI 味写作**：至少经过两轮检查与直接改写，处理套话、重复结构、虚构经历和不匹配的证据腔
+- **正向活人感写作**：先明确说话位置、现实与虚构边界和材料取舍，再检查每段是否新增事实、动作、区分、推理或后果
+- **去 AI 味写作**：至少经过两轮检查与直接改写，处理套话、重复结构、虚构经历、机械翻案和不匹配的证据腔
 - **来源控制**：硬信息优先使用官方一手资料，避免把利益相关培训或服务机构写成正文背书
 - **交付口径清理**：保留必要来源和时间备注，但不把抓取、爬取、检索结果、AI 生成等后台动作写进正文
 - **多体裁覆盖**：支持公众号深度文、知乎回答、小红书笔记、行业解读、实用指南、情感生活等
 - **平台化交付**：公众号使用完整组件库式内联 HTML 排版，小红书使用手机笔记卡片，官网/网页和博客使用对应预览
 - **跨端稳定排版**：公众号目录在正文宽度内自适应，Markdown 表格转换为真实表格并在窄屏内换行
-- **可靠文件交付**：公众号强制交付标题策略、正文原稿、干净 HTML、复制预览四件套；优先使用宿主原生附件或文件卡片发送真实文件
+- **可靠文件交付**：公众号固定四件套，其他平台按原生发布方式决定两件或四件；优先使用宿主原生附件或文件卡片发送真实文件
+
+---
+
+## 项目特点
+
+### 1. 先做编辑判断，不让流程替代判断
+
+同一个主题不一定需要立意创新。系统先判断读者是找答案、做选择、避风险、学方法、被理解还是看故事，再选择直给、微创新、视角转换或概念创新。能直接解决问题时就直接写，不为了显得深刻增加理解成本。
+
+### 2. 创新有成本，也有停止条件
+
+“最低必要创新”是本项目的核心原则。新角度只有在读者收益、材料支撑和平台价值都增加时才成立；标题优先兑现点击契约，而不是用陌生概念制造表面差异。
+
+### 3. 活人感来自位置、材料和取舍
+
+系统不会靠错别字、假口语或虚构经历伪装真人。它会先明确谁在说、凭什么说、哪些地方不知道，再检查每段是否增加了事实、动作、区分、推理或后果，并通过至少两轮“检查后直接修改”完成交付。
+
+### 4. 同一想法会被写成不同平台的原生内容
+
+公众号重文章节奏和富文本排版，知乎重结论、边界与反例，小红书重短段、收藏价值和纯文本发布，官网/网页重结构化 HTML 与搜索目标，博客保留作者声音与长期阅读。平台不是文章末尾才添加的格式参数。
+
+### 5. 研究过程不会污染读者正文
+
+硬信息优先核对官方来源，第三方资料只在合适边界内辅助判断。正文保留来源、时点和不确定性，但不会出现“抓取、爬取、模型生成、提示词”等后台动作，也不会把利益相关机构写成无关宣传。
+
+### 6. 写作到交付闭环
+
+项目不止生成文字，还校验标题策略、平台原文、HTML、复制预览和宿主附件是否真实存在。交付数量由平台属性决定：该排版时完整排版，不需要排版时不机械凑四件套。
 
 ---
 
@@ -90,11 +119,12 @@ Codex 可使用 `$mr-li-writer` 调用；采用斜杠命令的宿主可尝试 `/
 ## 工作流程
 
 1. 接收标题、想法、素材、文件或参考链接。
-2. 需要选题诊断时，在宿主支持联网的前提下进行至少两轮语境检索，判断同质化程度、资料条件和可写性。
-3. 区分发布平台与内容目标，确认读者、文章类型、证据密度和交付样式。
-4. 个性化设计立意、标题、开头、结构和正文，不套用固定文章框架。
-5. 完成至少两轮去 AI 味检查并直接修改，仍有明显问题时继续修正。
-6. 按平台交付 Markdown、纯文本、内联 HTML 或预览文件；公众号排版完成后交付四件套，并优先使用宿主原生附件。
+2. 建立编辑路由：确认读者任务、材料是否足够、创新档位和增强级别；默认采用最低必要创新。
+3. 只有方向模糊、用户要求或同质化风险真实存在时，才进行两轮语境检索与方向校准。
+4. 区分发布平台与内容目标，确认体裁、证据密度、说话位置和现实/虚构边界。
+5. 设计标题的点击契约、开头、结构和正文，让每段持续增加信息或行动，不套用固定文章框架。
+6. 完成至少两轮去 AI 味检查并直接修改，仍有明显问题时继续修正。
+7. 按平台属性交付标题、原生正文和必要的排版文件；公众号固定四件套，其他平台不机械套用，并优先使用宿主原生附件。
 
 ---
 
@@ -110,7 +140,7 @@ Codex 可使用 `$mr-li-writer` 调用；采用斜杠命令的宿主可尝试 `/
 
 ```text
 使用 $mr-li-writer，写一篇公众号文章，主题是"为什么很多人越努力越焦虑"。
-要求：先做选题诊断，设计一个不套模板的开头，标题要适合公众号推送，正文去 AI 味、有判断、有记忆点，最后生成 HTML。
+要求：先判断读者任务和创新是否必要，设计一个不套模板的开头，标题要适合公众号推送，正文去 AI 味、有判断，最后生成 HTML。
 ```
 
 ### 写知乎回答
@@ -186,21 +216,21 @@ Codex 可使用 `$mr-li-writer` 调用；采用斜杠命令的宿主可尝试 `/
 
 ## 平台交付样式
 
-| 发布平台 | 默认交付样式 |
-|---|---|
-| 公众号 | 标题策略 + 正文原稿 + 内联 HTML + 复制预览页 |
-| 知乎 | 问答/专栏样式 |
-| 小红书 | 手机笔记卡片 / 清爽纯文本笔记 |
-| 官网/网页 | 网页文章 / SEO-GEO 结构化样式 |
-| 个人博客 | 博客长文样式 |
+| 发布平台 | 平台原生正文 | 默认排版 | 默认文件交付 |
+| :--- | :--- | :--- | :--- |
+| 公众号 | Markdown 原稿 + 公众号富文本 | 必须 | 标题策略 + 正文原稿 + 干净 HTML + 复制预览 HTML |
+| 知乎 | 回答/专栏 Markdown 或纯文本 | 不需要 | 标题策略 + 知乎原文；要求预览时增加两个 HTML |
+| 小红书 | 可直接发布的纯文本笔记 | 不需要 | 标题策略 + 笔记原文；要求手机卡片时增加两个 HTML |
+| 官网/网页 | Markdown 源稿 + 网页 HTML | 必须 | 标题策略 + 网页源稿 + 干净 HTML + 复制预览 HTML |
+| 个人博客 | 取决于博客系统 | 条件式 | Markdown 博客默认两件；静态页或 HTML 发布时增加两个 HTML |
 
-用户没有指定交付样式时会自动匹配；用户手动指定时会尊重选择。
+需要排版时，系统同时生成干净 HTML 和带复制功能的 HTML；不需要排版时，只交付符合平台的标题策略与原生正文，不机械凑四件套。用户手动指定交付样式时会尊重选择，但会提示明显不适配的平台风险。
 
 ---
 
 ## 公众号排版主题
 
-公众号排版风格来自 [gzh-design-skill](https://github.com/isjiamu/gzh-design-skill) 的 6 套主题。项目已内置主题索引、公共组件和完整主题组件库，当前共接入 109 个组件；生成的是可粘贴到公众号编辑器的内联 HTML，并会同时生成带“复制到公众号”按钮的预览页。
+公众号排版是 Mr.Li Writer 写作到交付闭环中的一个专用模块。视觉组件在本项目的平台路由、正文清理、表格转换、跨端防溢出和交付校验基础上，采用 [gzh-design-skill](https://github.com/isjiamu/gzh-design-skill) 的 6 套主题资源。当前共接入 109 个组件，可生成公众号编辑器使用的内联 HTML，并同时生成带“复制到公众号”按钮的预览页。
 
 | 主题标识 | 中文名 | 适合内容 |
 | :--- | :--- | :--- |
@@ -238,7 +268,7 @@ python3 scripts/extract_seed.py <file.docx> --redact-term "需要隐藏的词"
 
 ### 正文质量检查
 
-交付前自动检查：模板化表达、同质化开头、虚构第一人称、证据密度是否匹配文章类型、是否缺少引用来源、是否暴露后台资料处理动作，以及是否把利益相关第三方机构写成正文背书等。
+交付前自动检查：模板化表达、同质化开头、机械翻案、名词堆叠、句长过度整齐、虚构第一人称、段落是否缺少信息增量、证据密度是否匹配文章类型、是否缺少引用来源、是否暴露后台资料处理动作，以及是否把利益相关第三方机构写成正文背书等。检查结果必须用于直接修改，不以“已检查”代替修正。
 
 ```bash
 python3 scripts/lint_article.py <article.md> --genre relationship-life --evidence-density low --impact-check
@@ -254,13 +284,13 @@ python3 scripts/build_html.py <article.md> --list-delivery-styles
 python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --mode opinion-analysis --platform 公众号
 python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t red-white
 python3 scripts/build_gzh_html.py <article.md> -o article-gzh.html --title "文章标题" -t moyu-green
-python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mode xiaohongshu-note --platform 小红书
-python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO
+python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mode xiaohongshu-note --platform 小红书 --emit-pair
+python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO --emit-pair
 ```
 
 通用 HTML 支持 Markdown 图片语法，例如 `![说明](assets/example.svg)`，会转换为带说明文字的 `<figure><img><figcaption>` 结构。
 
-一篇完成排版的公众号文章必须交付四份文件：
+一篇公众号文章必须交付四份文件：
 
 - `title-strategy.md`：推荐标题、至少 2 个备选标题与选择理由
 - `article-source.md`：可继续修改的 Markdown 正文
@@ -269,7 +299,7 @@ python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --plat
 
 公众号脚本会根据正文输出名自动生成预览页，例如 `article-gzh.html` 对应 `article-gzh_preview.html`；整理最终四件套时可统一命名为 `article-preview.html`。
 
-交付前会运行四件套校验，少任何一件都不会进入最终交付。交付时会优先把预览页作为宿主原生附件/文件卡片发送。若宿主不支持本地文件附件，Skill 会如实提供文件系统路径作为降级，不会把本地绝对路径包装成看似可点击的 Markdown 链接。
+公众号交付前会运行固定四件套校验，少任何一件都不会进入最终交付。其他平台先校验标题策略和平台原生正文；本次涉及排版时再用 `--layout` 要求干净 HTML 与复制预览 HTML。交付时优先使用宿主原生附件/文件卡片；宿主不支持时会如实说明能力边界，不把本地绝对路径包装成看似可点击的链接。
 
 公众号组件库检查：
 
@@ -278,6 +308,8 @@ python3 scripts/gzh_component_inventory.py .
 python3 scripts/component_lint.py .
 python3 scripts/validate_gzh_html.py article-gzh.html
 python3 scripts/validate_delivery_bundle.py ./delivery --platform 公众号
+python3 scripts/validate_delivery_bundle.py ./delivery --platform 知乎
+python3 scripts/validate_delivery_bundle.py ./delivery --platform 官网/网页 --layout
 ```
 
 ### 项目自检
@@ -288,6 +320,8 @@ python3 -m py_compile scripts/*.py tests/test_regressions.py
 python3 scripts/gzh_component_inventory.py .
 python3 scripts/component_lint.py .
 ```
+
+涉及写作规则升级时，还应使用 [编辑效果评测规范](references/editorial-evaluation-protocol.md) 和 12 个[跨体裁种子题](tests/fixtures/editorial-routing-cases.md)做盲评与同题多跑。评测同时关注点击意愿、任务完成度、理解成本、可信度、活人感、信息增量和平台原生度；没有实际评测数据时，不宣称写作效果已经得到证明。
 
 公众号正文采用内联样式、固定表格布局和容器内换行等兼容约束，并经过桌面与手机视口检查。微信公众号编辑器仍可能随版本调整过滤规则，重要文章发布前应在公众号后台分别完成手机端和 PC 端预览。
 
@@ -300,9 +334,12 @@ mr-li-writer-skill/
 ├── README.md
 ├── SKILL.md
 ├── LICENSE
+├── NOTICE.md
 ├── agents/
 ├── references/
 │   ├── delivery-protocol.md
+│   ├── editorial-routing-protocol.md
+│   ├── editorial-evaluation-protocol.md
 │   ├── ideation-protocol.md
 │   ├── lint-checks.md
 │   ├── platform-native-protocol.md
@@ -322,6 +359,7 @@ mr-li-writer-skill/
 ├── tests/
 │   ├── test_regressions.py
 │   └── fixtures/
+│       └── editorial-routing-cases.md
 └── assets/
     ├── readme-banner.svg
     └── gzh-design/
@@ -339,3 +377,5 @@ mr-li-writer-skill/
 项目原创部分采用 [MIT](LICENSE) © 2026 NocodeMrLi。
 
 公众号排版主题与组件库来自 [gzh-design-skill](https://github.com/isjiamu/gzh-design-skill)，相关排版代码和派生部分遵循 [GNU AGPL-3.0](assets/gzh-design/LICENSE)，来源说明见 [assets/gzh-design/NOTICE.md](assets/gzh-design/NOTICE.md)。
+
+编辑路由与活人感检查在技术思路上重点参考了 [human-writing（活人感写作）](https://github.com/KKKKhazix/human-writing)：材料充分性、说话位置、现实/虚构边界、段落信息增量、先写后审和修辞动作检查等能力均已结合本项目重新设计为自适应规则，没有照搬固定字数门槛或全局禁词。完整开源说明见 [NOTICE.md](NOTICE.md)。

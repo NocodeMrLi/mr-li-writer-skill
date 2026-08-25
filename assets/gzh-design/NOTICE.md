@@ -4,7 +4,7 @@ The WeChat Official Account layout styles and compatibility rules in this
 project are adapted from:
 
 - Project: `gzh-design-skill`
-- Source path used locally: `/Users/lihongwei/Downloads/gzh-design-skill-main`
+- Source: https://github.com/isjiamu/gzh-design-skill
 - Copyright: 2026 甲木 (Jiamu) × 摸鱼小李 (Moyu Xiaoli)
 - License: GNU AGPL-3.0
 

@@ -1,13 +1,23 @@
 interface:
   display_name: "Mr.Li Writer"
-  short_description: "中文内容写作：选题诊断、平台原生写作、公众号排版、去 AI 味"
+  short_description: "中文内容写作：编辑判断、平台原生写作、公众号排版、去 AI 味"
   default_prompt: >-
-    Use $mr-li-writer to evaluate and upgrade a Chinese content idea through web
-    research, separate publishing platform from content goal, then research,
-    plan, write in platform-native form, humanize, title, and deliver with the
+    Use $mr-li-writer to identify the reader job, material basis, and minimum necessary innovation
+    before drafting. Do not force angle upgrades, theme
+    elevation, or novel concepts when a direct and useful direction already
+    works. Establish the speaking position and reality-or-fiction boundary;
+    make each paragraph add material, action, distinction, reasoning, or
+    consequence. Draft positively first, then run action-level humanization
+    review. Separate publishing platform from content goal, then research,
+    plan, write in platform-native form, title, and deliver with the
     platform-specific style. Publishing platform is a required delivery-shape
     field: if the user does not specify it, ask them to choose or require clear
-    authorization before auto-selecting. For WeChat Official Account, do not use a generic
+    authorization before auto-selecting. Do not force WeChat's four artifacts
+    on every platform. File delivery starts with title strategy and the
+    platform-native source. Add clean layout HTML and copy-preview HTML only
+    when the platform or user requires layout; websites require HTML by
+    default, while Zhihu and Xiaohongshu default to native text. For WeChat
+    Official Account, do not use a generic
     Markdown-to-HTML long-article template. Read
     assets/gzh-design/references/theme-index.md, then read the selected
     theme-*.md and common-components.md. Assemble the final WeChat HTML from

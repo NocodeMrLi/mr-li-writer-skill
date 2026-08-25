@@ -20,6 +20,44 @@ AI_PHRASES = (
     "拭目以待",
 )
 
+SEMANTIC_REVERSAL_PATTERNS = (
+    r"你以为.{2,80}(其实|实际|真正)",
+    r"看似.{2,80}(其实|实际|实则)",
+    r"表面上?.{2,80}(其实|实际|实则)",
+    r"不是.{2,80}而是",
+    r"并非.{2,80}而是",
+    r"不在于.{2,80}而在于",
+    r"(?:并不|不只|不再)是.{2,80}(?:而是|真正)",
+)
+
+NOMINALIZATION_PATTERNS = (
+    r"进行(?:了|一次|着)?.{0,12}(?:调整|优化|分析|讨论|梳理|复盘|探索|思考)",
+    r"实现(?:了)?.{0,16}(?:提升|增长|转变|突破)",
+    r"完成(?:了)?对.{0,20}的",
+    r"起到(?:了)?.{0,12}作用",
+)
+
+INSIGHT_ROAD_SIGNS = (
+    "更深一层",
+    "真正的问题是",
+    "更本质的是",
+    "还有一层",
+    "只说对了一半",
+    "答案恰恰相反",
+)
+
+CONJUNCTIONS = (
+    "因为",
+    "所以",
+    "但是",
+    "然而",
+    "同时",
+    "此外",
+    "因此",
+    "不仅",
+    "并且",
+)
+
 VIRTUAL_OPENING_PATTERNS = (
     r"后台.*(有人|总有人|很多人|问)",
     r"群里.*(有人|总有人|很多人|问)",
@@ -150,7 +188,7 @@ def parse_args():
     parser.add_argument(
         "--impact-check",
         action="store_true",
-        help="检查高完成度增强是否走向过度文学化、抽象化或缺少记忆点",
+        help="检查高完成度增强是否走向过度文学化、抽象化或阅读负担过重",
     )
     parser.add_argument(
         "--allow-commercial-source-names",
@@ -158,6 +196,25 @@ def parse_args():
         help="文章本身在评测/介绍相关商业机构时，允许正文显名并要求说明利益关系",
     )
     return parser.parse_args()
+
+
+def han_count(text):
+    return len(re.findall(r"[\u4e00-\u9fff]", text))
+
+
+def sentence_length_cv(text):
+    lengths = [
+        han_count(match.group())
+        for match in re.finditer(r"[^。！？!?\n]+[。！？!?]", text)
+        if han_count(match.group()) >= 4
+    ]
+    if len(lengths) < 12:
+        return None
+    mean = sum(lengths) / len(lengths)
+    if not mean:
+        return None
+    variance = sum((length - mean) ** 2 for length in lengths) / len(lengths)
+    return (variance ** 0.5) / mean, len(lengths)
 
 
 def main():
@@ -195,6 +252,45 @@ def main():
         count = text.count(phrase)
         if count:
             warnings.append("发现疑似模板化表达“%s” %d 次。" % (phrase, count))
+
+    reversal_hits = []
+    for pattern in SEMANTIC_REVERSAL_PATTERNS:
+        reversal_hits.extend(re.findall(pattern, text, re.S))
+    if reversal_hits:
+        warnings.append(
+            "发现疑似翻案修辞动作 %d 处；检查是否先替读者虚构误解再宣布洞察。真实的认识变化可以保留，换皮套路应改为直接判断和依据。"
+            % len(reversal_hits)
+        )
+
+    nominalization_hits = sum(
+        len(re.findall(pattern, text)) for pattern in NOMINALIZATION_PATTERNS
+    )
+    if nominalization_hits >= 2:
+        warnings.append(
+            "发现动词名词化表达 %d 处；检查能否还原成谁做了什么、改变了什么。"
+            % nominalization_hits
+        )
+
+    road_sign_hits = sum(text.count(phrase) for phrase in INSIGHT_ROAD_SIGNS)
+    if road_sign_hits >= 2:
+        warnings.append(
+            "洞察路标出现 %d 次；不要靠“更深一层/真正的问题”给段落排队，让材料和因果承担推进。"
+            % road_sign_hits
+        )
+
+    total_han = han_count(text)
+    conjunction_hits = sum(text.count(word) for word in CONJUNCTIONS)
+    if total_han >= 600 and conjunction_hits * 1000 / total_han > 9:
+        warnings.append(
+            "连词密度偏高；检查是否每段都靠因为/所以/然而等路标连接，能由语序和事理自然衔接的可删减。"
+        )
+
+    cv_result = sentence_length_cv(text)
+    if cv_result and cv_result[0] < 0.38:
+        warnings.append(
+            "全文 %d 个句子的长度过于接近；检查是否形成统一节拍。只在内容需要时调整长短，不要机械打散。"
+            % cv_result[1]
+        )
 
     process_leaks = []
     for pattern, message in PROCESS_LEAK_PATTERNS:
@@ -258,15 +354,14 @@ def main():
         abstract_hits = sum(text.count(phrase) for phrase in ABSTRACT_PHRASES)
         concrete_markers = len(re.findall(r"(早上|晚上|那天|一次|门口|桌上|手机|消息|说|问|看见|走|坐|放下|打开)", text))
         if abstract_hits >= 10 and concrete_markers < 3:
-            warnings.append("抽象词较多但具体场景/动作较少；检查主题升维是否太飘。")
+            warnings.append("抽象词较多但具体场景/动作较少；检查内容是否为了显得深刻而变飘。")
 
         paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
         long_paragraphs = [p for p in paragraphs if len(re.sub(r"\s+", "", p)) > 260]
         if len(long_paragraphs) >= 3:
             warnings.append("长段落较多；检查平台阅读是否吃力。")
 
-        if not re.search(r"(不是.+而是|真正|关键|核心|换句话说|说到底|更准确地说)", text):
-            warnings.append("未发现清晰的核心判断提示；检查文章是否缺少可转述记忆点。")
+        # 判断可以由事实、动作和完整推理自然落下，不要求出现“真正/核心”等提示词。
 
     is_xhs = (
         "小红书" in args.platform
