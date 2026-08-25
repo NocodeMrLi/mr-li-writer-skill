@@ -15,3 +15,10 @@ interface:
     skeleton, article-type component recipe, and Markdown-to-component mapping.
     scripts/build_gzh_html.py should run in component-library mode; fallback mode
     is only for emergency preview and should not be treated as final layout.
+    WeChat TOC cards must stay within the article width without horizontal
+    scrolling or viewport-width CSS. Markdown tables must become semantic,
+    fixed-layout HTML tables with wrapping cells; never leave pipe syntax in
+    reader-facing output. A completed WeChat delivery always contains four real
+    artifacts: title-strategy Markdown, article-source Markdown, clean WeChat
+    HTML, and copy-preview HTML. Run validate_gzh_html.py and
+    validate_delivery_bundle.py before attaching the files.

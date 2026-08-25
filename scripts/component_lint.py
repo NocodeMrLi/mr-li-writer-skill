@@ -33,6 +33,10 @@ CHECKS = [
     (re.compile(r"display\s*:\s*grid", re.I), "ERROR", "display:grid 不被支持"),
     (re.compile(r"var\s*\(\s*--", re.I), "ERROR", "用了 CSS 变量 var(--x)"),
     (re.compile(r"@(media|keyframes|import)", re.I), "ERROR", "@media/@keyframes/@import 不被支持"),
+    (re.compile(r"overflow-x\s*:\s*auto", re.I), "ERROR",
+     "用了横向滚动 —— 公众号发布后的 PC/手机端宽度不稳定，应在正文宽度内自适应换行"),
+    (re.compile(r"(?:width|min-width|max-width)\s*:\s*\d+(?:\.\d+)?vw", re.I), "ERROR",
+     "用了 vw 卡片宽度 —— 公众号发布容器与浏览器视口不同，应使用百分比或 flex 自适应"),
 ]
 
 # 四周虚线框：border: ... dashed（不含方向，如 border-left dashed 不算）
@@ -67,6 +71,11 @@ def lint_file(path):
         for rx, level, msg in CHECKS:
             if rx.search(html):
                 add(level, msg)
+        if re.search(r"<table[\s>]", html, re.I):
+            if not re.search(r"table-layout\s*:\s*fixed", html, re.I):
+                add("ERROR", "语义化表格缺少 table-layout:fixed，窄屏可能被内容撑宽")
+            if "overflow-wrap:anywhere" not in html or not re.search(r"white-space\s*:\s*normal", html, re.I):
+                add("ERROR", "语义化表格缺少单元格长文本换行兜底")
         # 原 gzh-design 主题中部分引用框、亮点卡和素材占位会刻意使用
         # 四周虚线作为设计语言；这里不把 dashed 本身视为源头问题。
 
@@ -97,8 +106,13 @@ def main():
     ref_dir = next((d for d in candidate_dirs if os.path.isdir(d)), candidate_dirs[0])
     refs = sorted(
         p for p in glob.glob(os.path.join(ref_dir, "*.md"))
-        if os.path.basename(p).startswith("theme-")
-        and os.path.basename(p) not in {"theme-index.md", "theme-generator.md"}
+        if (
+            os.path.basename(p) == "common-components.md"
+            or (
+                os.path.basename(p).startswith("theme-")
+                and os.path.basename(p) not in {"theme-index.md", "theme-generator.md"}
+            )
+        )
     )
     if not refs:
         print(f"未找到公众号主题组件库: {ref_dir}/*.md")

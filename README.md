@@ -45,7 +45,8 @@
 - **交付口径清理**：保留必要来源和时间备注，但不把抓取、爬取、检索结果、AI 生成等后台动作写进正文
 - **多体裁覆盖**：支持公众号深度文、知乎回答、小红书笔记、行业解读、实用指南、情感生活等
 - **平台化交付**：公众号使用完整组件库式内联 HTML 排版，小红书使用手机笔记卡片，官网/网页和博客使用对应预览
-- **可靠文件交付**：优先使用宿主原生附件或文件卡片发送真实文件，避免把本地路径伪装成打不开的蓝色链接
+- **跨端稳定排版**：公众号目录在正文宽度内自适应，Markdown 表格转换为真实表格并在窄屏内换行
+- **可靠文件交付**：公众号强制交付标题策略、正文原稿、干净 HTML、复制预览四件套；优先使用宿主原生附件或文件卡片发送真实文件
 
 ---
 
@@ -69,6 +70,7 @@ git clone https://github.com/NocodeMrLi/mr-li-writer-skill.git ~/.codex/skills/m
 
 ```bash
 git -C ~/.agents/skills/mr-li-writer pull
+git -C ~/.codex/skills/mr-li-writer pull
 ```
 
 其他支持 `SKILL.md` 的宿主，请将仓库放入该宿主声明的用户级或项目级 Skills 目录。宿主需要具备联网检索能力才能完成全网对比研究；没有联网工具时，Skill 会基于用户提供的资料写作并保留事实边界。
@@ -88,11 +90,11 @@ Codex 可使用 `$mr-li-writer` 调用；采用斜杠命令的宿主可尝试 `/
 ## 工作流程
 
 1. 接收标题、想法、素材、文件或参考链接。
-2. 在宿主支持联网时进行至少两轮语境检索，判断同质化程度、资料条件和可写性。
+2. 需要选题诊断时，在宿主支持联网的前提下进行至少两轮语境检索，判断同质化程度、资料条件和可写性。
 3. 区分发布平台与内容目标，确认读者、文章类型、证据密度和交付样式。
 4. 个性化设计立意、标题、开头、结构和正文，不套用固定文章框架。
 5. 完成至少两轮去 AI 味检查并直接修改，仍有明显问题时继续修正。
-6. 按平台交付 Markdown、纯文本、内联 HTML 或预览文件，并优先使用宿主原生附件。
+6. 按平台交付 Markdown、纯文本、内联 HTML 或预览文件；公众号排版完成后交付四件套，并优先使用宿主原生附件。
 
 ---
 
@@ -186,7 +188,7 @@ Codex 可使用 `$mr-li-writer` 调用；采用斜杠命令的宿主可尝试 `/
 
 | 发布平台 | 默认交付样式 |
 |---|---|
-| 公众号 | 内联 HTML 排版主题 + 复制预览页 |
+| 公众号 | 标题策略 + 正文原稿 + 内联 HTML + 复制预览页 |
 | 知乎 | 问答/专栏样式 |
 | 小红书 | 手机笔记卡片 / 清爽纯文本笔记 |
 | 官网/网页 | 网页文章 / SEO-GEO 结构化样式 |
@@ -223,6 +225,8 @@ assets/gzh-design/references/
 
 ## 脚本说明
 
+核心脚本使用 Python 3 标准库即可运行；只有 DOCX、PDF 和图片素材提取需要下面列出的可选依赖。
+
 ### 素材提取
 
 ```bash
@@ -247,29 +251,45 @@ python3 scripts/lint_article.py <note.md> --platform 小红书 --mode xiaohongsh
 ```bash
 python3 scripts/build_html.py <article.md> --list-themes
 python3 scripts/build_html.py <article.md> --list-delivery-styles
-python3 scripts/build_html.py <article.md> -o article.html --title "文章标题" --mode opinion-analysis --platform 公众号
-python3 scripts/build_html.py <article.md> -o article.html --title "文章标题" --platform 公众号 -t red-white
-python3 scripts/build_gzh_html.py <article.md> -o article_gzh.html --title "文章标题" -t moyu-green
+python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --mode opinion-analysis --platform 公众号
+python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t red-white
+python3 scripts/build_gzh_html.py <article.md> -o article-gzh.html --title "文章标题" -t moyu-green
 python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mode xiaohongshu-note --platform 小红书
 python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO
 ```
 
 通用 HTML 支持 Markdown 图片语法，例如 `![说明](assets/example.svg)`，会转换为带说明文字的 `<figure><img><figcaption>` 结构。
 
-公众号排版会输出两份文件：
+一篇完成排版的公众号文章必须交付四份文件：
 
-- 干净正文片段：用于校验和手动粘贴兜底
-- 复制预览页：浏览器打开后点击“复制到公众号”，再粘贴到公众号编辑器
+- `title-strategy.md`：推荐标题、至少 2 个备选标题与选择理由
+- `article-source.md`：可继续修改的 Markdown 正文
+- `article-gzh.html`：用于校验和手动粘贴兜底的干净正文片段
+- `article-preview.html`：浏览器打开后点击“复制到公众号”，再粘贴到公众号编辑器
 
-交付时会优先把预览页作为宿主原生附件/文件卡片发送。若宿主不支持本地文件附件，Skill 会如实提供文件系统路径作为降级，不会把本地绝对路径包装成看似可点击的 Markdown 链接。
+公众号脚本会根据正文输出名自动生成预览页，例如 `article-gzh.html` 对应 `article-gzh_preview.html`；整理最终四件套时可统一命名为 `article-preview.html`。
+
+交付前会运行四件套校验，少任何一件都不会进入最终交付。交付时会优先把预览页作为宿主原生附件/文件卡片发送。若宿主不支持本地文件附件，Skill 会如实提供文件系统路径作为降级，不会把本地绝对路径包装成看似可点击的 Markdown 链接。
 
 公众号组件库检查：
 
 ```bash
 python3 scripts/gzh_component_inventory.py .
 python3 scripts/component_lint.py .
-python3 scripts/validate_gzh_html.py article_gzh.html
+python3 scripts/validate_gzh_html.py article-gzh.html
+python3 scripts/validate_delivery_bundle.py ./delivery --platform 公众号
 ```
+
+### 项目自检
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m py_compile scripts/*.py tests/test_regressions.py
+python3 scripts/gzh_component_inventory.py .
+python3 scripts/component_lint.py .
+```
+
+公众号正文采用内联样式、固定表格布局和容器内换行等兼容约束，并经过桌面与手机视口检查。微信公众号编辑器仍可能随版本调整过滤规则，重要文章发布前应在公众号后台分别完成手机端和 PC 端预览。
 
 ---
 
@@ -295,6 +315,7 @@ mr-li-writer-skill/
 │   ├── build_html.py
 │   ├── build_gzh_html.py
 │   ├── validate_gzh_html.py
+│   ├── validate_delivery_bundle.py
 │   ├── component_lint.py
 │   ├── gzh_component_inventory.py
 │   └── wrap_gzh_preview.py

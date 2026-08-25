@@ -4,6 +4,7 @@ import importlib.util
 import io
 import pathlib
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -41,6 +42,14 @@ SAMPLE_MD = """# 测试文章
 正文三。
 """
 
+TABLE_MD = """# 报名状态
+
+| 省份 | 报名开始 | 报名截止 | 备注 |
+| --- | --- | --- | --- |
+| 广东 | 8月17日 9:00 | 8月25日 17:00 | 今天需要完成缴费并确认报名状态 |
+| 辽宁 | 8月19日 8:30 | 8月25日 16:00 | 不含大连，大连单独安排 |
+"""
+
 
 class DeliveryProtocolTests(unittest.TestCase):
     def test_skill_requires_native_file_attachments(self):
@@ -52,6 +61,45 @@ class DeliveryProtocolTests(unittest.TestCase):
         text = (ROOT / "references/research-protocol.md").read_text(encoding="utf-8")
         self.assertIn("直接商业利益", text)
         self.assertIn("相关机构公开汇总", text)
+
+    def test_wechat_delivery_requires_and_validates_four_artifacts(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        protocol = (ROOT / "references/delivery-protocol.md").read_text(encoding="utf-8")
+        self.assertTrue(validator.exists(), "缺少公众号四件套交付校验器")
+        for role in ("标题策略", "正文 Markdown", "公众号正文 HTML", "复制预览 HTML"):
+            self.assertIn(role, protocol)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
+            (delivery / "article.html").write_text("<section>正文</section>", encoding="utf-8")
+            (delivery / "article-preview.html").write_text(
+                "<button>复制到公众号</button><script>function gzhCopy(){}</script>",
+                encoding="utf-8",
+            )
+            missing = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "公众号"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(missing.returncode, 0)
+
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            complete = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "公众号"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+
+    def test_agent_entrypoint_repeats_wechat_delivery_guards(self):
+        text = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+        self.assertIn("four real", text)
+        self.assertIn("semantic", text)
+        self.assertIn("validate_delivery_bundle.py", text)
 
 
 class ReadmeDocumentationTests(unittest.TestCase):
@@ -76,6 +124,14 @@ class ReadmeDocumentationTests(unittest.TestCase):
         self.assertIn("delivery-protocol.md", text)
         self.assertIn("├── tests/", text)
         self.assertIn("test_regressions.py", text)
+
+    def test_readme_documents_four_artifacts_and_runnable_checks(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        for artifact in ("title-strategy.md", "article-source.md", "article-gzh.html", "article-preview.html"):
+            self.assertIn(artifact, text)
+        self.assertIn("article-gzh_preview.html", text)
+        self.assertIn("python3 -m unittest discover -s tests -v", text)
+        self.assertIn("重要文章发布前", text)
 
 
 class ArticleLintTests(unittest.TestCase):
@@ -166,11 +222,47 @@ class GzhThemeRegressionTests(unittest.TestCase):
         for heading in ("第一部分：先判断问题", "第二部分：再给方法", "第三部分：完成交付"):
             self.assertEqual(rendered.count(heading), 2, heading)
 
-    def test_moyu_toc_supports_long_titles_without_overflow(self):
+    def test_moyu_toc_is_publication_safe_without_horizontal_scroll(self):
         rendered = build_gzh.build_component_section(SAMPLE_MD, "测试文章", "moyu-green")
         self.assertIn("overflow-wrap:anywhere", rendered)
-        self.assertIn("min-width:140px", rendered)
-        self.assertNotIn("width:110px", rendered)
+        self.assertNotIn("overflow-x:auto", rendered)
+        self.assertNotRegex(rendered, r"width:\s*\d+(?:\.\d+)?vw")
+        self.assertNotIn("white-space:nowrap", rendered)
+        self.assertNotIn("滑动查看", rendered)
+
+    def test_theme_source_toc_components_are_publication_safe(self):
+        theme_dir = ROOT / "assets/gzh-design/references"
+        for path in sorted(theme_dir.glob("theme-*.md")):
+            if path.name in {"theme-index.md", "theme-generator.md"}:
+                continue
+            text = path.read_text(encoding="utf-8")
+            for match in re.finditer(
+                r"^##\s+组件\s+\d+\s+([^\n]*(?:目录|导读|toc)[^\n]*)\n(.*?)(?=^##\s+组件\s+\d+|\Z)",
+                text,
+                re.I | re.M | re.S,
+            ):
+                with self.subTest(theme=path.name, component=match.group(1)):
+                    component = match.group(2)
+                    self.assertNotIn("overflow-x:auto", component)
+                    self.assertNotRegex(component, r"width:\s*\d+(?:\.\d+)?vw")
+                    self.assertNotIn("white-space:nowrap", component)
+
+    def test_markdown_tables_render_as_semantic_responsive_tables_in_every_theme(self):
+        blocks = build_gzh.parse_blocks(TABLE_MD)
+        self.assertTrue(any(block[0] == "table" for block in blocks))
+        for theme in build_gzh.THEMES:
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(TABLE_MD, "报名状态", theme)
+                self.assertIn("<table", rendered)
+                self.assertIn("table-layout:fixed", rendered)
+                self.assertIn("overflow-wrap:anywhere", rendered)
+                self.assertNotIn("| --- |", rendered)
+
+    def test_generated_html_validator_rejects_raw_markdown_tables(self):
+        validator = load_module("validate_gzh_html", "scripts/validate_gzh_html.py")
+        source = '<section><p><span leaf="">| 省份 | 截止时间 |\n| --- | --- |</span></p></section>'
+        errors, _, _ = validator.validate(source)
+        self.assertTrue(any("Markdown 表格" in error for error in errors), errors)
 
     def test_multi_column_components_include_text_overflow_guards(self):
         checks = {

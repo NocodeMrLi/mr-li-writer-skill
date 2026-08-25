@@ -170,23 +170,20 @@
 
 ---
 
-## 组件 3 目录 toc-scroll（横向滚动目录）
+## 组件 3 目录 toc-cards（自适应目录）
 
-2 个及以上章节时生成。按实际章节重复卡片，第一个卡片绿色高亮；只有原文确有结语/总结章时才使用“写在最后”变体。章节标题超过 12 个汉字时优先缩写为不失真的短标题；仍较长时允许卡片向下增高，不缩小字号、不截断正文。
+2 个及以上章节时生成。最多展示 3 个章节，第一个卡片绿色高亮；只有原文确有结语/总结章时才使用“写在最后”变体。卡片始终在正文宽度内等分，标题自然换行并向下增高。禁止横向滚动、`vw` 宽度、固定高度裁切和不换行。
 
 ```html
 <section style="margin:0 20px 32px;">
-  <section style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+  <section style="display:flex;align-items:center;margin-bottom:10px;">
     <p style="font-size:10px;color:#9CA3AF;margin:0;text-transform:uppercase;letter-spacing:2px;font-weight:600;">
-      <span leaf="">📦 {{N}} Parts + Conclusion</span>
-    </p>
-    <p style="font-size:10px;color:#9CA3AF;margin:0;">
-      <span leaf="">👉 滑动</span>
+      <span leaf="">{{N}} PARTS</span>
     </p>
   </section>
-  <section style="overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;padding-bottom:8px;">
+  <section style="display:flex;width:100%;max-width:100%;box-sizing:border-box;align-items:stretch;">
     <!-- 第一个（当前高亮，绿色背景） -->
-    <section style="display:inline-block;white-space:normal;vertical-align:top;width:42vw;min-width:140px;max-width:180px;box-sizing:border-box;background:linear-gradient(135deg,#059669,#10B981);border-radius:12px;padding:12px;margin-right:8px;">
+    <section style="display:block;flex:1;min-width:0;box-sizing:border-box;background:linear-gradient(135deg,#059669,#10B981);border-radius:12px;padding:12px 8px;margin-right:8px;word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:1px;margin:0 0 5px;">
         <span leaf="">PART {{编号}}</span>
       </p>
@@ -198,7 +195,7 @@
       </p>
     </section>
     <!-- 后续章节（白色背景），按需重复 -->
-    <section style="display:inline-block;white-space:normal;vertical-align:top;width:42vw;min-width:140px;max-width:180px;box-sizing:border-box;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px;margin-right:8px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+    <section style="display:block;flex:1;min-width:0;box-sizing:border-box;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px 8px;margin-right:8px;box-shadow:0 2px 6px rgba(0,0,0,0.04);word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:1px;margin:0 0 5px;">
         <span leaf="">PART 02</span>
       </p>
@@ -210,7 +207,7 @@
       </p>
     </section>
     <!-- 最后一个（写在最后） -->
-    <section style="display:inline-block;white-space:normal;vertical-align:top;width:42vw;min-width:140px;max-width:180px;box-sizing:border-box;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+    <section style="display:block;flex:1;min-width:0;box-sizing:border-box;background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px 8px;box-shadow:0 2px 6px rgba(0,0,0,0.04);word-break:break-word;overflow-wrap:anywhere;">
       <p style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:1px;margin:0 0 5px;">
         <span leaf="">PART ///</span>
       </p>
@@ -701,28 +698,28 @@
 
 ### 11f. table（表格）
 
-本主题保留 `<table>` 组件（摸鱼绿实测微信可用）；Markdown 表格优先用它，数据密度低时也可改用 11c 三列卡片。
+本主题保留语义化 `<table>` 组件；Markdown 表格必须优先用它。只有原内容本来就是三项摘要而非行列数据时，才可改用 11c 三列卡片。
 
 ```html
-<section style="margin-bottom:24px;overflow-x:auto;">
-  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+<section style="width:100%;max-width:100%;box-sizing:border-box;margin-bottom:24px;overflow:hidden;">
+  <table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;font-size:13px;box-sizing:border-box;">
     <thead>
       <tr>
-        <th style="background:#059669;color:#fff;font-weight:700;padding:8px 12px;text-align:left;"><span leaf="">{{列标题1}}</span></th>
-        <th style="background:#059669;color:#fff;font-weight:700;padding:8px 12px;text-align:left;"><span leaf="">{{列标题2}}</span></th>
-        <th style="background:#059669;color:#fff;font-weight:700;padding:8px 12px;text-align:left;"><span leaf="">{{列标题3}}</span></th>
+        <th style="box-sizing:border-box;background:#059669;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题1}}</span></th>
+        <th style="box-sizing:border-box;background:#059669;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题2}}</span></th>
+        <th style="box-sizing:border-box;background:#059669;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题3}}</span></th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;color:#374151;"><span leaf="">{{内容}}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;color:#374151;"><span leaf="">{{内容}}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;color:#374151;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E5E7EB;color:#374151;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E5E7EB;color:#374151;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E5E7EB;color:#374151;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
       </tr>
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;color:#374151;background:#F9FAFB;"><span leaf="">{{内容}}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;color:#374151;background:#F9FAFB;"><span leaf="">{{内容}}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;color:#374151;background:#F9FAFB;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E5E7EB;color:#374151;background:#F9FAFB;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E5E7EB;color:#374151;background:#F9FAFB;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E5E7EB;color:#374151;background:#F9FAFB;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
       </tr>
     </tbody>
   </table>
@@ -927,7 +924,7 @@
 | 流程（3 步） | 组件 11b flow-cards | 箭头可换 × 做对比 |
 | 三项对比 | 组件 11c three-col-cards | |
 | 递进/时间脉络 | 组件 11d timeline | |
-| Markdown 表格 | 组件 11f table | 偶数行浅灰底 |
+| Markdown 表格 | 组件 11f table | 必须输出语义化 `<table>`；固定表格布局并在单元格内换行，禁止保留 Markdown 竖线文本或横向滚动 |
 | `1. 2. 3.` 编号列表 | 组件 11g ordered-list | |
 | 注意/警告 | 组件 10a warn-tip / 10c yellow-warning | |
 | 亮点提示 | 组件 10b green-tip / 10d green-info | |

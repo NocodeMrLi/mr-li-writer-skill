@@ -62,7 +62,7 @@ description: "面向中文内容创作的选题诊断、研究、策划、写作
 
 执行前先判断任务类型，避免所有任务都走同一套重创作流程：
 
-- **查询/指南型**：高时效、高信息密度，如考试、政策、价格、报名、教程、清单。事实核验权重最高，必须执行来源分级、时效性保质期和检索降级协议；创作步骤精简，用户未要求立意升级时可跳过第 0 步选题诊断，大纲确认改为“正文直接交付 + 用户可改”，AI 味检查至少一轮，标题分析走轻量版。
+- **查询/指南型**：高时效、高信息密度，如考试、政策、价格、报名、教程、清单。事实核验权重最高，必须执行来源分级、时效性保质期和检索降级协议；创作步骤精简，用户未要求立意升级时可跳过第 0 步选题诊断，大纲确认改为“正文直接交付 + 用户可改”，AI 味检查仍须至少两轮，标题分析走轻量版。
 - **观点/故事型**：低时效、重表达，如评论、随笔、人物、案例、关系生活。保留完整创作流程：选题诊断、立意升级、大纲确认、两轮 AI 味检查和完整标题分析；事实要求按证据密度匹配，不机械堆数据。
 - **都不可跳过**：本类适用的事实核验、来源呈现、平台形态确认、反 AI 味基本检查和交付样式匹配。
 
@@ -161,7 +161,7 @@ description: "面向中文内容创作的选题诊断、研究、策划、写作
 有 DOCX、PDF 或图片时运行：
 
 ```bash
-python scripts/extract_seed.py <文件路径> [<文件路径2> ...]
+python3 scripts/extract_seed.py <文件路径> [<文件路径2> ...]
 ```
 
 支持 DOCX、可提取文本的 PDF 和常见图片。扫描版 PDF 需要 OCR，脚本会提示能力边界。
@@ -233,13 +233,13 @@ python scripts/extract_seed.py <文件路径> [<文件路径2> ...]
 完成后运行：
 
 ```bash
-python scripts/lint_article.py <正文.md> --mode <内容模式> --genre <文章体裁> --evidence-density <证据密度> --impact-check
+python3 scripts/lint_article.py <正文.md> --mode <内容模式> --genre <文章体裁> --evidence-density <证据密度> --impact-check
 ```
 
 小红书笔记必须加平台参数：
 
 ```bash
-python scripts/lint_article.py <正文.md> --platform 小红书 --mode xiaohongshu-note --genre platform-native --evidence-density low --impact-check
+python3 scripts/lint_article.py <正文.md> --platform 小红书 --mode xiaohongshu-note --genre platform-native --evidence-density low --impact-check
 ```
 
 高证据和中证据文章，或正文实际使用了数据、政策、报告、专家、价格、资格、时间等硬信息时，加上 `--require-sources`。低证据或极低证据的情感、关系、生活、故事和随笔类文章不强制列参考资料，但不能伪造数据或把推测写成事实。
@@ -268,7 +268,7 @@ python scripts/lint_article.py <正文.md> --platform 小红书 --mode xiaohongs
 用户确认正文和标题后运行：
 
 ```bash
-python scripts/build_html.py <正文.md> -o <输出.html> --title "<文章标题>" --mode <内容模式> --platform <发布平台> --content-goal <内容目标>
+python3 scripts/build_html.py <正文.md> -o <输出.html> --title "<文章标题>" --mode <内容模式> --platform <发布平台> --content-goal <内容目标>
 ```
 
 默认不指定 `-t` 和 `--delivery-style`，由脚本按发布平台、内容目标、内容模式、标题关键词和正文自动匹配交付样式。公众号平台使用 gzh-design 风格的 6 套内联 HTML 排版主题；如果用户没有指定公众号主题，应先推荐最适合的一套并让用户确认。用户明确说“直接排”“不用问”“自动匹配”时，才自动选择主题。
@@ -291,15 +291,16 @@ HTML 生成前置确认清单：
 6. 同一篇文章只用一套公众号主题，不跨主题混搭。正文关键词下划线以 `theme-index.md` 中该主题的 CSS 为准。
 7. `scripts/build_gzh_html.py` 是章节编号、目录绑定、公开标签和基础组件装配的确定性入口。正式交付必须先由它生成结构底稿，再按完整组件库做内容型增强；禁止只复制主题文档里的静态示例 HTML 直接交付。
 8. 所有章节编号必须按 `##` 顺序生成 `01/02/03…`；主题组件中的 `01` 只是设计示意，组件源必须使用 `{{编号}}`。生成后逐章核对标题旁编号，不得只看第一章。
-9. 多列卡片、目录、数据卡和提示框必须自适应真实内容：文本容器使用 `min-width:0`、自然换行或 `overflow-wrap:anywhere`；长标题优先准确缩写，其次增加卡片高度或改为横向滚动/单列。禁止通过无限缩小字号、固定高度裁切或让文字溢出边框兜底。
+9. 多列卡片、目录、数据卡和提示框必须自适应真实内容：文本容器使用 `min-width:0`、自然换行或 `overflow-wrap:anywhere`；长标题优先准确缩写，其次增加卡片高度或改为单列。禁止横向滚动目录、`vw` 卡片宽度、无限缩小字号、固定高度裁切或让文字溢出边框兜底。
 10. 读者端只保留主题、日期、章节、来源和文章内容。不得出现“公众号排版”“深度文章”“内容创作 Skill”“模型生成”“模板”等生产标签，除非文章讨论对象本身就是这些概念。
 11. 交付前运行 `python3 scripts/component_lint.py .` 检查组件库源头，再对最终正文片段运行 `python3 scripts/validate_gzh_html.py <输出.html>`。
+12. Markdown 表格必须由确定性渲染器转换为语义化 `<table>`，使用 `table-layout:fixed` 并在单元格内换行。不得把 `| 字段 |`、`| --- |` 当普通段落输出，也不得用横向滚动或普通卡片冒充数据表。
 
 用户明确指定风格或不喜欢自动结果时，可以手动换主题：
 
 ```bash
-python scripts/build_html.py <正文.md> --platform 公众号 -t <公众号主题名> -o <输出.html> --title "<文章标题>"
-python scripts/build_html.py <正文.md> -t random -o <输出.html> --title "<文章标题>"
+python3 scripts/build_html.py <正文.md> --platform 公众号 -t <公众号主题名> -o <输出.html> --title "<文章标题>"
+python3 scripts/build_html.py <正文.md> -t random -o <输出.html> --title "<文章标题>"
 ```
 
 公众号可选主题：
@@ -311,7 +312,7 @@ python scripts/build_html.py <正文.md> -t random -o <输出.html> --title "<�
 - `moyu-ticket`：摸鱼票据风，适合工具对比、创意评测。
 - `olive-journal`：橄榄手记，适合案例复盘、内刊手记、系统说明。
 
-交付内容按任务选择：
+非公众号交付内容按任务选择：
 
 - Markdown 正文
 - 标题策略报告
@@ -320,6 +321,14 @@ python scripts/build_html.py <正文.md> -t random -o <输出.html> --title "<�
 - 公众号干净正文片段和复制预览页
 - 平台改写版本
 - 单文件 HTML
+
+公众号完成排版后必须交付四件套，任何宿主、智能体和模型均不得自行省略：标题策略 Markdown、正文 Markdown、公众号干净正文 HTML、带复制功能的预览 HTML。交付前运行：
+
+```bash
+python3 scripts/validate_delivery_bundle.py <交付目录> --platform 公众号
+```
+
+缺少任一文件或校验失败时，先补齐并重新检查，不能向用户交付不完整结果。
 
 交付物组织规范（详细执行 `references/delivery-protocol.md`）：
 
@@ -378,6 +387,7 @@ HTML 交付前检查桌面端和移动端的阅读宽度、标题换行、表格
 - `scripts/build_html.py`：零外部依赖的多平台 HTML 交付入口，公众号平台会调用公众号专用排版器。
 - `scripts/build_gzh_html.py`：Markdown 到公众号内联 HTML 快速排版器，支持 6 套 gzh-design 风格主题、自动匹配、干净正文片段和复制预览页；正式精排以 `assets/gzh-design/references/` 的完整组件库为准。
 - `scripts/validate_gzh_html.py`：公众号 HTML 合规校验器。
+- `scripts/validate_delivery_bundle.py`：公众号四件套交付完整性校验器。
 - `scripts/component_lint.py`：公众号主题组件库源头检查器。
 - `scripts/gzh_component_inventory.py`：公众号主题与组件清单检查器。
 - `scripts/wrap_gzh_preview.py`：把干净公众号正文片段包成带复制按钮的浏览器预览页。

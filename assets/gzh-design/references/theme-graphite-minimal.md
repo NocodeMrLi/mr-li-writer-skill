@@ -493,22 +493,22 @@
 ### 表格（真实数据表用）
 
 ```html
-<section style="margin:0 10px 24px;overflow-x:auto;">
-  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+<section style="width:100%;max-width:100%;box-sizing:border-box;margin:0 0 24px;overflow:hidden;">
+  <table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;font-size:13px;box-sizing:border-box;">
     <thead>
       <tr>
-        <th style="background:#27272A;color:#fff;font-weight:700;padding:8px 12px;text-align:left;"><span leaf="">{{列标题}}</span></th>
-        <th style="background:#27272A;color:#fff;font-weight:700;padding:8px 12px;text-align:left;"><span leaf="">{{列标题}}</span></th>
+        <th style="box-sizing:border-box;background:#27272A;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
+        <th style="box-sizing:border-box;background:#27272A;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #E4E4E7;color:#52525B;"><span leaf="">{{内容}}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #E4E4E7;color:#52525B;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E4E4E7;color:#52525B;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E4E4E7;color:#52525B;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
       </tr>
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #E4E4E7;color:#52525B;background:#FAFAFA;"><span leaf="">{{内容}}</span></td>
-        <td style="padding:8px 12px;border-bottom:1px solid #E4E4E7;color:#52525B;background:#FAFAFA;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E4E4E7;color:#52525B;background:#FAFAFA;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #E4E4E7;color:#52525B;background:#FAFAFA;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
       </tr>
     </tbody>
   </table>
@@ -692,7 +692,7 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 | 并列要点 | 组件 11b pill-list | |
 | `1. 2. 3.` 编号列表 | 组件 11a ordered-list | 石墨圆标 |
 | 数据展示 | 组件 12 数据/要点卡片组 | 线框版，深炭大号数字 |
-| Markdown 表格 | 组件 12 表格 | 偶数行极浅灰底 |
+| Markdown 表格 | 组件 12 表格 | 必须输出语义化 `<table>`；固定表格布局并在单元格内换行，禁止保留 Markdown 竖线文本或横向滚动 |
 | 注意/警告 | 组件 9a 石墨提示 / 9b 橙色提示 / 9c 踩坑提示 | |
 | 行内标签 | 组件 13 标签胶囊 | 石墨描边默认 |
 | `---` | 组件 4 章节分割线 | 1px 石墨极细线 |

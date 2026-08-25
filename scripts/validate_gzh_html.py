@@ -26,7 +26,14 @@ FORBIDDEN = [
     (re.compile(r"display\s*:\s*grid", re.I), "ERROR", "display:grid 不被支持，请用 flex"),
     (re.compile(r"var\s*\(\s*--", re.I), "ERROR", "CSS 变量 var(--x) 不被支持，请写死值"),
     (re.compile(r"url\s*\(\s*['\"]?https?://[^)]*\.(woff2?|ttf|otf|eot)", re.I), "ERROR", "外部字体不被支持"),
+    (re.compile(r"overflow-x\s*:\s*auto", re.I), "ERROR", "横向滚动在公众号发布后不稳定，请改为容器内自适应换行"),
+    (re.compile(r"(?:width|min-width|max-width)\s*:\s*\d+(?:\.\d+)?vw", re.I), "ERROR", "vw 宽度在公众号 PC/手机端不稳定，请使用百分比或 flex 自适应"),
 ]
+
+RAW_MARKDOWN_TABLE = re.compile(
+    r"\|[^\n<>]+\|\s*(?:<[^>]+>\s*)*\|\s*:?-{3,}:?\s*\|",
+    re.I,
+)
 
 CJK = re.compile(r"[一-鿿㐀-䶿]")
 SKIP_TAGS = {"head", "title", "style", "script"}
@@ -88,6 +95,8 @@ def validate(html, name="<input>"):
         hits = len(rx.findall(html))
         if hits:
             (errors if level == "ERROR" else warnings).append("%s（命中 %d 处）" % (msg, hits))
+    if RAW_MARKDOWN_TABLE.search(html):
+        errors.append("检测到未转换的 Markdown 表格；必须渲染为语义化 <table> 后再交付")
 
     checker = LeafChecker()
     try:

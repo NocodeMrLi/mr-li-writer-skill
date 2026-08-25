@@ -195,6 +195,29 @@ def normalize_cn_punctuation(text):
 CJK_ASCII_PUNCT = re.compile(r"(?<=[一-鿿㐀-䶿])[,;!?:()]|[,;!?:()](?=[一-鿿㐀-䶿])")
 
 
+def split_table_row(line):
+    text = line.strip()
+    if text.startswith("|"):
+        text = text[1:]
+    if text.endswith("|"):
+        text = text[:-1]
+    return [cell.strip() for cell in text.split("|")]
+
+
+def is_table_separator(line):
+    cells = split_table_row(line)
+    return bool(cells) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells)
+
+
+def starts_table(lines, index):
+    return (
+        index + 1 < len(lines)
+        and "|" in lines[index]
+        and is_table_separator(lines[index + 1].strip())
+        and len(split_table_row(lines[index])) == len(split_table_row(lines[index + 1]))
+    )
+
+
 def inline_html(text, theme):
     token_re = re.compile(r"(\*\*.+?\*\*|==.+?==|\+\+.+?\+\+|<u>.+?</u>|`.+?`)")
     out = []
@@ -256,6 +279,19 @@ def parse_blocks(md_text):
             i += 1
             continue
 
+        if starts_table(lines, i):
+            headers = split_table_row(stripped)
+            i += 2
+            rows = []
+            while i < len(lines) and lines[i].strip() and "|" in lines[i]:
+                row = split_table_row(lines[i])
+                if len(row) < len(headers):
+                    row.extend([""] * (len(headers) - len(row)))
+                rows.append(row[:len(headers)])
+                i += 1
+            blocks.append(("table", headers, rows))
+            continue
+
         if stripped.startswith(">"):
             quote = []
             while i < len(lines) and lines[i].strip().startswith(">"):
@@ -291,6 +327,8 @@ def parse_blocks(md_text):
             r"^(#{1,6}\s|[-*]\s|\d+[.、)]\s*|>|```|!\[|---|\*\*\*)",
             lines[i].strip(),
         ):
+            if starts_table(lines, i):
+                break
             para.append(lines[i].strip())
             i += 1
         blocks.append(("paragraph", " ".join(para)))
@@ -544,23 +582,23 @@ def component_toc(theme_key, components, headings):
             muted = "rgba(255,255,255,0.72)" if active else "#9CA3AF"
             border = "border:1px solid #E5E7EB;" if not active else ""
             shadow = "" if active else "box-shadow:0 2px 6px rgba(0,0,0,0.04);"
+            margin = "8px" if idx < len(selected) else "0"
             cards.append(
-                '<section style="display:inline-block;white-space:normal;vertical-align:top;width:42vw;min-width:140px;max-width:180px;box-sizing:border-box;'
-                'background:%s;%sborder-radius:12px;padding:12px;margin-right:8px;%s">'
+                '<section style="display:block;flex:1;min-width:0;box-sizing:border-box;'
+                'background:%s;%sborder-radius:12px;padding:12px 8px;margin-right:%s;%s">'
                 '<p style="font-size:9px;font-weight:700;color:%s;letter-spacing:1px;margin:0 0 5px;"><span leaf="">PART %02d</span></p>'
                 '<p style="font-size:13px;font-weight:800;color:%s;margin:0 0 3px;line-height:1.5;min-height:39px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;">'
                 '<span leaf="">%s</span></p>'
                 '<p style="font-size:10px;color:%s;margin:0;"><span leaf="">CHAPTER %02d</span></p>'
                 '</section>'
-                % (background, border, shadow, muted, idx, color, html_text(short_text(text, 24)), muted, idx)
+                % (background, border, margin, shadow, muted, idx, color, html_text(short_text(text, 24)), muted, idx)
             )
         return (
             '<section style="margin:0 20px 32px;">'
-            '<section style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+            '<section style="display:flex;align-items:center;margin-bottom:10px;">'
             '<p style="font-size:10px;color:#9CA3AF;margin:0;letter-spacing:2px;font-weight:600;"><span leaf="">%02d PARTS</span></p>'
-            '<p style="font-size:10px;color:#9CA3AF;margin:0;"><span leaf="">滑动查看</span></p>'
             '</section>'
-            '<section style="overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;padding-bottom:8px;">%s</section>'
+            '<section style="display:flex;width:100%%;max-width:100%%;box-sizing:border-box;align-items:stretch;">%s</section>'
             '</section>' % (len(selected), "".join(cards))
         )
     if theme_key in {"red-white", "graphite-minimal"}:
@@ -688,6 +726,39 @@ def component_list(theme_key, components, items, ordered=False):
     return list_block(items, THEMES[theme_key], ordered=ordered)
 
 
+def component_table(theme_key, headers, rows):
+    """Render semantic data tables without viewport-dependent scrolling."""
+    theme = THEMES[theme_key]
+    compact = len(headers) >= 4
+    font_size = "12px" if compact else "13px"
+    padding = "8px 5px" if compact else "9px 7px"
+    cell_style = (
+        "box-sizing:border-box;padding:%s;border:1px solid %s;vertical-align:top;"
+        "font-size:%s;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"
+        % (padding, theme["line"], font_size)
+    )
+    head_cells = "".join(
+        '<th style="%sbackground:%s;color:%s;font-weight:800;text-align:left;">%s</th>'
+        % (cell_style, theme["light"], theme["deep"], inline_html(value, theme))
+        for value in headers
+    )
+    body_rows = []
+    for row_index, row in enumerate(rows):
+        background = theme["surface"] if row_index % 2 == 0 else theme["lighter"]
+        cells = "".join(
+            '<td style="%sbackground:%s;color:%s;">%s</td>'
+            % (cell_style, background, theme["text"], inline_html(value, theme))
+            for value in row
+        )
+        body_rows.append("<tr>%s</tr>" % cells)
+    return (
+        '<section style="width:100%%;max-width:100%%;box-sizing:border-box;margin:0 0 24px;overflow:hidden;">'
+        '<table style="width:100%%;max-width:100%%;table-layout:fixed;border-collapse:collapse;border-spacing:0;box-sizing:border-box;">'
+        '<thead><tr>%s</tr></thead><tbody>%s</tbody></table></section>'
+        % (head_cells, "".join(body_rows))
+    )
+
+
 def component_footer(theme_key, components, blocks):
     snippet = select_code(components, FOOTER_COMPONENT.get(theme_key, 13), 0)
     if not snippet:
@@ -738,6 +809,8 @@ def build_component_section(md_text, title, theme_key):
             parts.append(component_list(theme_key, components, block[1], ordered=False))
         elif kind == "olist":
             parts.append(component_list(theme_key, components, block[1], ordered=True))
+        elif kind == "table":
+            parts.append(component_table(theme_key, block[1], block[2]))
         elif kind == "code":
             parts.append(code_block(block[2], block[1], theme))
         elif kind == "image":
@@ -877,6 +950,11 @@ def list_block(items, theme, ordered=False):
     return '<section style="margin:0 10px 22px;padding:16px 16px 4px;background:%s;border-radius:%s;border:1px solid %s;">%s</section>' % (theme["light"], theme["radius"], theme["lighter"], "".join(rows))
 
 
+def table_block(headers, rows, theme):
+    theme_key = next((key for key, value in THEMES.items() if value is theme), "moyu-green")
+    return component_table(theme_key, headers, rows)
+
+
 def code_block(code, lang, theme):
     rows = []
     for line in code.split("\n") or [""]:
@@ -930,6 +1008,8 @@ def build_section(md_text, title, theme):
             parts.append(list_block(block[1], theme, ordered=False))
         elif kind == "olist":
             parts.append(list_block(block[1], theme, ordered=True))
+        elif kind == "table":
+            parts.append(table_block(block[1], block[2], theme))
         elif kind == "code":
             parts.append(code_block(block[2], block[1], theme))
         elif kind == "image":
@@ -953,7 +1033,7 @@ body{margin:0;background:#eef0f2;font-family:-apple-system,BlinkMacSystemFont,'P
 .gzh-hint{font-size:13px;color:#6b7280;line-height:1.4;}
 .gzh-hint b{color:#111827;}
 .gzh-copy{background:__MAIN__;color:#fff;border:0;border-radius:9px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.16);white-space:nowrap;}
-.gzh-toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:88vw;text-align:center;}
+.gzh-toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px);box-sizing:border-box;text-align:center;}
 .gzh-toast.show{opacity:1;}
 .gzh-stage{max-width:700px;margin:78px auto 64px;padding:0 8px;}
 </style>
