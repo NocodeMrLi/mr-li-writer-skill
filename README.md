@@ -15,9 +15,9 @@
 
 ## 20 秒看懂核心特点
 
-如果你想先快速了解这个 Skill 解决什么问题、从哪里形成差异、适合怎么用，可以先看这个 [20 秒视频](https://github.com/NocodeMrLi/mr-li-writer-skill/blob/main/assets/mr-li-writer-promo-silent.mp4)。
+如果你想先快速了解这个 Skill 解决什么问题、从哪里形成差异、适合怎么用，可以先看这个 [20 秒视频](https://github.com/user-attachments/assets/0463a2b6-1edc-4bb8-98d6-99afe89bdc4c)。
 
-https://github.com/NocodeMrLi/mr-li-writer-skill/blob/main/assets/mr-li-writer-promo-silent.mp4
+https://github.com/user-attachments/assets/0463a2b6-1edc-4bb8-98d6-99afe89bdc4c
 
 <sub>视频仅用于说明本项目已经写入 README 的定位、特点和使用边界；手机端如果不内嵌播放，请点开上方文字链接。</sub>
 
