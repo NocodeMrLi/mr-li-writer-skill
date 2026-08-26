@@ -19,7 +19,7 @@
 
 https://github.com/user-attachments/assets/0463a2b6-1edc-4bb8-98d6-99afe89bdc4c
 
-<sub>视频仅用于说明本项目已经写入 README 的定位、特点和使用边界；手机端如果不内嵌播放，请点开上方文字链接下载或保存。</sub>
+<sub>视频仅用于说明本项目已写入README的定位、特点和使用边界</sub>
 
 一个从模糊想法走到平台原生交付的中文写作 Skill。
 
