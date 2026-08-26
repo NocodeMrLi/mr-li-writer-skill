@@ -15,7 +15,7 @@
 
 ## 20 秒看懂核心特点
 
-如果你想先快速了解这个 Skill 解决什么问题、从哪里形成差异、适合怎么用，可以先看这个 [20 秒视频](https://github.com/user-attachments/assets/0463a2b6-1edc-4bb8-98d6-99afe89bdc4c)。
+如果你想先快速了解这个 Skill 解决什么问题、从哪里形成差异、适合怎么用，可以先看这个 [20 秒视频](https://github.com/NocodeMrLi/mr-li-writer-skill/blob/main/assets/mr-li-writer-promo-silent.mp4)。
 
 https://github.com/user-attachments/assets/0463a2b6-1edc-4bb8-98d6-99afe89bdc4c
 
