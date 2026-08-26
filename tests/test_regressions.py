@@ -449,6 +449,14 @@ class GzhThemeRegressionTests(unittest.TestCase):
 
 正文一。
 """
+    LONG_PROSE_QUOTE_MD = """# AI 项目经理
+
+> 学长说：这五项不需要你成为算法专家。需要的是你知道大模型能干什么、不能干什么、干起来要多久要多少钱。这个判断力，才是懂技术边界的真正含义。
+
+## 第一部分：先判断边界
+
+正文一。
+"""
 
     def test_moyu_cover_renders_title_once_without_repeated_fragment(self):
         title = "一份不会把复杂问题写复杂的完整安装与避坑指南"
@@ -570,6 +578,16 @@ class GzhThemeRegressionTests(unittest.TestCase):
                 balanced = re.search(r'<section data-balanced="quote".*?</section>', rendered, re.S)
                 self.assertIsNotNone(balanced)
                 self.assertIn("<br>", balanced.group(0))
+
+    def test_long_prose_quotes_are_left_aligned_not_centered(self):
+        for theme in build_gzh.THEMES:
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(self.LONG_PROSE_QUOTE_MD, "AI 项目经理", theme)
+                self.assertIn('data-balanced="prose-quote"', rendered)
+                quote = re.search(r'<section data-balanced="prose-quote".*?</section>', rendered, re.S)
+                self.assertIsNotNone(quote)
+                self.assertIn("text-align:left", quote.group(0))
+                self.assertNotIn("text-align:center", quote.group(0))
 
     def test_public_topic_tags_do_not_expose_editorial_posture_words(self):
         labels = build_gzh.public_topic_tags("软考含金量中立深度解读", [])

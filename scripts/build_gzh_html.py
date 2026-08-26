@@ -451,6 +451,14 @@ def balanced_leaf_lines(text, max_len=15):
     return "<br>".join('<span leaf="">%s</span>' % html_text(line) for line in split_display_lines(text, max_len=max_len))
 
 
+def is_prose_quote(text):
+    clean = re.sub(r"\s+", "", str(text or "")).strip()
+    if len(clean) >= 42:
+        return True
+    sentence_marks = len(re.findall(r"[。！？；]", clean))
+    return sentence_marks >= 2 and len(clean) >= 28
+
+
 def pick_first_paragraph(blocks):
     for block in blocks:
         if block[0] == "paragraph":
@@ -780,6 +788,8 @@ def component_subheading(theme_key, components, text, number):
 
 
 def component_quote(theme_key, components, text):
+    if is_prose_quote(text):
+        return prose_quote(theme_key, text)
     if len(re.sub(r"\s+", "", text or "")) >= 16:
         return balanced_quote(theme_key, text)
     if theme_key == "zen-whitespace":
@@ -803,6 +813,61 @@ def component_quote(theme_key, components, text):
         "正文内容": text,
         "内容": text,
     })
+
+
+def prose_quote(theme_key, text):
+    theme = THEMES[theme_key]
+    content = inline_html(text, theme)
+    if theme_key == "moyu-green":
+        return (
+            '<section data-balanced="prose-quote" style="background:#FFF;border:1px dashed #BBF7D0;'
+            'border-radius:8px;padding:14px 16px;margin-bottom:24px;overflow:hidden;">'
+            '<p style="margin:0;font-size:15px;line-height:1.85;text-align:left;color:#059669;font-weight:700;'
+            'word-break:break-word;overflow-wrap:anywhere;">%s</p></section>' % content
+        )
+    if theme_key == "red-white":
+        return (
+            '<section data-balanced="prose-quote" style="background:#FEF2F2;border-radius:0 10px 10px 0;'
+            'border-left:4px solid #DC2626;padding:18px 22px;margin-bottom:24px;overflow:hidden;">'
+            '<p style="font-size:15px;font-weight:700;color:#991B1B;margin:0;line-height:1.85;text-align:left;'
+            'word-break:break-word;overflow-wrap:anywhere;">%s</p></section>' % content
+        )
+    if theme_key == "graphite-minimal":
+        return (
+            '<section data-balanced="prose-quote" style="border-left:3px solid #52525B;padding:16px 0 16px 24px;'
+            'margin:0 10px 28px;overflow:hidden;">'
+            '<p style="font-size:15px;font-weight:600;color:#27272A;margin:0;line-height:1.85;letter-spacing:0.3px;'
+            'text-align:left;word-break:break-word;overflow-wrap:anywhere;">%s</p></section>' % content
+        )
+    if theme_key == "zen-whitespace":
+        return (
+            '<section data-balanced="prose-quote" style="margin:40px 16px;padding:28px 20px;border-top:1px solid #E8E8E8;'
+            'border-bottom:1px solid #E8E8E8;overflow:hidden;">'
+            '<p style="font-family:\'Noto Serif SC\',Georgia,\'Times New Roman\',serif;font-size:15px;font-weight:600;'
+            'color:#2B2B2B;margin:0;line-height:1.95;letter-spacing:0.5px;text-align:left;word-break:break-word;'
+            'overflow-wrap:anywhere;">%s</p></section>' % content
+        )
+    if theme_key == "moyu-ticket":
+        return (
+            '<section data-balanced="prose-quote" style="margin:0 10px 26px;background:#fffef8;border:2px solid #1a1a1a;'
+            'box-shadow:4px 4px 0 #1a1a1a;padding:18px;overflow:hidden;">'
+            '<p style="font-size:15px;font-weight:800;color:#064E3B;line-height:1.85;margin:0;text-align:left;'
+            'word-break:break-word;overflow-wrap:anywhere;">%s</p></section>' % content
+        )
+    if theme_key == "olive-journal":
+        return (
+            '<section data-balanced="prose-quote" style="margin:0 0 24px;background:#fffaf0;border:1px solid #d8d1c4;'
+            'border-left:4px solid #ed7b2f;border-radius:8px;padding:18px 20px;overflow:hidden;">'
+            '<p style="font-size:15px;line-height:1.85;color:#1E1F23;font-weight:700;margin:0;text-align:left;'
+            'word-break:break-word;overflow-wrap:anywhere;">%s</p></section>' % content
+        )
+    return (
+        '<section data-balanced="prose-quote" style="margin:0 10px 24px;background:%s;border-left:4px solid %s;'
+        'border-radius:0 10px 10px 0;padding:16px 18px;overflow:hidden;">'
+        '<p style="font-size:15px;font-weight:700;color:%s;margin:0;line-height:1.85;text-align:left;'
+        'word-break:break-word;overflow-wrap:anywhere;">%s</p></section>'
+        % (theme["light"], theme["main"], theme["deep"], content)
+    )
 
 
 def balanced_quote(theme_key, text):
