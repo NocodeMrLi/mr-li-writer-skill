@@ -15,15 +15,11 @@
 
 ## 20 秒看懂核心特点
 
-如果你想先快速了解这个 Skill 解决什么问题、从哪里形成差异、适合怎么用，可以先看这个 [20 秒无音乐视频](https://github.com/NocodeMrLi/mr-li-writer-skill/blob/main/assets/mr-li-writer-promo-silent.mp4)。
+如果你想先快速了解这个 Skill 解决什么问题、从哪里形成差异、适合怎么用，可以先看这个 [20 秒视频](https://github.com/NocodeMrLi/mr-li-writer-skill/blob/main/assets/mr-li-writer-promo-silent.mp4)。
 
-<p align="center">
-  <a href="https://github.com/NocodeMrLi/mr-li-writer-skill/blob/main/assets/mr-li-writer-promo-silent.mp4">
-    <img src="./assets/mr-li-writer-promo-poster.png" alt="Mr.Li Writer 无音乐宣传视频预览" width="900">
-  </a>
-</p>
+https://github.com/NocodeMrLi/mr-li-writer-skill/blob/main/assets/mr-li-writer-promo-silent.mp4
 
-<sub>视频仅用于说明本项目已经写入 README 的定位、特点和使用边界；手机端如果不内嵌播放，请点开上方文字链接或封面图。</sub>
+<sub>视频仅用于说明本项目已经写入 README 的定位、特点和使用边界；手机端如果不内嵌播放，请点开上方文字链接。</sub>
 
 一个从模糊想法走到平台原生交付的中文写作 Skill。
 
