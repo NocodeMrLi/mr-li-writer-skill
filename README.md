@@ -13,6 +13,17 @@
 ![WeChat](https://img.shields.io/badge/WeChat-公众号-07c160)
 ![Zhihu](https://img.shields.io/badge/Zhihu-知乎-0084ff)
 
+<p align="center">
+  <a href="./assets/mr-li-writer-promo-silent.mp4">
+    <img src="./assets/mr-li-writer-promo-poster.png" alt="Mr.Li Writer 无音乐宣传视频预览" width="900">
+  </a>
+</p>
+
+<p align="center">
+  <a href="./assets/mr-li-writer-promo-silent.mp4">观看 20 秒无音乐宣传视频</a><br>
+  <sub>GitHub 手机端如果不内嵌播放，请点开链接或使用浏览器打开。</sub>
+</p>
+
 一个从模糊想法走到平台原生交付的中文写作 Skill。
 
 只需提供一个标题、核心想法、零散素材或参考资料，它会先识别读者任务、材料条件和创新是否必要，再生成适合公众号、知乎、小红书、官网/网页和个人博客的平台原生内容。
