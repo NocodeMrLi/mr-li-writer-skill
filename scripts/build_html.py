@@ -487,6 +487,8 @@ def run_gzh_builder(args):
     cmd = [sys.executable, builder, args.md, "--theme", args.theme]
     if args.auto_theme_ok:
         cmd.append("--auto-theme-ok")
+    if args.theme_confirmed:
+        cmd.append("--theme-confirmed")
     if args.output:
         cmd.extend(["-o", args.output])
     if args.title:
@@ -520,6 +522,11 @@ def main():
         "--auto-theme-ok",
         action="store_true",
         help="确认用户已授权系统自动/随机选择公众号主题；未授权时请用 -t 指定具体主题",
+    )
+    parser.add_argument(
+        "--theme-confirmed",
+        action="store_true",
+        help="确认用户已选择当前公众号主题；具体主题最终排版必须带此参数",
     )
     parser.add_argument("--title", default="", help="文章标题(默认取 md 文件名)")
     parser.add_argument("--mode", default="", help="内容模式: research-explainer/practical-guide/opinion-analysis/story-profile/platform-native/xiaohongshu-note")
@@ -581,6 +588,12 @@ def main():
         if args.theme in SPECIAL_THEMES and not args.auto_theme_ok:
             sys.stderr.write(
                 "[错误] 公众号最终排版不能静默使用主题 %s；请先确认公众号主题，使用 -t <主题名>，或在用户明确授权自动匹配后添加 --auto-theme-ok。\n"
+                % args.theme
+            )
+            sys.exit(2)
+        if args.theme in GZH_THEMES and not args.theme_confirmed:
+            sys.stderr.write(
+                "[错误] 公众号最终排版不能由智能体静默指定主题 %s；请先让用户确认主题，再添加 --theme-confirmed。\n"
                 % args.theme
             )
             sys.exit(2)

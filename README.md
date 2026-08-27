@@ -47,7 +47,7 @@ Mr.Li Writer 不是拼装式提示词，也不是把一篇长文缩短后分发�
 - **最低必要创新**：可直接写清楚的题不强行升维；确有同质化风险时，再从微创新、视角转换或概念创新中选择合适档位
 - **开头设计**：拒绝"后台有人问""随着……发展"等模板化开头，为每篇文章设计专属入口
 - **标题策划**：先建立标题对读者的点击契约，兼顾此刻相关性、理解成本、自然口语感和平台特性，不编造数据、不做标题党
-- **平台原生写作**：公众号写成文章，知乎写成回答/专栏，小红书写成原生笔记，官网/网页写成结构化网页内容
+- **平台原生写作**：公众号写成文章，知乎写成回答 / 专栏，小红书写成原生笔记，官网/网页写成结构化网页内容
 - **正向活人感写作**：先明确说话位置、现实与虚构边界和材料取舍，再检查每段是否新增事实、动作、区分、推理或后果
 - **去 AI 味写作**：至少经过两轮检查与直接改写，处理套话、重复结构、虚构经历、机械翻案和不匹配的证据腔
 - **来源控制**：硬信息优先使用官方一手资料，避免把利益相关培训或服务机构写成正文背书
@@ -228,7 +228,7 @@ Codex 可使用 `$mr-li-writer` 调用；采用斜杠命令的宿主可尝试 `/
 | 发布平台 | 平台原生正文 | 默认排版 | 默认文件交付 |
 | :--- | :--- | :--- | :--- |
 | 公众号 | Markdown 原稿 + 公众号富文本 | 必须 | 标题策略 + 正文原稿 + 干净 HTML + 复制预览 HTML |
-| 知乎 | 回答/专栏 Markdown 或纯文本 | 不需要 | 标题策略 + 知乎原文；要求预览时增加两个 HTML |
+| 知乎 | 回答 / 专栏 Markdown 或纯文本 | 不需要 | 标题策略 + 知乎原文；要求预览时增加两个 HTML |
 | 小红书 | 可直接发布的纯文本笔记 | 不需要 | 标题策略 + 笔记原文；要求手机卡片时增加两个 HTML |
 | 官网/网页 | Markdown 源稿 + 网页 HTML | 必须 | 标题策略 + 网页源稿 + 干净 HTML + 复制预览 HTML |
 | 个人博客 | 取决于博客系统 | 条件式 | Markdown 博客默认两件；静态页或 HTML 发布时增加两个 HTML |
@@ -241,16 +241,30 @@ Codex 可使用 `$mr-li-writer` 调用；采用斜杠命令的宿主可尝试 `/
 
 Skill 采用最低必要询问，不会把每次写作变成问卷。用户已经说清的信息不重复问；同时缺少多个关键项时一次合并询问。
 
+确认分三层：
+
+- **必问**：发布平台、内容目标、创作方向、平台交付样式
+- **条件问**：目标读者/阅读场景、立场边界、时效口径、来源边界、交付格式、篇幅深度
+- **不默认问**：语气风格、开头方式、标题数量、是否要金句、是否要案例
+
+不默认问不代表忽略，而是由 Skill 按平台、体裁和读者任务内部判断；用户主动指定时会尊重。
+
 | 场景 | 必要确认 |
 | :--- | :--- |
 | 未指定平台 | 内容最终发布到哪里 |
-| 公众号 | 使用指定排版主题，还是由系统推荐 |
-| 知乎 | 语境不清时确认写回答还是专栏；是否需要 HTML 排版预览 |
-| 小红书 | 是否需要 HTML 排版预览 |
-| 官网/网页 | 普通传播、SEO、GEO、转化或报告目标；是否有 CMS/模板约束 |
-| 个人博客 | 使用 Markdown、CMS 富文本还是静态 HTML |
+| 未指定内容目标 | 普通传播、SEO/GEO、转化销售还是专业报告 |
+| 创作方向不明确 | 给 3-5 个方向候选，并标注【最推荐】【次推荐】 |
+| 公众号 | 使用哪个排版主题；可接受系统推荐，但需要用户确认 |
+| 知乎 | 写回答还是专栏；是否需要 HTML 排版预览 |
+| 小红书 | 清爽纯文本笔记还是手机卡片预览；偏种草、避坑还是收藏清单 |
+| 官网/网页 | 普通网页、SEO-GEO 结构化、转化落地页还是专业报告页；是否有 CMS/模板约束 |
+| 个人博客 | 使用 Markdown、CMS 富文本、静态 HTML，还是博客长文风格 |
 
 用户明确说“不要询问、直接处理、自动匹配”时，系统会按平台默认值继续，并在交付说明中写清实际选择。
+
+当需要用户选择创作方向时，Skill 会给出 3-5 个候选，并标注【最推荐】和【次推荐】，帮助用户判断不同方向的读者任务、内容承诺和证据路径。
+
+平台交付样式不是公众号专属。知乎、小红书、官网/网页和个人博客也会按平台属性确认对应样式；用户明确说“自动匹配 / 直接处理 / 不用问”时才自动选择。
 
 ---
 
@@ -267,7 +281,7 @@ Skill 采用最低必要询问，不会把每次写作变成问卷。用户已�
 | `moyu-ticket` | 摸鱼票据风 | 工具对比、创意评测 |
 | `olive-journal` | 橄榄手记 | 案例复盘、内刊手记、系统说明 |
 
-如果用户没有指定主题，系统会先推荐适合的公众号主题；用户明确说“直接排”“不用问”时才会自动匹配。正式生成公众号 HTML 时，脚本会要求使用已确认的具体主题；只有用户明确授权自动匹配，才允许使用 `--auto-theme-ok`。
+如果用户没有指定主题，系统会先推荐适合的公众号主题；用户明确说“直接排”“不用问”时才会自动匹配。正式生成公众号 HTML 时，脚本会要求使用已确认的具体主题并传入 `--theme-confirmed`；只有用户明确授权自动匹配，才允许使用 `--auto-theme-ok`。
 
 公众号主题组件库位于：
 
@@ -307,9 +321,9 @@ python3 scripts/lint_article.py <note.md> --platform 小红书 --mode xiaohongsh
 ```bash
 python3 scripts/build_html.py <article.md> --list-themes
 python3 scripts/build_html.py <article.md> --list-delivery-styles
-python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t red-white
+python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t red-white --theme-confirmed
 python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t auto --auto-theme-ok
-python3 scripts/build_gzh_html.py <article.md> -o article-gzh.html --title "文章标题" -t moyu-green
+python3 scripts/build_gzh_html.py <article.md> -o article-gzh.html --title "文章标题" -t moyu-green --theme-confirmed
 python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mode xiaohongshu-note --platform 小红书 --emit-pair
 python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO --emit-pair
 ```

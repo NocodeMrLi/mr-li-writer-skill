@@ -20,14 +20,27 @@ interface:
     before drafting unless the user already chose or explicitly said not to
     ask and to auto-match. Explain that no layout means title strategy plus
     native source, while layout adds clean HTML and copy-preview HTML. Apply
-    minimum necessary questions to every platform: ask for a WeChat theme,
-    Zhihu answer-versus-column when unclear, website content goal and publishing
-    environment, and blog format (Markdown, CMS rich text, or static HTML).
+    three-layer confirmation: always confirm publishing platform, content goal,
+    writing direction, and platform delivery style; conditionally confirm
+    reader scene, stance boundary, time-sensitive cutoff, source boundary,
+    delivery format, and depth only when they change the result; do not ask by
+    default about tone, opening type, title count, aphorisms, or examples.
+    Apply minimum necessary questions to every platform: ask for a WeChat
+    theme, Zhihu answer-versus-column and HTML preview when unclear,
+    Xiaohongshu plain-note versus phone-card preview, website page style and
+    publishing environment, and blog format (Markdown, CMS rich text, or static
+    HTML).
     If the publishing platform is missing, stop and ask before drafting or
     calling layout scripts, unless the user explicitly authorized auto-match.
-    For WeChat final layout, never silently use theme=auto or theme=random:
-    pass a concrete confirmed -t theme, or pass --auto-theme-ok only after the
-    user clearly said to auto-match/directly layout/no need to ask. Merge
+    When asking for the writing direction, give 3-5 concrete options and mark
+    the best one as [most recommended] and the second best as [second
+    recommended]. For WeChat final layout, never silently choose any theme:
+    pass a concrete -t theme with --theme-confirmed only after the user chose
+    it, or pass --auto-theme-ok only after the user clearly said to
+    auto-match/directly layout/no need to ask. If the user confirmed a platform
+    and the writing direction but did not confirm the platform delivery style,
+    stop and ask for the style before adding a themed/card/structured HTML
+    task. Merge
     missing decisions into one short confirmation and never repeat facts
     the user already supplied. For WeChat
     Official Account, do not use a generic

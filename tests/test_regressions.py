@@ -101,7 +101,9 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("semantic", text)
         self.assertIn("validate_delivery_bundle.py", text)
         self.assertIn("--auto-theme-ok", text)
+        self.assertIn("--theme-confirmed", text)
         self.assertIn("If the publishing platform is missing", text)
+        self.assertIn("3-5 concrete options", text)
 
     def test_wechat_builder_rejects_silent_auto_theme(self):
         builder = ROOT / "scripts/build_gzh_html.py"
@@ -123,7 +125,163 @@ class DeliveryProtocolTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(confirmed_theme.returncode, 0, confirmed_theme.stdout + confirmed_theme.stderr)
+            self.assertNotEqual(confirmed_theme.returncode, 0)
+            self.assertIn("不能由智能体静默指定主题", confirmed_theme.stderr)
+
+            user_confirmed_theme = subprocess.run(
+                [sys.executable, str(builder), str(source), "--no-preview", "-t", "moyu-green", "--theme-confirmed"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(user_confirmed_theme.returncode, 0, user_confirmed_theme.stdout + user_confirmed_theme.stderr)
+
+    def test_wechat_builder_rejects_silent_specific_theme(self):
+        builder = ROOT / "scripts/build_html.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            output = directory / "article.html"
+            source.write_text(SAMPLE_MD, encoding="utf-8")
+
+            silent_specific = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "公众号",
+                    "-t",
+                    "graphite-minimal",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(silent_specific.returncode, 0)
+            self.assertIn("不能由智能体静默指定主题", silent_specific.stderr)
+
+            confirmed_specific = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "公众号",
+                    "-t",
+                    "graphite-minimal",
+                    "--theme-confirmed",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(confirmed_specific.returncode, 0, confirmed_specific.stdout + confirmed_specific.stderr)
+            self.assertTrue(output.is_file())
+
+    def test_wechat_copy_preview_writes_rich_html_clipboard(self):
+        builder = ROOT / "scripts/build_gzh_html.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            output = directory / "article.html"
+            source.write_text(TABLE_MD, encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "-t",
+                    "red-white",
+                    "--theme-confirmed",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            preview = directory / "article_preview.html"
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(preview.is_file())
+            text = preview.read_text(encoding="utf-8")
+            self.assertIn("ClipboardItem", text)
+            self.assertIn("'text/html'", text)
+            self.assertIn("'text/plain'", text)
+            self.assertIn("navigator.clipboard.write", text)
+            self.assertIn("gzhFallbackCopy", text)
+            self.assertIn("<meta charset=\"utf-8\">", text)
+
+    def test_skill_requires_multiple_direction_options_with_ranking(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for text in (skill, readme):
+            self.assertIn("3-5", text)
+            self.assertIn("最推荐", text)
+            self.assertIn("次推荐", text)
+        self.assertIn("用户只确认平台和方向，不等于确认平台交付样式", skill)
+        self.assertIn("交付样式未确认前，任务列表不得出现", skill)
+
+    def test_three_layer_confirmation_policy_is_documented(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        platform = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+
+        for text in (skill, platform, readme):
+            self.assertIn("必问", text)
+            self.assertIn("条件问", text)
+            self.assertIn("不默认问", text)
+            for phrase in (
+                "发布平台",
+                "内容目标",
+                "创作方向",
+                "平台交付样式",
+                "目标读者/阅读场景",
+                "立场边界",
+                "时效口径",
+                "来源边界",
+                "交付格式",
+                "篇幅深度",
+                "语气风格",
+                "开头方式",
+                "标题数量",
+                "是否要金句",
+                "是否要案例",
+            ):
+                self.assertIn(phrase, text)
+
+        self.assertIn("three-layer confirmation", agent)
+        self.assertIn("publishing platform, content goal", agent)
+        self.assertIn("platform delivery style", agent)
+        self.assertIn("do not ask by", agent)
+        self.assertIn("default about tone", agent)
+
+    def test_every_platform_has_delivery_style_confirmation(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        platform = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        delivery = (ROOT / "references/delivery-protocol.md").read_text(encoding="utf-8")
+
+        for text in (skill, platform, readme):
+            for phrase in (
+                "平台交付样式",
+                "回答 / 专栏",
+                "手机卡片预览",
+                "SEO-GEO 结构化",
+                "静态 HTML",
+            ):
+                self.assertIn(phrase, text)
+
+        for phrase in (
+            "公众号确认排版主题",
+            "知乎确认回答 / 专栏",
+            "小红书确认纯文本笔记/手机卡片",
+            "官网/网页确认网页结构",
+            "个人博客确认 Markdown/CMS/静态 HTML",
+        ):
+            self.assertIn(phrase, delivery)
 
     def test_platform_builder_rejects_silent_wechat_auto_theme(self):
         builder = ROOT / "scripts/build_html.py"
@@ -186,6 +344,7 @@ class DeliveryProtocolTests(unittest.TestCase):
         platform = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
         for phrase in (
             "最低必要询问",
+            "平台交付样式",
             "公众号排版主题",
             "回答还是专栏",
             "内容目标",

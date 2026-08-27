@@ -1257,7 +1257,42 @@ __CONTENT__
 </section></section>
 <script>
 function gzhShowToast(msg){var t=document.getElementById('gzhToast');t.textContent=msg;t.classList.add('show');clearTimeout(t._timer);t._timer=setTimeout(function(){t.classList.remove('show');},2800);}
-function gzhCopy(){var el=document.getElementById('gzh-content');var range=document.createRange();range.selectNodeContents(el);var sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);var ok=false;try{ok=document.execCommand('copy');}catch(e){ok=false;}sel.removeAllRanges();gzhShowToast(ok?'已复制，去公众号编辑器粘贴即可':'自动复制失败，请手动全选再复制');}
+function gzhClipboardHtml(el){
+  return '<meta charset="utf-8">'+el.innerHTML;
+}
+function gzhFallbackCopy(el){
+  var range=document.createRange();
+  range.selectNodeContents(el);
+  var sel=window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  var ok=false;
+  try{ok=document.execCommand('copy');}catch(e){ok=false;}
+  sel.removeAllRanges();
+  return ok;
+}
+function gzhCopy(){
+  var el=document.getElementById('gzh-content');
+  var html=gzhClipboardHtml(el);
+  var text=el.innerText||el.textContent||'';
+  try{
+    if(navigator.clipboard&&window.ClipboardItem){
+      var item=new ClipboardItem({
+        'text/html':new Blob([html],{type:'text/html'}),
+        'text/plain':new Blob([text],{type:'text/plain'})
+      });
+      navigator.clipboard.write([item]).then(function(){
+        gzhShowToast('已复制富文本，去公众号编辑器粘贴即可');
+      },function(){
+        var ok=gzhFallbackCopy(el);
+        gzhShowToast(ok?'已复制，去公众号编辑器粘贴即可':'自动复制失败，请手动全选再复制');
+      });
+      return;
+    }
+  }catch(e){}
+  var ok=gzhFallbackCopy(el);
+  gzhShowToast(ok?'已复制，去公众号编辑器粘贴即可':'自动复制失败，请手动全选再复制');
+}
 </script>
 </body>
 </html>
@@ -1322,6 +1357,11 @@ def main():
         action="store_true",
         help="确认用户已授权系统自动/随机选择公众号主题；未授权时请使用 -t 指定具体主题",
     )
+    parser.add_argument(
+        "--theme-confirmed",
+        action="store_true",
+        help="确认用户已选择当前公众号主题；具体主题最终排版必须带此参数",
+    )
     parser.add_argument("--title", default="", help="文章标题")
     parser.add_argument("--no-preview", action="store_true", help="只生成干净 HTML，不生成复制预览页")
     parser.add_argument("--list-themes", action="store_true", help="列出公众号主题")
@@ -1341,6 +1381,11 @@ def main():
     if args.theme in SPECIAL_THEMES and not args.auto_theme_ok:
         parser.error(
             "公众号最终排版不能静默使用主题 %s；请先确认公众号主题，使用 -t <主题名>，或在用户明确授权自动匹配后添加 --auto-theme-ok"
+            % args.theme
+        )
+    if args.theme in THEMES and not args.theme_confirmed:
+        parser.error(
+            "公众号最终排版不能由智能体静默指定主题 %s；请先让用户确认主题，再添加 --theme-confirmed"
             % args.theme
         )
 
