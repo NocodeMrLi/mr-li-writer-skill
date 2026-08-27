@@ -1035,6 +1035,7 @@ def build_component_section(md_text, title, theme_key):
                 continue
             if level == 2:
                 chapter += 1
+                sub_count = 0
                 parts.append(component_section_title(theme_key, components, text, chapter))
             else:
                 sub_count += 1

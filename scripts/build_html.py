@@ -228,6 +228,57 @@ def md_to_html(md_text):
     return "\n".join(out)
 
 
+def markdown_to_plain_text(md_text):
+    """Convert Markdown source into publishable plain text for native platforms."""
+    lines = md_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    out = []
+    in_code = False
+    previous_blank = True
+    for raw in lines:
+        line = raw.strip()
+
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+
+        if not line:
+            if not previous_blank:
+                out.append("")
+            previous_blank = True
+            continue
+
+        if not in_code:
+            if is_table_sep(line):
+                continue
+            image = re.match(r"^!\[([^\]]*)\]\(([^)]+)\)$", line)
+            if image:
+                line = image.group(1).strip()
+            heading = re.match(r"^#{1,6}\s+(.*)$", line)
+            if heading:
+                line = heading.group(1).strip()
+            line = re.sub(r"^>\s*", "", line)
+            line = re.sub(r"^[-*]\s+", "• ", line)
+            line = re.sub(r"^(\d+)[、.)]\s*", r"\1. ", line)
+            if "|" in line:
+                cells = [cell.strip() for cell in split_table_row(line) if cell.strip()]
+                if len(cells) > 1:
+                    line = " / ".join(cells)
+            line = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", line)
+            line = re.sub(r"\[([^\]]+)\]\((?:https?://)?[^)]+\)", r"\1", line)
+            line = re.sub(r"`([^`]+)`", r"\1", line)
+            line = re.sub(r"\*\*([^*]+)\*\*", r"\1", line)
+            line = re.sub(r"__([^_]+)__", r"\1", line)
+            line = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"\1", line)
+            line = re.sub(r"(?<!_)_([^_]+)_(?!_)", r"\1", line)
+            line = line.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+
+        if line:
+            out.append(line)
+            previous_blank = False
+
+    return "\n".join(out).strip() + ("\n" if out else "")
+
+
 # ---------------- HTML 组装 ----------------
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -262,7 +313,10 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
 .article figcaption{font-size:13px;line-height:1.6;color:#7a7f87;}
 .article pre{overflow:auto;margin:24px 0;padding:16px;border-radius:6px;background:#202124;color:#f3f3f3;
   font:13px/1.65 Consolas,Menlo,monospace;}
-.article table{display:block;overflow-x:auto;}
+.article table{width:100%;border-collapse:collapse;table-layout:fixed;margin:22px 0;}
+.article th,.article td{padding:8px 10px;border:1px solid rgba(0,0,0,.12);vertical-align:top;
+  overflow-wrap:anywhere;word-break:break-word;white-space:normal;}
+.article th{font-weight:700;background:rgba(0,0,0,.04);}
 @media (max-width:680px){
   .toolbar{padding-left:12px;padding-right:12px;}
   .toolbar .tip{display:none;}
@@ -606,10 +660,11 @@ def main():
     out_path = os.path.abspath(out_path)
 
     if delivery_style == "xhs-note":
+        plain_text = markdown_to_plain_text(md_text)
         page = (XHS_HTML_TEMPLATE
                 .replace("__TITLE__", html.escape(title))
                 .replace("__BODY__", body)
-                .replace("__PLAIN_TEXT__", escape_script_text(md_text)))
+                .replace("__PLAIN_TEXT__", escape_script_text(plain_text)))
     else:
         page = (HTML_TEMPLATE
                 .replace("__TITLE__", html.escape(title))

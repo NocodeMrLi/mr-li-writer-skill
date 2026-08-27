@@ -22,6 +22,7 @@ def load_module(name, path):
 
 
 build_gzh = load_module("build_gzh_html", "scripts/build_gzh_html.py")
+build_html = load_module("build_html", "scripts/build_html.py")
 lint_article = load_module("lint_article", "scripts/lint_article.py")
 
 
@@ -531,6 +532,52 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertTrue(preview.is_file())
             self.assertNotIn("copyArticle", output.read_text(encoding="utf-8"))
             self.assertIn("copyArticle", preview.read_text(encoding="utf-8"))
+
+    def test_xiaohongshu_copy_text_is_plain_publishable_text(self):
+        source = "# 这是一条笔记\n\n**适合谁**\n\n- 新手\n\n## 标签\n\n#话题一 #话题二"
+        plain = build_html.markdown_to_plain_text(source)
+        self.assertNotIn("# 这是一条笔记", plain)
+        self.assertNotIn("**适合谁**", plain)
+        self.assertNotIn("## 标签", plain)
+        self.assertIn("这是一条笔记", plain)
+        self.assertIn("适合谁", plain)
+        self.assertIn("#话题一 #话题二", plain)
+
+    def test_generic_article_tables_wrap_instead_of_horizontal_scroll(self):
+        self.assertIn("table-layout:fixed", build_html.HTML_TEMPLATE)
+        self.assertIn("overflow-wrap:anywhere", build_html.HTML_TEMPLATE)
+        self.assertNotIn(".article table{display:block;overflow-x:auto;}", build_html.HTML_TEMPLATE)
+
+    def test_backup_gzh_preview_template_writes_rich_and_plain_clipboard(self):
+        template = (ROOT / "assets/gzh-design/assets/preview-template.html").read_text(encoding="utf-8")
+        self.assertIn("ClipboardItem", template)
+        self.assertIn("'text/html'", template)
+        self.assertIn("'text/plain'", template)
+
+    def test_component_subheading_number_resets_per_chapter(self):
+        markdown = """# 标题
+
+## 第一章
+
+### 第一个点
+
+### 第二个点
+
+## 第二章
+
+### 新章节第一点
+"""
+        calls = []
+        original = build_gzh.component_subheading
+
+        def spy(theme_key, components, text, number):
+            calls.append((text, number))
+            return original(theme_key, components, text, number)
+
+        with mock.patch.object(build_gzh, "component_subheading", side_effect=spy):
+            build_gzh.build_component_section(markdown, "标题", "graphite-minimal")
+
+        self.assertEqual(calls, [("第一个点", 1), ("第二个点", 2), ("新章节第一点", 1)])
 
 
 class ReadmeDocumentationTests(unittest.TestCase):

@@ -36,9 +36,10 @@
     clearTimeout(t._timer);
     t._timer=setTimeout(function(){t.classList.remove('show');},2800);
   }
-  function gzhCopy(){
-    var el=document.getElementById('gzh-content');
-    // 选中渲染后的富文本节点并复制（等价于手动 Ctrl+A / Ctrl+C，保留全部样式）
+  function gzhClipboardHtml(el){
+    return '<meta charset="utf-8">'+el.innerHTML;
+  }
+  function gzhFallbackCopy(el){
     var range=document.createRange();
     range.selectNodeContents(el);
     var sel=window.getSelection();
@@ -47,14 +48,33 @@
     var ok=false;
     try{ok=document.execCommand('copy');}catch(e){ok=false;}
     sel.removeAllRanges();
+    return ok;
+  }
+  function gzhCopy(){
+    var el=document.getElementById('gzh-content');
+    var html=gzhClipboardHtml(el);
+    var text=el.innerText||el.textContent||'';
     var btn=document.getElementById('gzhCopyBtn');
-    if(ok){
-      gzhShowToast('✅ 已复制！去公众号编辑器按 Ctrl/⌘+V 粘贴即可');
-      var old=btn.textContent;btn.textContent='✅ 已复制';
-      setTimeout(function(){btn.textContent=old;},2200);
-    }else{
-      gzhShowToast('⚠ 自动复制失败，请手动全选(Ctrl/⌘+A)再复制(Ctrl/⌘+C)');
+    function done(ok){
+      if(ok){
+        gzhShowToast('✅ 已复制！去公众号编辑器按 Ctrl/⌘+V 粘贴即可');
+        var old=btn.textContent;btn.textContent='✅ 已复制';
+        setTimeout(function(){btn.textContent=old;},2200);
+      }else{
+        gzhShowToast('⚠ 自动复制失败，请手动全选(Ctrl/⌘+A)再复制(Ctrl/⌘+C)');
+      }
     }
+    try{
+      if(navigator.clipboard&&window.ClipboardItem){
+        var item=new ClipboardItem({
+          'text/html':new Blob([html],{type:'text/html'}),
+          'text/plain':new Blob([text],{type:'text/plain'})
+        });
+        navigator.clipboard.write([item]).then(function(){done(true);},function(){done(gzhFallbackCopy(el));});
+        return;
+      }
+    }catch(e){}
+    done(gzhFallbackCopy(el));
   }
 </script>
 </body>
