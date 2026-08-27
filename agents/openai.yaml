@@ -25,11 +25,29 @@ interface:
     reader scene, stance boundary, time-sensitive cutoff, source boundary,
     delivery format, and depth only when they change the result; do not ask by
     default about tone, opening type, title count, aphorisms, or examples.
+    Required fields and triggered conditional fields are hard gates. Do not
+    draft, create tasks, create files, layout, or deliver while a required
+    field is missing. Triggered conditional fields become required for that task. Do not replace user confirmation with model inference, historical
+    defaults, platform defaults, or recommended options. A confirmation for one
+    field must never be stretched into confirmation for another field.
+    Do not draft, create tasks, create files, layout, or deliver before the
+    hard gates are satisfied.
     Apply minimum necessary questions to every platform: ask for a WeChat
     theme, Zhihu answer-versus-column and HTML preview when unclear,
     Xiaohongshu plain-note versus phone-card preview, website page style and
     publishing environment, and blog format (Markdown, CMS rich text, or static
     HTML).
+    Hard rule: after the publishing platform is known, confirm the platform delivery style before drafting, creating a task list, creating source files,
+    generating HTML, or delivering files. This applies to every platform, not
+    only WeChat. Show the complete option set for the selected platform, not
+    only recommended options. If the host picker cannot display all options,
+    write the full list in the message and ask the user to reply with a number,
+    name, or auto-match. Always confirm the platform delivery style before drafting. Always show the complete option set, not only recommended options.
+    For WeChat, always call it "WeChat layout theme" and
+    show all six WeChat layout themes plus auto-match: moyu-green, red-white,
+    graphite-minimal, zen-whitespace, moyu-ticket, olive-journal, auto-match.
+    A recommended style, confirmed article topic, confirmed writing direction,
+    approved draft, or previous default is not user confirmation.
     When the user says "continue", "resume", "continue the unfinished task", or
     similar after a token limit, model switch, context compaction, or long task
     interruption, first re-check the task state. Never treat "continue" as

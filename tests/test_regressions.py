@@ -114,6 +114,48 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertIn("不得把“继续”理解为用户已确认缺失项", text)
             self.assertIn("发布平台、内容目标、创作方向、平台交付样式", text)
 
+    def test_platform_delivery_style_confirmation_has_no_interpretation_gap(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        platform_protocol = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
+        agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+        for text in (skill, platform_protocol):
+            self.assertIn("平台交付样式硬确认", text)
+            self.assertIn("写正文、生成任务列表、创建正文文件、生成 HTML 或交付文件之前", text)
+            self.assertIn("必须完整展示该平台的全部可选交付样式", text)
+            self.assertIn("不得只展示推荐项", text)
+            self.assertIn("公众号排版主题", text)
+            for option in ("摸鱼绿", "红白色系", "石墨极简风", "留白禅意风", "摸鱼票据风", "橄榄手记", "自动匹配"):
+                self.assertIn(option, text)
+        for phrase in (
+            "confirm the platform delivery style before drafting",
+            "show the complete option set",
+            "not only recommended options",
+            "all six WeChat layout themes",
+        ):
+            self.assertIn(phrase, agent)
+
+    def test_required_and_conditional_questions_are_hard_gates(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        platform_protocol = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
+        agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for text in (skill, platform_protocol):
+            self.assertIn("必问项与条件触发项硬门禁", text)
+            self.assertIn("必问项缺失时不得写正文、生成任务列表、创建文件、排版或交付", text)
+            self.assertIn("条件触发项一旦被触发，就临时升级为本任务的必确字段", text)
+            self.assertIn("不得用模型推断、历史默认、平台默认或推荐项替代用户确认", text)
+            for item in ("发布平台", "内容目标", "创作方向", "平台交付样式"):
+                self.assertIn(item, text)
+            for item in ("目标读者/阅读场景", "立场边界", "时效口径", "来源边界", "交付格式", "篇幅深度"):
+                self.assertIn(item, text)
+        for phrase in (
+            "Required fields and triggered conditional fields are hard gates",
+            "Do not draft, create tasks, create files, layout, or deliver",
+            "Triggered conditional fields become required for that task",
+        ):
+            self.assertIn(phrase, agent)
+        self.assertIn("必问项与条件触发项是硬门禁", readme)
+
     def test_wechat_builder_rejects_silent_auto_theme(self):
         builder = ROOT / "scripts/build_gzh_html.py"
         with tempfile.TemporaryDirectory() as tmp:
