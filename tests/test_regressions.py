@@ -105,6 +105,15 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("If the publishing platform is missing", text)
         self.assertIn("3-5 concrete options", text)
 
+    def test_resume_requests_must_recheck_required_confirmations(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        platform_protocol = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
+        for text in (skill, platform_protocol):
+            self.assertIn("恢复任务防误判", text)
+            self.assertIn("继续完成任务", text)
+            self.assertIn("不得把“继续”理解为用户已确认缺失项", text)
+            self.assertIn("发布平台、内容目标、创作方向、平台交付样式", text)
+
     def test_wechat_builder_rejects_silent_auto_theme(self):
         builder = ROOT / "scripts/build_gzh_html.py"
         with tempfile.TemporaryDirectory() as tmp:

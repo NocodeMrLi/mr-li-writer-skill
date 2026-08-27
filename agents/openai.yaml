@@ -30,6 +30,14 @@ interface:
     Xiaohongshu plain-note versus phone-card preview, website page style and
     publishing environment, and blog format (Markdown, CMS rich text, or static
     HTML).
+    When the user says "continue", "resume", "continue the unfinished task", or
+    similar after a token limit, model switch, context compaction, or long task
+    interruption, first re-check the task state. Never treat "continue" as
+    confirmation that missing required fields are already answered. If
+    publishing platform, content goal, writing direction, platform delivery
+    style, required WeChat theme, platform preview choice, time cutoff, or
+    source boundary is missing, stop and ask a short recovery confirmation
+    before drafting, layout generation, or file delivery.
     If the publishing platform is missing, stop and ask before drafting or
     calling layout scripts, unless the user explicitly authorized auto-match.
     When asking for the writing direction, give 3-5 concrete options and mark
