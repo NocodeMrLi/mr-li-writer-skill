@@ -9,7 +9,7 @@ build_html.py - Markdown 内容 -> 平台 HTML / 复制预览 HTML
 - 自动按发布平台切换交付样式。公众号使用 gzh-design 风格的内联 HTML 主题。
 
 用法:
-    python build_html.py <正文.md> -o <输出.html> [-t 主题名|auto|random] [--title "文章标题"]
+    python build_html.py <正文.md> -o <输出.html> [-t 主题名] [--title "文章标题"]
     python build_html.py --list-themes
 """
 import argparse
@@ -450,8 +450,8 @@ body{margin:0;background:#f6f7f8;color:#232323;font:16px/1.9 -apple-system,"Ping
 
 def list_themes():
     print("可用公众号排版主题:")
-    print("  %-18s %s" % ("auto", "按题材自动匹配，默认推荐摸鱼绿"))
-    print("  %-18s %s" % ("random", "从 6 套公众号主题中随机选择"))
+    print("  %-18s %s" % ("auto", "按题材自动匹配；最终排版需加 --auto-theme-ok 表示用户已授权"))
+    print("  %-18s %s" % ("random", "从 6 套公众号主题中随机选择；最终排版需加 --auto-theme-ok 表示用户已授权"))
     for name, desc in GZH_THEMES.items():
         print("  %-18s %s" % (name, desc))
 
@@ -485,6 +485,8 @@ def resolve_delivery_style(delivery_style, platform="", mode="", content_goal=""
 def run_gzh_builder(args):
     builder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build_gzh_html.py")
     cmd = [sys.executable, builder, args.md, "--theme", args.theme]
+    if args.auto_theme_ok:
+        cmd.append("--auto-theme-ok")
     if args.output:
         cmd.extend(["-o", args.output])
     if args.title:
@@ -514,6 +516,11 @@ def main():
     parser.add_argument("md", nargs="?", help="Markdown 正文文件路径")
     parser.add_argument("-o", "--output", help="输出 HTML 路径(默认: 与 md 同目录同名 .html)")
     parser.add_argument("-t", "--theme", default=DEFAULT_THEME, help="公众号主题名、auto 或 random(默认 %s)" % DEFAULT_THEME)
+    parser.add_argument(
+        "--auto-theme-ok",
+        action="store_true",
+        help="确认用户已授权系统自动/随机选择公众号主题；未授权时请用 -t 指定具体主题",
+    )
     parser.add_argument("--title", default="", help="文章标题(默认取 md 文件名)")
     parser.add_argument("--mode", default="", help="内容模式: research-explainer/practical-guide/opinion-analysis/story-profile/platform-native/xiaohongshu-note")
     parser.add_argument("--platform", default="", help="发布平台: 公众号/知乎/小红书/官网/网页/个人博客")
@@ -571,6 +578,12 @@ def main():
     )
 
     if delivery_style == "gzh-article":
+        if args.theme in SPECIAL_THEMES and not args.auto_theme_ok:
+            sys.stderr.write(
+                "[错误] 公众号最终排版不能静默使用主题 %s；请先确认公众号主题，使用 -t <主题名>，或在用户明确授权自动匹配后添加 --auto-theme-ok。\n"
+                % args.theme
+            )
+            sys.exit(2)
         return_code = run_gzh_builder(args)
         sys.exit(return_code)
 

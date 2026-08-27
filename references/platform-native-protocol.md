@@ -83,6 +83,7 @@
 - 带“复制到公众号”按钮的预览页
 - 主题池：`moyu-green`、`red-white`、`graphite-minimal`、`zen-whitespace`、`moyu-ticket`、`olive-journal`
 - 主题选择：用户没指定时先推荐；用户说“直接排”“不用问”时自动匹配
+- 脚本约束：正式生成公众号 HTML 时必须使用已确认的 `-t <主题名>`；只有用户明确授权自动匹配时，才可使用 `-t auto --auto-theme-ok` 或 `-t random --auto-theme-ok`
 - 复制方式：预览页复制渲染后的富文本，方便粘贴到公众号编辑器
 
 ### 知乎

@@ -23,7 +23,12 @@ interface:
     minimum necessary questions to every platform: ask for a WeChat theme,
     Zhihu answer-versus-column when unclear, website content goal and publishing
     environment, and blog format (Markdown, CMS rich text, or static HTML).
-    Merge missing decisions into one short confirmation and never repeat facts
+    If the publishing platform is missing, stop and ask before drafting or
+    calling layout scripts, unless the user explicitly authorized auto-match.
+    For WeChat final layout, never silently use theme=auto or theme=random:
+    pass a concrete confirmed -t theme, or pass --auto-theme-ok only after the
+    user clearly said to auto-match/directly layout/no need to ask. Merge
+    missing decisions into one short confirmation and never repeat facts
     the user already supplied. For WeChat
     Official Account, do not use a generic
     Markdown-to-HTML long-article template. Read

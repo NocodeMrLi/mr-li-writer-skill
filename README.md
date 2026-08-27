@@ -267,7 +267,7 @@ Skill 采用最低必要询问，不会把每次写作变成问卷。用户已�
 | `moyu-ticket` | 摸鱼票据风 | 工具对比、创意评测 |
 | `olive-journal` | 橄榄手记 | 案例复盘、内刊手记、系统说明 |
 
-如果用户没有指定主题，系统会先推荐适合的公众号主题；用户明确说“直接排”“不用问”时会自动匹配。
+如果用户没有指定主题，系统会先推荐适合的公众号主题；用户明确说“直接排”“不用问”时才会自动匹配。正式生成公众号 HTML 时，脚本会要求使用已确认的具体主题；只有用户明确授权自动匹配，才允许使用 `--auto-theme-ok`。
 
 公众号主题组件库位于：
 
@@ -307,8 +307,8 @@ python3 scripts/lint_article.py <note.md> --platform 小红书 --mode xiaohongsh
 ```bash
 python3 scripts/build_html.py <article.md> --list-themes
 python3 scripts/build_html.py <article.md> --list-delivery-styles
-python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --mode opinion-analysis --platform 公众号
 python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t red-white
+python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t auto --auto-theme-ok
 python3 scripts/build_gzh_html.py <article.md> -o article-gzh.html --title "文章标题" -t moyu-green
 python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mode xiaohongshu-note --platform 小红书 --emit-pair
 python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO --emit-pair

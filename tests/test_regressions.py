@@ -100,6 +100,71 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("four real", text)
         self.assertIn("semantic", text)
         self.assertIn("validate_delivery_bundle.py", text)
+        self.assertIn("--auto-theme-ok", text)
+        self.assertIn("If the publishing platform is missing", text)
+
+    def test_wechat_builder_rejects_silent_auto_theme(self):
+        builder = ROOT / "scripts/build_gzh_html.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            source.write_text(SAMPLE_MD, encoding="utf-8")
+
+            silent_auto = subprocess.run(
+                [sys.executable, str(builder), str(source), "--no-preview"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(silent_auto.returncode, 0)
+            self.assertIn("不能静默使用主题 auto", silent_auto.stderr)
+
+            confirmed_theme = subprocess.run(
+                [sys.executable, str(builder), str(source), "--no-preview", "-t", "moyu-green"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(confirmed_theme.returncode, 0, confirmed_theme.stdout + confirmed_theme.stderr)
+
+    def test_platform_builder_rejects_silent_wechat_auto_theme(self):
+        builder = ROOT / "scripts/build_html.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            output = directory / "article.html"
+            source.write_text(SAMPLE_MD, encoding="utf-8")
+
+            silent_auto = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "公众号",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(silent_auto.returncode, 0)
+            self.assertIn("不能静默使用主题 auto", silent_auto.stderr)
+
+            authorized_auto = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "公众号",
+                    "--auto-theme-ok",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(authorized_auto.returncode, 0, authorized_auto.stdout + authorized_auto.stderr)
+            self.assertTrue(output.is_file())
 
     def test_agent_entrypoint_routes_reader_value_before_novelty(self):
         text = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")

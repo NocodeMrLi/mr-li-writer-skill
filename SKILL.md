@@ -301,7 +301,7 @@ python3 scripts/lint_article.py <正文.md> --platform 小红书 --mode xiaohong
 python3 scripts/build_html.py <正文.md> -o <输出.html> --title "<文章标题>" --mode <内容模式> --platform <发布平台> --content-goal <内容目标>
 ```
 
-默认不指定 `-t` 和 `--delivery-style`，由脚本按发布平台、内容目标、内容模式、标题关键词和正文自动匹配交付样式。公众号平台使用 gzh-design 风格的 6 套内联 HTML 排版主题；如果用户没有指定公众号主题，应先推荐最适合的一套并让用户确认。用户明确说“直接排”“不用问”“自动匹配”时，才自动选择主题。
+默认不指定 `--delivery-style`，由脚本按发布平台、内容目标、内容模式、标题关键词和正文自动匹配交付样式。公众号平台使用 gzh-design 风格的 6 套内联 HTML 排版主题；如果用户没有指定公众号主题，应先推荐最适合的一套并让用户确认。正式生成公众号 HTML 时必须使用 `-t <主题名>` 指定已确认主题；只有用户明确说“直接排”“不用问”“自动匹配”时，才允许使用 `-t auto --auto-theme-ok` 或 `-t random --auto-theme-ok` 自动选择主题。
 
 HTML 生成前置确认清单：
 
@@ -310,6 +310,8 @@ HTML 生成前置确认清单：
 3. 正文方向已获用户认可。
 
 三项未确认时，只交付 Markdown 正文与标题方案，并在交付说明中注明“等待平台/主题确认后再排版”，不得提前生成最终 HTML。
+
+脚本安全约束：`scripts/build_html.py` 和 `scripts/build_gzh_html.py` 不允许在公众号最终排版中静默使用 `auto` 或 `random` 主题；除非命令中带有 `--auto-theme-ok`，否则必须传入具体主题名。这个约束用于防止不同智能体或模型绕过必要询问，直接默认生成石墨极简等主题。
 
 公众号排版必须走完整组件库流程，不得只使用简化颜色模板：
 

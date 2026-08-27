@@ -1281,8 +1281,8 @@ def validate_file(path):
 
 def list_themes():
     print("可用公众号主题:")
-    print("  %-18s %s" % ("auto", "按题材自动匹配，默认推荐摸鱼绿"))
-    print("  %-18s %s" % ("random", "从 6 套公众号主题中随机选择"))
+    print("  %-18s %s" % ("auto", "按题材自动匹配；最终排版需加 --auto-theme-ok 表示用户已授权"))
+    print("  %-18s %s" % ("random", "从 6 套公众号主题中随机选择；最终排版需加 --auto-theme-ok 表示用户已授权"))
     for key, item in THEMES.items():
         print("  %-18s %s - %s" % (key, item["name"], item["desc"]))
     if os.path.isdir(GZH_REF_DIR):
@@ -1317,6 +1317,11 @@ def main():
     parser.add_argument("md", nargs="?", help="Markdown 正文文件路径")
     parser.add_argument("-o", "--output", help="输出干净公众号 HTML 片段")
     parser.add_argument("-t", "--theme", default="auto", help="公众号主题: auto/random/%s" % "/".join(THEMES))
+    parser.add_argument(
+        "--auto-theme-ok",
+        action="store_true",
+        help="确认用户已授权系统自动/随机选择公众号主题；未授权时请使用 -t 指定具体主题",
+    )
     parser.add_argument("--title", default="", help="文章标题")
     parser.add_argument("--no-preview", action="store_true", help="只生成干净 HTML，不生成复制预览页")
     parser.add_argument("--list-themes", action="store_true", help="列出公众号主题")
@@ -1333,6 +1338,11 @@ def main():
     if args.theme not in THEMES and args.theme not in SPECIAL_THEMES:
         list_themes()
         parser.error("未知公众号主题: %s" % args.theme)
+    if args.theme in SPECIAL_THEMES and not args.auto_theme_ok:
+        parser.error(
+            "公众号最终排版不能静默使用主题 %s；请先确认公众号主题，使用 -t <主题名>，或在用户明确授权自动匹配后添加 --auto-theme-ok"
+            % args.theme
+        )
 
     md_path = os.path.abspath(args.md)
     if not os.path.isfile(md_path):
