@@ -451,6 +451,36 @@ def balanced_leaf_lines(text, max_len=15):
     return "<br>".join('<span leaf="">%s</span>' % html_text(line) for line in split_display_lines(text, max_len=max_len))
 
 
+def visible_text(fragment):
+    text = re.sub(r"<br\s*/?>", "\n", str(fragment or ""), flags=re.I)
+    text = re.sub(r"<[^>]+>", "", text)
+    return html.unescape(re.sub(r"\s+", "", text)).strip()
+
+
+def repair_centered_text_orphans(section_html):
+    """Avoid long centered emphasis blocks leaving 1-2 CJK chars on mobile."""
+    tag_re = re.compile(
+        r"(<p\b(?=[^>]*text-align\s*:\s*center)[^>]*>)(.*?)(</p>)",
+        re.I | re.S,
+    )
+
+    def repl(match):
+        open_tag, inner, close_tag = match.groups()
+        clean = visible_text(inner)
+        if len(clean) < 18:
+            return match.group(0)
+        if re.search(r"<(img|table|tr|td|th)\b", inner, re.I):
+            return match.group(0)
+        fixed = re.sub(r"text-align\s*:\s*center", "text-align:left", open_tag, flags=re.I)
+        if "data-balanced=" not in fixed:
+            fixed = fixed.replace("<p", '<p data-balanced="center-text"', 1)
+        if "word-break" not in fixed:
+            fixed = re.sub(r'style="([^"]*)"', r'style="\1;word-break:break-word;overflow-wrap:anywhere;"', fixed, count=1)
+        return fixed + inner + close_tag
+
+    return tag_re.sub(repl, section_html)
+
+
 def is_prose_quote(text):
     clean = re.sub(r"\s+", "", str(text or "")).strip()
     if len(clean) >= 42:
@@ -1028,7 +1058,7 @@ def build_component_section(md_text, title, theme_key):
     parts.append(component_footer(theme_key, components, blocks))
     parts.append(close_tag)
     parts.append('<p style="display:none;"><mp-style-type data-value="3"></mp-style-type></p>')
-    return "\n".join(p for p in parts if p)
+    return repair_centered_text_orphans("\n".join(p for p in parts if p))
 
 
 def infer_theme(md_text, title=""):
@@ -1226,7 +1256,7 @@ def build_section(md_text, title, theme):
             parts.append(hr(theme))
     parts.append(signature(theme))
     parts.append("</section>")
-    return "\n".join(p for p in parts if p)
+    return repair_centered_text_orphans("\n".join(p for p in parts if p))
 
 
 PREVIEW_TEMPLATE = """<!DOCTYPE html>

@@ -813,6 +813,28 @@ class GzhThemeRegressionTests(unittest.TestCase):
                 self.assertIn("text-align:left", quote.group(0))
                 self.assertNotIn("text-align:center", quote.group(0))
 
+    def test_long_centered_emphasis_is_repaired_across_themes(self):
+        sample = (
+            '<p style="font-size:15px;margin:0 0 24px;text-align:center;color:#DC2626;'
+            'font-weight:700;letter-spacing:1px;border-top:1px solid #FEE2E2;'
+            'border-bottom:1px solid #FEE2E2;padding:14px 10px;">'
+            '<span leaf="">报名截止 ≠ 缴费截止，但缴费截止才是真截止</span></p>'
+        )
+        repaired = build_gzh.repair_centered_text_orphans(sample)
+        self.assertIn('data-balanced="center-text"', repaired)
+        self.assertIn("text-align:left", repaired)
+        self.assertNotIn("text-align:center", repaired)
+        self.assertIn("overflow-wrap:anywhere", repaired)
+
+    def test_short_centered_emphasis_can_stay_centered(self):
+        sample = (
+            '<p style="font-size:15px;text-align:center;font-weight:700;">'
+            '<span leaf="">真正重要</span></p>'
+        )
+        repaired = build_gzh.repair_centered_text_orphans(sample)
+        self.assertIn("text-align:center", repaired)
+        self.assertNotIn('data-balanced="center-text"', repaired)
+
     def test_public_topic_tags_do_not_expose_editorial_posture_words(self):
         labels = build_gzh.public_topic_tags("软考含金量中立深度解读", [])
         self.assertNotIn("中立", labels)
