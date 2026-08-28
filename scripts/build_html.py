@@ -228,6 +228,33 @@ def md_to_html(md_text):
     return "\n".join(out)
 
 
+def split_leading_h1(md_text):
+    """Return the first Markdown H1 and source without it when it is the lead title."""
+    lines = md_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        match = re.match(r"^#\s+(.+?)\s*$", stripped)
+        if not match:
+            return "", md_text
+        remaining = lines[:index] + lines[index + 1 :]
+        return match.group(1).strip(), "\n".join(remaining).lstrip("\n")
+    return "", md_text
+
+
+def normalize_title_text(text):
+    text = re.sub(r"[`*_~]+", "", str(text or ""))
+    text = re.sub(r"\s+", "", text)
+    return text.strip(" \t\r\n#：:，,。.!！?？")
+
+
+def titles_match(left, right):
+    left_norm = normalize_title_text(left)
+    right_norm = normalize_title_text(right)
+    return bool(left_norm and right_norm and left_norm == right_norm)
+
+
 def markdown_to_plain_text(md_text):
     """Convert Markdown source into publishable plain text for native platforms."""
     lines = md_text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
@@ -653,7 +680,8 @@ def main():
     warn_process_leaks(md_text)
     warn_commercial_source_exposure(md_text)
 
-    title = args.title or os.path.splitext(os.path.basename(md_path))[0]
+    lead_h1, md_without_lead_h1 = split_leading_h1(md_text)
+    title = args.title or lead_h1 or os.path.splitext(os.path.basename(md_path))[0]
     delivery_style, delivery_reason = resolve_delivery_style(
         args.delivery_style,
         platform=args.platform,
@@ -677,7 +705,10 @@ def main():
         return_code = run_gzh_builder(args)
         sys.exit(return_code)
 
-    body = md_to_html(md_text)
+    render_md = md_text
+    if delivery_style != "xhs-note" and lead_h1 and titles_match(lead_h1, title):
+        render_md = md_without_lead_h1
+    body = md_to_html(render_md)
 
     out_path = args.output or os.path.splitext(md_path)[0] + ".html"
     out_path = os.path.abspath(out_path)

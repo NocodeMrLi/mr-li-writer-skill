@@ -34,6 +34,13 @@ interface:
     authorization, then pass --task-state to formal generation and delivery
     scripts. Never mark model inference, memory, recommended options, platform
     defaults, or historical defaults as confirmed.
+    Memory firewall: long-term preferences, standing instructions, historical
+    defaults, previous tasks, and habits from another skill cannot override this
+    skill's required questions. Only explicit authorization in the current user
+    task counts as auto-match/no-ask/direct-processing permission. Do not
+    convert "I usually prefer direct execution" or another layout skill's habit
+    into confirmed platform, content goal, writing direction, or delivery style
+    for mr-li-writer.
     Required fields and triggered conditional fields are hard gates. Do not
     draft, create tasks, create files, layout, or deliver while a required
     field is missing. Triggered conditional fields become required for that task. Do not replace user confirmation with model inference, historical

@@ -80,6 +80,13 @@ python3 scripts/validate_task_intake.py --from-prompt "<用户原始输入>" --p
 
 允许的确认来源只有用户原话或明确自动匹配授权。模型推断、memory、推荐项、历史默认、平台默认、内部判断都不能写成 `confirmed:true`。如果用户明确说“自动匹配 / 不用问 / 直接处理 / 直接排”，`source` 写 `auto_authorized`，并保留授权原话。
 
+长期记忆防火墙：
+
+- 长期偏好、历史任务习惯、宿主 memory、standing instruction、上一轮默认值和其他 skill 的执行习惯，不能覆盖本 skill 的必问项与条件触发项。
+- 只有当前任务里用户亲自说出的“自动匹配 / 不用问 / 直接处理 / 直接排”，才算本次任务授权；历史上说过、其他 skill 用过、模型总结过，都不算。
+- 不得把专门排版 skill 的偏好迁移到 `mr-li-writer` 写作 skill。A skill 的“排版自行决定”不能成为 B skill 的“平台、目标、方向、交付样式全部自行决定”。
+- `task-state.json` 的 `user_quote` 必须来自当前任务可回溯的用户原话；如果写成“长期偏好”“memory”“standing instruction”“历史默认”“上次偏好”，入口脚本会阻断。
+
 ### 必要询问矩阵
 
 按 `references/platform-native-protocol.md` 的“最低必要询问”执行。只问会改变文章形态或交付结果的问题，已经明确的信息不重复问；同时缺少多个关键项时一次合并询问，通常不超过 3 个短问题。

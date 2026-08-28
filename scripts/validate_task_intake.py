@@ -29,6 +29,10 @@ TRUSTED_SOURCES = {"user", "user_confirmed", "auto_authorized"}
 AUTO_AUTH_SOURCES = {"auto_authorized"}
 RESUME_RE = re.compile(r"(继续完成任务|继续|接着做|恢复任务|按刚才的来|continue|resume)", re.I)
 AUTO_RE = re.compile(r"(自动匹配|不用问|不要询问|直接处理|直接排|你看着办)")
+MEMORY_AUTH_RE = re.compile(
+    r"(长期偏好|长期记忆|历史偏好|历史默认|上次|之前偏好|standing instruction|memory|other skill|其他\s*skill|A\s*技能|旧技能)",
+    re.I,
+)
 
 STYLE_OPTIONS = {
     "公众号": "摸鱼绿、红白色系、石墨极简风、留白禅意风、摸鱼票据风、橄榄手记、自动匹配",
@@ -147,6 +151,10 @@ def has_user_quote(record):
     return bool(str(record.get("user_quote") or "").strip())
 
 
+def quote_text(record):
+    return str(record.get("user_quote") or record.get("authorization_quote") or "").strip()
+
+
 def missing_reason(record):
     if not str(record.get("value", "")).strip():
         return "缺少取值"
@@ -156,6 +164,11 @@ def missing_reason(record):
         return "不得用模型推断、历史默认、平台默认、推荐项或 memory 代替用户确认"
     if not has_user_quote(record):
         return "缺少用户原话或自动匹配授权原话"
+    quote = quote_text(record)
+    if MEMORY_AUTH_RE.search(quote):
+        return "长期记忆、历史偏好或其他 skill 的习惯不能代替当前任务用户确认"
+    if str(record.get("source", "")).strip().lower() in AUTO_AUTH_SOURCES and not AUTO_RE.search(quote):
+        return "自动匹配授权必须来自当前任务中的明确原话"
     return ""
 
 
@@ -179,7 +192,8 @@ def platform_key(value):
 
 def state_from_prompt(prompt):
     text = prompt or ""
-    source = "auto_authorized" if AUTO_RE.search(text) else "prompt_detected"
+    memory_based = bool(MEMORY_AUTH_RE.search(text))
+    source = "auto_authorized" if AUTO_RE.search(text) and not memory_based else "prompt_detected"
     confirmed = source == "auto_authorized"
     quote = "自动匹配" if confirmed else ""
     state = {}

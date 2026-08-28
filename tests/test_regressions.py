@@ -160,6 +160,26 @@ class DeliveryProtocolTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_task_intake_rejects_memory_or_standing_instruction_as_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                delivery_style={
+                    "value": "auto",
+                    "confirmed": True,
+                    "source": "auto_authorized",
+                    "user_quote": "根据长期偏好：意图明确时直接执行、不询问、排版自行决定",
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "layout"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("长期记忆", result.stdout)
+
     def test_task_intake_from_prompt_blocks_new_task_without_confirmations(self):
         validator = ROOT / "scripts/validate_task_intake.py"
         result = subprocess.run(
@@ -180,6 +200,24 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("内容目标", result.stdout)
         self.assertIn("创作方向", result.stdout)
         self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_auto_authorize_from_memory_words(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "根据长期偏好直接处理，写成公众号并自动匹配",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("发布平台", result.stdout)
+        self.assertIn("当前平台可选交付样式", result.stdout)
 
     def test_documents_require_intake_check_before_fetching_or_task_list(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -258,9 +296,48 @@ class DeliveryProtocolTests(unittest.TestCase):
                     ],
                     capture_output=True,
                     text=True,
-                )
-                self.assertNotEqual(result.returncode, 0, platform)
-                self.assertIn("--task-state", result.stderr + result.stdout)
+            )
+            self.assertNotEqual(result.returncode, 0, platform)
+            self.assertIn("--task-state", result.stderr + result.stdout)
+
+    def test_non_wechat_html_deduplicates_page_title_and_markdown_h1(self):
+        builder = ROOT / "scripts/build_html.py"
+        title = "PMP 新考纲 12 月 5 日首考：第七版和第八版一张表对照，AI 题会怎么出"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "zhihu-source.md"
+            output = directory / "zhihu.html"
+            source.write_text("# %s\n\n正文第一段。\n" % title, encoding="utf-8")
+            state = self.write_task_state(
+                directory,
+                platform={"value": "知乎", "confirmed": True, "source": "user", "user_quote": "知乎"},
+                delivery_style={"value": "回答", "confirmed": True, "source": "user", "user_quote": "回答"},
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "知乎",
+                    "--delivery-style",
+                    "zhihu-answer",
+                    "--title",
+                    title,
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            html_text = output.read_text(encoding="utf-8")
+            main = re.search(r'<main class="article" id="article">(.*?)</main>', html_text, re.S).group(1)
+            body_text = html.unescape(re.sub(r"<[^>]+>", "", main))
+            self.assertEqual(body_text.count(title), 1)
+            self.assertEqual(len(re.findall(r"<h1", html_text)), 1)
 
     def test_build_html_rejects_theme_that_differs_from_task_state(self):
         builder = ROOT / "scripts/build_html.py"
