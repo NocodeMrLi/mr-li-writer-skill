@@ -539,6 +539,8 @@ def resolve_delivery_style(delivery_style, platform="", mode="", content_goal=""
 def run_gzh_builder(args):
     builder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build_gzh_html.py")
     cmd = [sys.executable, builder, args.md, "--theme", args.theme]
+    if args.task_state:
+        cmd.extend(["--task-state", args.task_state])
     if args.auto_theme_ok:
         cmd.append("--auto-theme-ok")
     if args.theme_confirmed:
@@ -547,6 +549,19 @@ def run_gzh_builder(args):
         cmd.extend(["-o", args.output])
     if args.title:
         cmd.extend(["--title", args.title])
+    return subprocess.call(cmd)
+
+
+def require_task_state(task_state, phase, platform="", expected_style=""):
+    if not task_state:
+        sys.stderr.write("[错误] 正式生成前必须传入 --task-state，并通过 scripts/validate_task_intake.py 确认必问项。\n")
+        return 2
+    checker = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validate_task_intake.py")
+    cmd = [sys.executable, checker, task_state, "--phase", phase]
+    if platform:
+        cmd.extend(["--platform", platform])
+    if expected_style:
+        cmd.extend(["--expected-style", expected_style])
     return subprocess.call(cmd)
 
 
@@ -586,6 +601,7 @@ def main():
     parser.add_argument("--mode", default="", help="内容模式: research-explainer/practical-guide/opinion-analysis/story-profile/platform-native/xiaohongshu-note")
     parser.add_argument("--platform", default="", help="发布平台: 公众号/知乎/小红书/官网/网页/个人博客")
     parser.add_argument("--content-goal", default="", help="内容目标: 普通传播/GEO/SEO/转化销售/专业报告")
+    parser.add_argument("--task-state", default="", help="任务状态 JSON；正式生成前必须通过必问项/恢复任务门禁")
     parser.add_argument(
         "--delivery-style",
         default="auto",
@@ -624,6 +640,13 @@ def main():
         sys.stderr.write("[错误] 未知交付样式 '%s'\n" % args.delivery_style)
         list_delivery_styles()
         sys.exit(1)
+
+    expected_style = args.theme if "公众号" in args.platform or args.theme != DEFAULT_THEME else ""
+    if not expected_style and args.delivery_style != "auto":
+        expected_style = args.delivery_style
+    intake_rc = require_task_state(args.task_state, "layout", platform=args.platform, expected_style=expected_style)
+    if intake_rc != 0:
+        sys.exit(intake_rc)
 
     with open(md_path, "r", encoding="utf-8") as f:
         md_text = f.read()

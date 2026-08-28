@@ -25,6 +25,15 @@ interface:
     reader scene, stance boundary, time-sensitive cutoff, source boundary,
     delivery format, and depth only when they change the result; do not ask by
     default about tone, opening type, title count, aphorisms, or examples.
+    At the start of every new task, before fetching source links, searching the web,
+    reading external articles, creating a task list, drafting, generating files,
+    layout, or delivery, run scripts/validate_task_intake.py --from-prompt with
+    the user's original request and --phase task-list. If it blocks, ask the
+    missing required questions first. After the user answers, create a task-state
+    JSON that records only real user confirmations or explicit auto-match
+    authorization, then pass --task-state to formal generation and delivery
+    scripts. Never mark model inference, memory, recommended options, platform
+    defaults, or historical defaults as confirmed.
     Required fields and triggered conditional fields are hard gates. Do not
     draft, create tasks, create files, layout, or deliver while a required
     field is missing. Triggered conditional fields become required for that task. Do not replace user confirmation with model inference, historical

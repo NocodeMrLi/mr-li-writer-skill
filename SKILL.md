@@ -59,6 +59,27 @@ description: "面向中文内容创作的编辑判断、研究、策划、写作
 
 ## 工作流程
 
+### 入口脚本硬门禁
+
+每个新任务第一步先运行入口检查，再抓取、检索、读取链接、生成任务列表、写正文、排版或交付：
+
+```bash
+python3 scripts/validate_task_intake.py --from-prompt "<用户原始输入>" --phase task-list
+```
+
+如果脚本阻断，必须先把缺失项合并问用户，不得继续执行。用户回复后，把真实确认写入任务状态 JSON，并在后续正式动作中传入 `--task-state`：
+
+```json
+{
+  "platform": {"value": "公众号", "confirmed": true, "source": "user", "user_quote": "公众号"},
+  "content_goal": {"value": "普通传播", "confirmed": true, "source": "user", "user_quote": "普通传播"},
+  "writing_direction": {"value": "实用指南", "confirmed": true, "source": "user", "user_quote": "写成实用指南"},
+  "delivery_style": {"value": "moyu-green", "confirmed": true, "source": "user", "user_quote": "摸鱼绿"}
+}
+```
+
+允许的确认来源只有用户原话或明确自动匹配授权。模型推断、memory、推荐项、历史默认、平台默认、内部判断都不能写成 `confirmed:true`。如果用户明确说“自动匹配 / 不用问 / 直接处理 / 直接排”，`source` 写 `auto_authorized`，并保留授权原话。
+
 ### 必要询问矩阵
 
 按 `references/platform-native-protocol.md` 的“最低必要询问”执行。只问会改变文章形态或交付结果的问题，已经明确的信息不重复问；同时缺少多个关键项时一次合并询问，通常不超过 3 个短问题。
@@ -400,20 +421,20 @@ python3 scripts/lint_article.py <正文.md> --platform 小红书 --mode xiaohong
 用户确认正文和标题后运行：
 
 ```bash
-python3 scripts/build_html.py <正文.md> -o <输出.html> --title "<文章标题>" --mode <内容模式> --platform <发布平台> --content-goal <内容目标>
+python3 scripts/build_html.py <正文.md> -o <输出.html> --title "<文章标题>" --mode <内容模式> --platform <发布平台> --content-goal <内容目标> --task-state <任务状态.json>
 ```
 
-默认不指定 `--delivery-style`，由脚本按发布平台、内容目标、内容模式、标题关键词和正文自动匹配交付样式。公众号平台使用 gzh-design 风格的 6 套内联 HTML 排版主题；如果用户没有指定公众号主题，应先推荐最适合的一套并让用户确认。正式生成公众号 HTML 时必须使用 `-t <主题名> --theme-confirmed` 指定已确认主题；只有用户明确说“直接排”“不用问”“自动匹配”时，才允许使用 `-t auto --auto-theme-ok` 或 `-t random --auto-theme-ok` 自动选择主题。
+命令参数可以不额外指定 `--delivery-style`，但任务状态 JSON 中必须已经有用户确认过的平台交付样式，或用户明确授权“自动匹配 / 不用问 / 直接处理”。脚本只读取并校验 `--task-state`，不得把脚本默认值当成用户确认。公众号平台使用 gzh-design 风格的 6 套内联 HTML 排版主题；如果用户没有指定公众号排版主题，应先推荐最适合的一套并让用户确认。正式生成公众号 HTML 时必须使用 `-t <主题名> --theme-confirmed` 指定已确认主题；只有用户明确说“直接排”“不用问”“自动匹配”时，才允许使用 `-t auto --auto-theme-ok` 或 `-t random --auto-theme-ok` 自动选择主题。
 
 HTML 生成前置确认清单：
 
 1. 发布平台已明确：用户确认，或用户明确授权自动选择。
-2. 公众号平台下主题已选定：用户选择，或用户明确授权自动选择；自动选择默认从内容匹配候选中选，无法判断时推荐摸鱼绿并说明理由。
-3. 正文方向已获用户认可。
+2. 创作方向已确认：用户从 3-5 个候选方向中选择，或明确授权采用最推荐方向。
+3. 平台交付样式已确认：公众号确认具体排版主题；知乎确认回答 / 专栏与是否 HTML 预览；小红书确认纯文本 / 卡片预览与笔记气质；官网/网页确认网页结构和发布环境；个人博客确认 Markdown、CMS 富文本或静态 HTML。
 
-三项未确认时，只交付 Markdown 正文与标题方案，并在交付说明中注明“等待平台/主题确认后再排版”，不得提前生成最终 HTML。
+三项未确认时，不生成任务列表、不写正文、不创建文件、不排版、不交付；先合并询问缺失项。不得只交付 Markdown 正文与标题方案来绕过确认。
 
-脚本安全约束：`scripts/build_html.py` 和 `scripts/build_gzh_html.py` 不允许在公众号最终排版中静默使用任何主题。具体主题必须带 `--theme-confirmed`，`auto/random` 必须带 `--auto-theme-ok`。这个约束用于防止不同智能体或模型绕过必要询问，直接默认生成石墨极简等主题。
+脚本安全约束：`scripts/validate_task_intake.py`、`scripts/build_html.py`、`scripts/build_gzh_html.py`、`scripts/wrap_gzh_preview.py` 和 `scripts/validate_delivery_bundle.py` 会在正式动作前校验任务状态。公众号具体主题必须带 `--theme-confirmed`，`auto/random` 必须带 `--auto-theme-ok`。这个约束用于防止不同智能体或模型绕过必要询问，直接默认生成石墨极简等主题；同样也防止知乎、小红书、官网/网页、个人博客被静默套用不合适的交付样式。
 
 公众号排版必须走完整组件库流程，不得只使用简化颜色模板：
 
@@ -436,8 +457,8 @@ HTML 生成前置确认清单：
 用户明确指定风格或不喜欢自动结果时，可以手动换主题：
 
 ```bash
-python3 scripts/build_html.py <正文.md> --platform 公众号 -t <公众号主题名> --theme-confirmed -o <输出.html> --title "<文章标题>"
-python3 scripts/build_html.py <正文.md> --platform 公众号 -t random --auto-theme-ok -o <输出.html> --title "<文章标题>"
+python3 scripts/build_html.py <正文.md> --platform 公众号 -t <公众号主题名> --theme-confirmed -o <输出.html> --title "<文章标题>" --task-state <任务状态.json>
+python3 scripts/build_html.py <正文.md> --platform 公众号 -t random --auto-theme-ok -o <输出.html> --title "<文章标题>" --task-state <任务状态.json>
 ```
 
 公众号可选主题：
@@ -471,7 +492,7 @@ python3 scripts/build_html.py <正文.md> --platform 公众号 -t random --auto-
 公众号完成排版后必须交付四件套，任何宿主、智能体和模型均不得自行省略：标题策略 Markdown、正文 Markdown、公众号干净正文 HTML、带复制功能的预览 HTML。交付前运行：
 
 ```bash
-python3 scripts/validate_delivery_bundle.py <交付目录> --platform 公众号
+python3 scripts/validate_delivery_bundle.py <交付目录> --platform 公众号 --task-state <任务状态.json>
 ```
 
 缺少任一文件或校验失败时，先补齐并重新检查，不能向用户交付不完整结果。
@@ -479,14 +500,14 @@ python3 scripts/validate_delivery_bundle.py <交付目录> --platform 公众号
 非公众号平台若本次涉及排版，运行：
 
 ```bash
-python3 scripts/build_html.py <平台原文> -o article.html --platform <平台> --emit-pair
-python3 scripts/validate_delivery_bundle.py <交付目录> --platform <平台> --layout
+python3 scripts/build_html.py <平台原文> -o article.html --platform <平台> --emit-pair --task-state <任务状态.json>
+python3 scripts/validate_delivery_bundle.py <交付目录> --platform <平台> --layout --task-state <任务状态.json>
 ```
 
 不涉及排版时只校验标题策略和平台原生正文，不机械凑四件套：
 
 ```bash
-python3 scripts/validate_delivery_bundle.py <交付目录> --platform <平台>
+python3 scripts/validate_delivery_bundle.py <交付目录> --platform <平台> --task-state <任务状态.json>
 ```
 
 交付物组织规范（详细执行 `references/delivery-protocol.md`）：
@@ -545,6 +566,7 @@ HTML 交付前检查桌面端和移动端的阅读宽度、标题/金句换行�
 - `references/humanize-rules.md`：自然表达、反模式化和不虚构人称的规则。
 - `references/lint-checks.md`：lint 检查项、规则含义和修改方向。
 - `scripts/extract_seed.py`：DOCX、PDF、图片素材提取和可选人工指定脱敏。
+- `scripts/validate_task_intake.py`：新任务、恢复任务、正式写作/排版/交付前的必问项与条件项硬门禁。
 - `scripts/lint_article.py`：正文、引用、标题和常见 AI 腔的静态检查。
 - `scripts/build_html.py`：零外部依赖的多平台 HTML 交付入口，公众号平台会调用公众号专用排版器。
 - `scripts/build_gzh_html.py`：Markdown 到公众号内联 HTML 快速排版器，支持 6 套 gzh-design 风格主题、自动匹配、干净正文片段和复制预览页；正式精排以 `assets/gzh-design/references/` 的完整组件库为准。

@@ -2,6 +2,7 @@ import contextlib
 import html
 import importlib.util
 import io
+import json
 import pathlib
 import re
 import subprocess
@@ -53,6 +54,314 @@ TABLE_MD = """# 报名状态
 
 
 class DeliveryProtocolTests(unittest.TestCase):
+    def write_task_state(self, directory, **overrides):
+        base = {
+            "platform": {"value": "公众号", "confirmed": True, "source": "user", "user_quote": "公众号"},
+            "content_goal": {"value": "普通传播", "confirmed": True, "source": "user", "user_quote": "普通传播"},
+            "writing_direction": {"value": "实用指南", "confirmed": True, "source": "user", "user_quote": "写成实用指南"},
+            "delivery_style": {"value": "moyu-green", "confirmed": True, "source": "user", "user_quote": "摸鱼绿"},
+        }
+        base.update(overrides)
+        path = pathlib.Path(directory) / "task-state.json"
+        path.write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+        return path
+
+    def test_task_intake_blocks_resume_when_required_confirmations_are_missing(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = pathlib.Path(tmp) / "task-state.json"
+            state.write_text(
+                json.dumps(
+                    {
+                        "platform": {
+                            "value": "公众号",
+                            "confirmed": True,
+                            "source": "user",
+                            "user_quote": "公众号",
+                        }
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(validator),
+                    str(state),
+                    "--phase",
+                    "resume",
+                    "--last-user",
+                    "继续完成任务",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("不能把“继续完成任务”视为确认", result.stdout)
+            self.assertIn("内容目标", result.stdout)
+            self.assertIn("创作方向", result.stdout)
+            self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_rejects_model_inferred_confirmations(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                delivery_style={
+                    "value": "graphite-minimal",
+                    "confirmed": True,
+                    "source": "model",
+                    "user_quote": "模型推荐石墨极简",
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "layout"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("平台交付样式", result.stdout)
+            self.assertIn("不得用模型推断", result.stdout)
+
+    def test_task_intake_rejects_cross_platform_delivery_style(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                platform={"value": "知乎", "confirmed": True, "source": "user", "user_quote": "知乎"},
+                delivery_style={"value": "graphite-minimal", "confirmed": True, "source": "user", "user_quote": "石墨极简风"},
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "layout", "--platform", "知乎"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("不得把公众号主题或其他平台样式跨平台套用", result.stdout)
+            self.assertIn("回答、专栏", result.stdout)
+
+    def test_task_intake_accepts_user_confirmed_or_authorized_auto_match(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                delivery_style={
+                    "value": "auto",
+                    "confirmed": True,
+                    "source": "auto_authorized",
+                    "user_quote": "不用问，自动匹配",
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "layout"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_task_intake_from_prompt_blocks_new_task_without_confirmations(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "Meta AI 原生组织转型受挫，原文：https://example.com/article",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("新任务尚未形成任务状态", result.stdout)
+        self.assertIn("发布平台", result.stdout)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
+    def test_documents_require_intake_check_before_fetching_or_task_list(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+        for text in (skill, agent):
+            self.assertIn("validate_task_intake.py", text)
+            self.assertIn("--from-prompt", text)
+        self.assertIn("抓取、检索、读取链接、生成任务列表", skill)
+        self.assertIn("before fetching source links", agent)
+
+    def test_build_html_requires_task_state_before_formal_generation(self):
+        builder = ROOT / "scripts/build_html.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            output = directory / "article.html"
+            source.write_text(SAMPLE_MD, encoding="utf-8")
+            missing_state = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "公众号",
+                    "-t",
+                    "moyu-green",
+                    "--theme-confirmed",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(missing_state.returncode, 0)
+            self.assertIn("--task-state", missing_state.stderr + missing_state.stdout)
+
+            state = self.write_task_state(directory)
+            complete = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "公众号",
+                    "-t",
+                    "moyu-green",
+                    "--theme-confirmed",
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+
+    def test_build_html_requires_task_state_for_every_platform(self):
+        builder = ROOT / "scripts/build_html.py"
+        platforms = ("知乎", "小红书", "官网/网页", "个人博客")
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            source.write_text(SAMPLE_MD, encoding="utf-8")
+            for platform in platforms:
+                output = directory / ("%s.html" % platform.replace("/", "-"))
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(builder),
+                        str(source),
+                        "-o",
+                        str(output),
+                        "--platform",
+                        platform,
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(result.returncode, 0, platform)
+                self.assertIn("--task-state", result.stderr + result.stdout)
+
+    def test_build_html_rejects_theme_that_differs_from_task_state(self):
+        builder = ROOT / "scripts/build_html.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            output = directory / "article.html"
+            source.write_text(SAMPLE_MD, encoding="utf-8")
+            state = self.write_task_state(
+                directory,
+                delivery_style={
+                    "value": "moyu-green",
+                    "confirmed": True,
+                    "source": "user",
+                    "user_quote": "摸鱼绿",
+                },
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "-o",
+                    str(output),
+                    "--platform",
+                    "公众号",
+                    "-t",
+                    "graphite-minimal",
+                    "--theme-confirmed",
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("命令交付样式与任务状态不一致", result.stdout)
+
+    def test_delivery_bundle_requires_task_state(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
+            (delivery / "article.html").write_text("<main>正文</main>", encoding="utf-8")
+            (delivery / "article-preview.html").write_text(
+                "<button>复制正文</button><script>function copyArticle(){}</script>",
+                encoding="utf-8",
+            )
+            missing_state = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "公众号"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(missing_state.returncode, 0)
+            self.assertIn("--task-state", missing_state.stdout + missing_state.stderr)
+
+            state = self.write_task_state(delivery)
+            complete = subprocess.run(
+                [
+                    sys.executable,
+                    str(validator),
+                    str(delivery),
+                    "--platform",
+                    "公众号",
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+
+    def test_wrap_gzh_preview_requires_task_state(self):
+        wrapper = ROOT / "scripts/wrap_gzh_preview.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article.html"
+            output = directory / "article-preview.html"
+            source.write_text("<section><p><span leaf=\"\">正文</span></p></section>", encoding="utf-8")
+
+            missing_state = subprocess.run(
+                [sys.executable, str(wrapper), str(source), str(output)],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(missing_state.returncode, 0)
+            self.assertIn("--task-state", missing_state.stderr + missing_state.stdout)
+
+            state = self.write_task_state(directory)
+            complete = subprocess.run(
+                [sys.executable, str(wrapper), str(source), str(output), "--task-state", str(state)],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+            self.assertTrue(output.is_file())
+
     def test_skill_requires_native_file_attachments(self):
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("原生附件", text)
@@ -72,6 +381,7 @@ class DeliveryProtocolTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             delivery = pathlib.Path(tmp)
+            state = self.write_task_state(delivery)
             (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
             (delivery / "article.html").write_text("<section>正文</section>", encoding="utf-8")
             (delivery / "article-preview.html").write_text(
@@ -79,7 +389,7 @@ class DeliveryProtocolTests(unittest.TestCase):
                 encoding="utf-8",
             )
             missing = subprocess.run(
-                [sys.executable, str(validator), str(delivery), "--platform", "公众号"],
+                [sys.executable, str(validator), str(delivery), "--platform", "公众号", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -90,7 +400,7 @@ class DeliveryProtocolTests(unittest.TestCase):
                 encoding="utf-8",
             )
             complete = subprocess.run(
-                [sys.executable, str(validator), str(delivery), "--platform", "公众号"],
+                [sys.executable, str(validator), str(delivery), "--platform", "公众号", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -163,9 +473,10 @@ class DeliveryProtocolTests(unittest.TestCase):
             directory = pathlib.Path(tmp)
             source = directory / "article-source.md"
             source.write_text(SAMPLE_MD, encoding="utf-8")
+            state = self.write_task_state(directory)
 
             silent_auto = subprocess.run(
-                [sys.executable, str(builder), str(source), "--no-preview"],
+                [sys.executable, str(builder), str(source), "--no-preview", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -173,7 +484,7 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertIn("不能静默使用主题 auto", silent_auto.stderr)
 
             confirmed_theme = subprocess.run(
-                [sys.executable, str(builder), str(source), "--no-preview", "-t", "moyu-green"],
+                [sys.executable, str(builder), str(source), "--no-preview", "-t", "moyu-green", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -181,7 +492,17 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertIn("不能由智能体静默指定主题", confirmed_theme.stderr)
 
             user_confirmed_theme = subprocess.run(
-                [sys.executable, str(builder), str(source), "--no-preview", "-t", "moyu-green", "--theme-confirmed"],
+                [
+                    sys.executable,
+                    str(builder),
+                    str(source),
+                    "--no-preview",
+                    "-t",
+                    "moyu-green",
+                    "--theme-confirmed",
+                    "--task-state",
+                    str(state),
+                ],
                 capture_output=True,
                 text=True,
             )
@@ -194,6 +515,15 @@ class DeliveryProtocolTests(unittest.TestCase):
             source = directory / "article-source.md"
             output = directory / "article.html"
             source.write_text(SAMPLE_MD, encoding="utf-8")
+            state = self.write_task_state(
+                directory,
+                delivery_style={
+                    "value": "graphite-minimal",
+                    "confirmed": True,
+                    "source": "user",
+                    "user_quote": "石墨极简风",
+                },
+            )
 
             silent_specific = subprocess.run(
                 [
@@ -206,6 +536,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                     "公众号",
                     "-t",
                     "graphite-minimal",
+                    "--task-state",
+                    str(state),
                 ],
                 capture_output=True,
                 text=True,
@@ -225,6 +557,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                     "-t",
                     "graphite-minimal",
                     "--theme-confirmed",
+                    "--task-state",
+                    str(state),
                 ],
                 capture_output=True,
                 text=True,
@@ -239,6 +573,10 @@ class DeliveryProtocolTests(unittest.TestCase):
             source = directory / "article-source.md"
             output = directory / "article.html"
             source.write_text(TABLE_MD, encoding="utf-8")
+            state = self.write_task_state(
+                directory,
+                delivery_style={"value": "red-white", "confirmed": True, "source": "user", "user_quote": "红白色系"},
+            )
 
             result = subprocess.run(
                 [
@@ -250,6 +588,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                     "-t",
                     "red-white",
                     "--theme-confirmed",
+                    "--task-state",
+                    str(state),
                 ],
                 capture_output=True,
                 text=True,
@@ -342,6 +682,15 @@ class DeliveryProtocolTests(unittest.TestCase):
             source = directory / "article-source.md"
             output = directory / "article.html"
             source.write_text(SAMPLE_MD, encoding="utf-8")
+            auto_state = self.write_task_state(
+                directory,
+                delivery_style={
+                    "value": "auto",
+                    "confirmed": True,
+                    "source": "auto_authorized",
+                    "user_quote": "自动匹配",
+                },
+            )
 
             silent_auto = subprocess.run(
                 [
@@ -352,6 +701,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                     str(output),
                     "--platform",
                     "公众号",
+                    "--task-state",
+                    str(auto_state),
                 ],
                 capture_output=True,
                 text=True,
@@ -369,6 +720,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                     "--platform",
                     "公众号",
                     "--auto-theme-ok",
+                    "--task-state",
+                    str(auto_state),
                 ],
                 capture_output=True,
                 text=True,
@@ -413,13 +766,18 @@ class DeliveryProtocolTests(unittest.TestCase):
         validator = ROOT / "scripts/validate_delivery_bundle.py"
         with tempfile.TemporaryDirectory() as tmp:
             delivery = pathlib.Path(tmp)
+            state = self.write_task_state(
+                delivery,
+                platform={"value": "知乎", "confirmed": True, "source": "user", "user_quote": "知乎"},
+                delivery_style={"value": "回答", "confirmed": True, "source": "user", "user_quote": "回答"},
+            )
             (delivery / "title-strategy.md").write_text(
                 "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
                 encoding="utf-8",
             )
             (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
             result = subprocess.run(
-                [sys.executable, str(validator), str(delivery), "--platform", "知乎"],
+                [sys.executable, str(validator), str(delivery), "--platform", "知乎", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -431,13 +789,18 @@ class DeliveryProtocolTests(unittest.TestCase):
         validator = ROOT / "scripts/validate_delivery_bundle.py"
         with tempfile.TemporaryDirectory() as tmp:
             delivery = pathlib.Path(tmp)
+            state = self.write_task_state(
+                delivery,
+                platform={"value": "知乎", "confirmed": True, "source": "user", "user_quote": "知乎"},
+                delivery_style={"value": "回答 + HTML 预览", "confirmed": True, "source": "user", "user_quote": "回答 + HTML 预览"},
+            )
             (delivery / "title-strategy.md").write_text(
                 "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
                 encoding="utf-8",
             )
             (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
             missing = subprocess.run(
-                [sys.executable, str(validator), str(delivery), "--platform", "知乎", "--layout"],
+                [sys.executable, str(validator), str(delivery), "--platform", "知乎", "--layout", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -449,7 +812,7 @@ class DeliveryProtocolTests(unittest.TestCase):
                 encoding="utf-8",
             )
             complete = subprocess.run(
-                [sys.executable, str(validator), str(delivery), "--platform", "知乎", "--layout"],
+                [sys.executable, str(validator), str(delivery), "--platform", "知乎", "--layout", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -459,13 +822,18 @@ class DeliveryProtocolTests(unittest.TestCase):
         validator = ROOT / "scripts/validate_delivery_bundle.py"
         with tempfile.TemporaryDirectory() as tmp:
             delivery = pathlib.Path(tmp)
+            state = self.write_task_state(
+                delivery,
+                platform={"value": "小红书", "confirmed": True, "source": "user", "user_quote": "小红书"},
+                delivery_style={"value": "清爽纯文本笔记", "confirmed": True, "source": "user", "user_quote": "清爽纯文本笔记"},
+            )
             (delivery / "title-strategy.md").write_text(
                 "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
                 encoding="utf-8",
             )
             (delivery / "note-source.txt").write_text("测试笔记\n\n#话题一 #话题二", encoding="utf-8")
             result = subprocess.run(
-                [sys.executable, str(validator), str(delivery), "--platform", "小红书"],
+                [sys.executable, str(validator), str(delivery), "--platform", "小红书", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -477,13 +845,18 @@ class DeliveryProtocolTests(unittest.TestCase):
         validator = ROOT / "scripts/validate_delivery_bundle.py"
         with tempfile.TemporaryDirectory() as tmp:
             delivery = pathlib.Path(tmp)
+            state = self.write_task_state(
+                delivery,
+                platform={"value": "官网/网页", "confirmed": True, "source": "user", "user_quote": "官网/网页"},
+                delivery_style={"value": "普通网页文章", "confirmed": True, "source": "user", "user_quote": "普通网页文章"},
+            )
             (delivery / "title-strategy.md").write_text(
                 "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
                 encoding="utf-8",
             )
             (delivery / "web-source.md").write_text("# 网页正文\n\n内容。", encoding="utf-8")
             result = subprocess.run(
-                [sys.executable, str(validator), str(delivery), "--platform", "官网/网页"],
+                [sys.executable, str(validator), str(delivery), "--platform", "官网/网页", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -497,7 +870,7 @@ class DeliveryProtocolTests(unittest.TestCase):
                 encoding="utf-8",
             )
             complete = subprocess.run(
-                [sys.executable, str(validator), str(delivery), "--platform", "官网/网页"],
+                [sys.executable, str(validator), str(delivery), "--platform", "官网/网页", "--task-state", str(state)],
                 capture_output=True,
                 text=True,
             )
@@ -512,6 +885,11 @@ class DeliveryProtocolTests(unittest.TestCase):
             source = directory / "article-source.md"
             output = directory / "article.html"
             source.write_text("# 测试标题\n\n正文内容。", encoding="utf-8")
+            state = self.write_task_state(
+                directory,
+                platform={"value": "知乎", "confirmed": True, "source": "user", "user_quote": "知乎"},
+                delivery_style={"value": "回答 + HTML 预览", "confirmed": True, "source": "user", "user_quote": "回答 + HTML 预览"},
+            )
             result = subprocess.run(
                 [
                     sys.executable,
@@ -522,6 +900,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                     "--platform",
                     "知乎",
                     "--emit-pair",
+                    "--task-state",
+                    str(state),
                 ],
                 capture_output=True,
                 text=True,

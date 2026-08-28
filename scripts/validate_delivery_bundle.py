@@ -4,9 +4,11 @@
 import argparse
 import pathlib
 import re
+import subprocess
 import sys
 
 
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 WECHAT_PLATFORMS = {"公众号", "wechat", "gzh", "微信", "微信公众号"}
 
 
@@ -111,6 +113,14 @@ def validate_wechat_bundle(directory):
     return roles, errors
 
 
+def require_task_state(task_state, platform):
+    if not task_state:
+        print("[阻断] 交付校验前必须传入 --task-state，并通过 scripts/validate_task_intake.py 确认必问项。")
+        return 2
+    checker = SCRIPT_DIR / "validate_task_intake.py"
+    return subprocess.call([sys.executable, str(checker), task_state, "--phase", "delivery", "--platform", platform])
+
+
 def main():
     parser = argparse.ArgumentParser(description="发布交付物完整性校验")
     parser.add_argument("directory", help="交付目录")
@@ -120,12 +130,17 @@ def main():
         action="store_true",
         help="本次包含排版交付；除公众号外，启用后要求排版 HTML 和复制预览 HTML",
     )
+    parser.add_argument("--task-state", default="", help="任务状态 JSON；交付前必须通过必问项/恢复任务门禁")
     args = parser.parse_args()
 
     directory = pathlib.Path(args.directory).expanduser().resolve()
     if not directory.is_dir():
         print("[错误] 交付目录不存在: %s" % directory)
         return 1
+
+    intake_rc = require_task_state(args.task_state, args.platform)
+    if intake_rc != 0:
+        return intake_rc
 
     roles, needs_layout, errors = validate_bundle(
         directory,

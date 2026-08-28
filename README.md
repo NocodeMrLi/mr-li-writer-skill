@@ -251,6 +251,18 @@ Skill 采用最低必要询问，不会把每次写作变成问卷。用户已�
 
 必问项与条件触发项是硬门禁：必问项缺失时不会直接写正文、排版或交付；条件问一旦被当前任务触发，也会先确认再继续。系统不会用推荐项、平台默认值或历史默认值替代用户确认，除非用户明确说“自动匹配 / 不用问 / 直接处理”。
 
+脚本层也有硬门禁。每个新任务应先运行入口检查，确认缺失项后再抓取链接、检索资料、生成任务列表、写正文或排版：
+
+```bash
+python3 scripts/validate_task_intake.py --from-prompt "<用户原始输入>" --phase task-list
+```
+
+正式生成 HTML 或校验交付物时必须传入任务状态文件：
+
+```bash
+python3 scripts/validate_task_intake.py task-state.json --phase layout --platform 公众号
+```
+
 | 场景 | 必要确认 |
 | :--- | :--- |
 | 未指定平台 | 内容最终发布到哪里 |
@@ -327,11 +339,11 @@ python3 scripts/lint_article.py <note.md> --platform 小红书 --mode xiaohongsh
 ```bash
 python3 scripts/build_html.py <article.md> --list-themes
 python3 scripts/build_html.py <article.md> --list-delivery-styles
-python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t red-white --theme-confirmed
-python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t auto --auto-theme-ok
-python3 scripts/build_gzh_html.py <article.md> -o article-gzh.html --title "文章标题" -t moyu-green --theme-confirmed
-python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mode xiaohongshu-note --platform 小红书 --emit-pair
-python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO --emit-pair
+python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t red-white --theme-confirmed --task-state task-state.json
+python3 scripts/build_html.py <article.md> -o article-gzh.html --title "文章标题" --platform 公众号 -t auto --auto-theme-ok --task-state task-state.json
+python3 scripts/build_gzh_html.py <article.md> -o article-gzh.html --title "文章标题" -t moyu-green --theme-confirmed --task-state task-state.json
+python3 scripts/build_html.py <note.md> -o note.html --title "笔记标题" --mode xiaohongshu-note --platform 小红书 --emit-pair --task-state task-state.json
+python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --platform 官网/网页 --content-goal SEO --emit-pair --task-state task-state.json
 ```
 
 通用 HTML 支持 Markdown 图片语法，例如 `![说明](assets/example.svg)`，会转换为带说明文字的 `<figure><img><figcaption>` 结构。
@@ -353,9 +365,9 @@ python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --plat
 python3 scripts/gzh_component_inventory.py .
 python3 scripts/component_lint.py .
 python3 scripts/validate_gzh_html.py article-gzh.html
-python3 scripts/validate_delivery_bundle.py ./delivery --platform 公众号
-python3 scripts/validate_delivery_bundle.py ./delivery --platform 知乎
-python3 scripts/validate_delivery_bundle.py ./delivery --platform 官网/网页 --layout
+python3 scripts/validate_delivery_bundle.py ./delivery --platform 公众号 --task-state task-state.json
+python3 scripts/validate_delivery_bundle.py ./delivery --platform 知乎 --task-state task-state.json
+python3 scripts/validate_delivery_bundle.py ./delivery --platform 官网/网页 --layout --task-state task-state.json
 ```
 
 ### 项目自检
@@ -394,6 +406,7 @@ mr-li-writer-skill/
 │   └── ...
 ├── scripts/
 │   ├── extract_seed.py
+│   ├── validate_task_intake.py
 │   ├── lint_article.py
 │   ├── build_html.py
 │   ├── build_gzh_html.py

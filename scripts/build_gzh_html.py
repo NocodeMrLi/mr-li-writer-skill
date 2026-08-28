@@ -1345,6 +1345,24 @@ def validate_file(path):
     return subprocess.call([sys.executable, validator, path])
 
 
+def require_task_state(task_state, expected_style):
+    if not task_state:
+        print("[错误] 公众号正式排版前必须传入 --task-state，并通过 scripts/validate_task_intake.py 确认必问项。", file=sys.stderr)
+        return 2
+    checker = os.path.join(SCRIPT_DIR, "validate_task_intake.py")
+    return subprocess.call([
+        sys.executable,
+        checker,
+        task_state,
+        "--phase",
+        "layout",
+        "--platform",
+        "公众号",
+        "--expected-style",
+        expected_style,
+    ])
+
+
 def list_themes():
     print("可用公众号主题:")
     print("  %-18s %s" % ("auto", "按题材自动匹配；最终排版需加 --auto-theme-ok 表示用户已授权"))
@@ -1394,6 +1412,7 @@ def main():
         help="确认用户已选择当前公众号主题；具体主题最终排版必须带此参数",
     )
     parser.add_argument("--title", default="", help="文章标题")
+    parser.add_argument("--task-state", default="", help="任务状态 JSON；正式排版前必须通过必问项/恢复任务门禁")
     parser.add_argument("--no-preview", action="store_true", help="只生成干净 HTML，不生成复制预览页")
     parser.add_argument("--list-themes", action="store_true", help="列出公众号主题")
     parser.add_argument("--list-components", action="store_true", help="列出已接入的 gzh-design 完整组件库")
@@ -1419,6 +1438,9 @@ def main():
             "公众号最终排版不能由智能体静默指定主题 %s；请先让用户确认主题，再添加 --theme-confirmed"
             % args.theme
         )
+    intake_rc = require_task_state(args.task_state, args.theme)
+    if intake_rc != 0:
+        return intake_rc
 
     md_path = os.path.abspath(args.md)
     if not os.path.isfile(md_path):

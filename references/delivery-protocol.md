@@ -8,6 +8,8 @@
 
 ## 一、先做交付判断
 
+进入任何交付判断前，必须已有通过 `scripts/validate_task_intake.py` 生成或校验过的任务状态。没有 `--task-state`，正式 HTML 生成和交付校验会阻断；这用于防止模型把推荐项、历史默认或“继续任务”误当成用户确认。
+
 内部记录：
 
 ```text
@@ -61,8 +63,8 @@
 非公众号平台需要排版时，使用：
 
 ```bash
-python3 scripts/build_html.py <平台原文> -o article.html --platform <平台> --emit-pair
-python3 scripts/validate_delivery_bundle.py <交付目录> --platform <平台> --layout
+python3 scripts/build_html.py <平台原文> -o article.html --platform <平台> --emit-pair --task-state <任务状态.json>
+python3 scripts/validate_delivery_bundle.py <交付目录> --platform <平台> --layout --task-state <任务状态.json>
 ```
 
 ## 四、公众号固定四件套
@@ -77,7 +79,7 @@ python3 scripts/validate_delivery_bundle.py <交付目录> --platform <平台> -
 生成完成后必须运行：
 
 ```bash
-python3 scripts/validate_delivery_bundle.py <交付目录> --platform 公众号
+python3 scripts/validate_delivery_bundle.py <交付目录> --platform 公众号 --task-state <任务状态.json>
 ```
 
 公众号天然进入排版模式，因此不需要额外传 `--layout`。少任何一件都不能交付。

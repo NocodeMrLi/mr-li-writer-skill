@@ -14,14 +14,38 @@ validate_gzh_html.py（本预览页含 script/style，不参与校验）。
 """
 
 import os
+import subprocess
 import sys
+
+
+def require_task_state(task_state):
+    if not task_state:
+        print("[错误] 生成公众号复制预览前必须传入 --task-state，并通过 scripts/validate_task_intake.py 确认必问项。", file=sys.stderr)
+        return 2
+    checker = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validate_task_intake.py")
+    return subprocess.call([sys.executable, checker, task_state, "--phase", "layout", "--platform", "公众号"])
 
 
 def main():
     if len(sys.argv) < 2:
-        print("用法: wrap_preview.py <section.html> [output.html]")
+        print("用法: wrap_preview.py <section.html> [output.html] --task-state <任务状态.json>")
         sys.exit(1)
-    src = sys.argv[1]
+    argv = sys.argv[1:]
+    task_state = ""
+    if "--task-state" in argv:
+        index = argv.index("--task-state")
+        if index + 1 >= len(argv):
+            print("[错误] --task-state 缺少路径", file=sys.stderr)
+            sys.exit(2)
+        task_state = argv[index + 1]
+        del argv[index:index + 2]
+    if len(argv) < 1:
+        print("用法: wrap_preview.py <section.html> [output.html] --task-state <任务状态.json>")
+        sys.exit(1)
+    src = argv[0]
+    intake_rc = require_task_state(task_state)
+    if intake_rc != 0:
+        sys.exit(intake_rc)
     if not os.path.isfile(src):
         print(f"✗ 找不到文件: {src}")
         sys.exit(1)
@@ -38,7 +62,7 @@ def main():
     title = os.path.splitext(os.path.basename(src))[0]
     out_html = tpl.replace("{{TITLE}}", title).replace("<!--GZH_CONTENT-->", content)
 
-    out = sys.argv[2] if len(sys.argv) > 2 else os.path.splitext(src)[0] + "_预览.html"
+    out = argv[1] if len(argv) > 1 else os.path.splitext(src)[0] + "_预览.html"
     open(out, "w", encoding="utf-8").write(out_html)
     print(f"✓ 已生成带「复制」按钮的预览页: {out}")
     print("  用浏览器打开它，点右上角「复制到公众号」，再去公众号编辑器 Ctrl/⌘+V 粘贴。")
