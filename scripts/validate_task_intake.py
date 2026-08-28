@@ -8,6 +8,11 @@ import pathlib
 import re
 import sys
 
+try:
+    from validate_research_scope import validate_research_scope
+except ImportError:
+    validate_research_scope = None
+
 
 REQUIRED_FIELDS = (
     ("platform", "发布平台"),
@@ -159,6 +164,14 @@ DELIVERY_STYLE_MARKERS = {
     "CMS 富文本",
     "静态 HTML",
 }
+
+TASK_CONTEXT_FIELDS = (
+    "original_prompt",
+    "topic",
+    "title",
+    "brief",
+    "source_summary",
+)
 
 
 def load_state(path):
@@ -370,6 +383,17 @@ def validate(state, phase="draft", platform=None, last_user="", expected_style="
         reason = missing_reason(record)
         if reason:
             errors.append((label, "条件触发后必须确认: %s" % reason))
+
+    if phase in {"draft", "layout", "delivery"} and validate_research_scope is not None:
+        if not any(str(state.get(key, "")).strip() for key in TASK_CONTEXT_FIELDS):
+            errors.append(
+                (
+                    "资料搜集",
+                    "任务状态缺少 original_prompt/topic/brief，无法判断用户是否提供资料链接或文件；不能绕过资料搜集范围校验",
+                )
+            )
+        for reason in validate_research_scope(state, phase=phase):
+            errors.append(("资料搜集", reason))
 
     resume_without_confirmation = phase == "resume" or bool(last_user and RESUME_RE.search(last_user))
     return errors, resume_without_confirmation, resolved_platform

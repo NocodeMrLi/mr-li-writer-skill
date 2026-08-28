@@ -56,6 +56,7 @@ TABLE_MD = """# 报名状态
 class DeliveryProtocolTests(unittest.TestCase):
     def write_task_state(self, directory, **overrides):
         base = {
+            "original_prompt": "写一篇公众号文章，主题是测试文章",
             "platform": {"value": "公众号", "confirmed": True, "source": "user", "user_quote": "公众号"},
             "content_goal": {"value": "普通传播", "confirmed": True, "source": "user", "user_quote": "普通传播"},
             "writing_direction": {"value": "实用指南", "confirmed": True, "source": "user", "user_quote": "写成实用指南"},
@@ -333,6 +334,114 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("创作方向", result.stdout)
         self.assertIn("平台交付样式", result.stdout)
 
+    def test_research_scope_blocks_user_link_only_for_time_sensitive_hard_info(self):
+        validator = ROOT / "scripts/validate_research_scope.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                original_prompt="https://mp.weixin.qq.com/s/example 2026 下半年软考报名要求",
+                research_scope={
+                    "user_seed_sources": ["https://mp.weixin.qq.com/s/example"],
+                    "user_sources_checked": True,
+                    "requires_external_research": True,
+                    "risk": "time_sensitive_hard_info",
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "draft"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("种子资料不是完整资料搜集", result.stdout)
+            self.assertIn("官方/权威来源", result.stdout)
+            self.assertIn("最新核验", result.stdout)
+
+    def test_research_scope_accepts_seed_plus_official_fresh_crosscheck(self):
+        validator = ROOT / "scripts/validate_research_scope.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                original_prompt="https://mp.weixin.qq.com/s/example 2026 下半年软考报名要求",
+                research_scope={
+                    "user_seed_sources": ["https://mp.weixin.qq.com/s/example"],
+                    "user_sources_checked": True,
+                    "external_search_done": True,
+                    "official_sources_checked": True,
+                    "freshness_checked": True,
+                    "independent_crosscheck_checked": True,
+                    "requires_external_research": True,
+                    "risk": "time_sensitive_hard_info",
+                    "source_mix": "用户种子资料 + 全国软考报名平台 + 各省软考办通知",
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "draft"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_research_scope_allows_explicit_seed_only_boundary(self):
+        validator = ROOT / "scripts/validate_research_scope.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                original_prompt="只基于我给的资料写，不再外查：https://mp.weixin.qq.com/s/example",
+                research_scope={
+                    "user_seed_sources": ["https://mp.weixin.qq.com/s/example"],
+                    "user_sources_checked": True,
+                    "requires_external_research": True,
+                    "risk": "time_sensitive_hard_info",
+                },
+                source_boundary={
+                    "value": "只基于用户给的资料，不再外查",
+                    "confirmed": True,
+                    "source": "user",
+                    "user_quote": "只基于我给的资料写，不再外查",
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "draft"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_task_intake_requires_task_context_before_draft(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(tmp, original_prompt="")
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "draft"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("original_prompt/topic/brief", result.stdout)
+            self.assertIn("不能绕过资料搜集范围校验", result.stdout)
+
+    def test_task_intake_invokes_research_scope_before_draft(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                original_prompt="https://mp.weixin.qq.com/s/example 2026 下半年软考报名要求",
+                research_scope={
+                    "user_seed_sources": ["https://mp.weixin.qq.com/s/example"],
+                    "requires_external_research": True,
+                    "risk": "time_sensitive_hard_info",
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "draft"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("资料搜集", result.stdout)
+            self.assertIn("不能只解析用户提供的链接", result.stdout)
+
     def test_documents_require_intake_check_before_fetching_or_task_list(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
@@ -342,6 +451,25 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertIn("--emit-question-card", text)
         self.assertIn("抓取、检索、读取链接、生成任务列表", skill)
         self.assertIn("before fetching source links", agent)
+
+    def test_documents_require_seed_source_expansion_protocol(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        research = (ROOT / "references/research-protocol.md").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
+        for text in (skill, research, readme, agent):
+            self.assertIn("种子资料", text)
+            self.assertIn("validate_research_scope.py", text)
+        for token in (
+            "user_seed_sources",
+            "external_search_done",
+            "official_sources_checked",
+            "freshness_checked",
+            "source_mix",
+        ):
+            self.assertIn(token, skill + research + agent)
+        self.assertIn("只基于我给的资料", skill + research + readme)
+        self.assertIn("二创整理", skill + research + readme)
 
     def test_build_html_requires_task_state_before_formal_generation(self):
         builder = ROOT / "scripts/build_html.py"
@@ -1245,6 +1373,23 @@ class ArticleLintTests(unittest.TestCase):
                     code = lint_article.main()
         self.assertEqual(code, 0)
         self.assertNotIn("商业相关第三方机构", output.getvalue())
+
+    def test_lint_warns_on_reader_facing_recreation_disclaimer(self):
+        article = """# 软考报名要求
+
+正文。
+
+本文为二创整理，具体政策以官方最新通知为准。
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "article.md"
+            path.write_text(article, encoding="utf-8")
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", ["lint_article.py", str(path)]):
+                with contextlib.redirect_stdout(output):
+                    code = lint_article.main()
+        self.assertEqual(code, 0)
+        self.assertIn("二创", output.getvalue())
 
     def test_impact_lint_does_not_require_formulaic_insight_markers(self):
         article = """# 普通工作日为什么更能检验健身计划

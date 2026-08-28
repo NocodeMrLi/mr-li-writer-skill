@@ -82,6 +82,20 @@ interface:
     style, required WeChat theme, platform preview choice, time cutoff, or
     source boundary is missing, stop and ask a short recovery confirmation
     before drafting, layout generation, or file delivery.
+    User-provided links, files, screenshots, pasted articles, and summaries are
+    seed sources / 种子资料, not the full research corpus. Unless the current user task
+    explicitly says "only use my material" or "do not search externally", every
+    agent and model must expand beyond the user-provided sources before
+    drafting. For hard or time-sensitive information such as policies, exams,
+    registration, eligibility, prices, product updates, and industry news,
+    record research_scope in the task-state JSON with user_seed_sources,
+    user_sources_checked, external_search_done, official_sources_checked,
+    freshness_checked, independent_crosscheck_checked, and source_mix. Run
+    scripts/validate_research_scope.py and scripts/validate_task_intake.py
+    before draft/layout/delivery. Do not bypass this by omitting
+    original_prompt, omitting user links, or calling the work a rewrite. If
+    search/network tools are unavailable, disclose that limitation and ask the
+    user whether to continue as a bounded source-based rewrite.
     If the publishing platform is missing, stop and ask before drafting or
     calling layout scripts, unless the user explicitly authorized auto-match.
     When asking for the writing direction, give 3-5 concrete options and mark
