@@ -1604,6 +1604,18 @@ class ReadmeDocumentationTests(unittest.TestCase):
         for path in set(paths):
             self.assertTrue((ROOT / path).is_file(), path)
 
+    def test_readme_long_showcase_images_share_top_aligned_crop_size(self):
+        try:
+            from PIL import Image
+        except ImportError as exc:
+            self.skipTest("Pillow unavailable: %s" % exc)
+        sizes = {}
+        for path in sorted((ROOT / "assets/readme-showcase").glob("*-long.jpg")):
+            with Image.open(path) as image:
+                sizes[path.name] = image.size
+        self.assertEqual(len(sizes), 3)
+        self.assertEqual(len(set(sizes.values())), 1, sizes)
+
     def test_readme_documents_adaptive_innovation_and_human_writing_inspiration(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
         for phrase in ("最低必要创新", "读者任务", "点击契约", "说话位置"):

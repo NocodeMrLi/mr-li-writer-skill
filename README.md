@@ -320,21 +320,21 @@ assets/gzh-design/references/
 
 ## 排版效果展示
 
-以下展示来自真实公众号排版预览。先看三个主题的完整长图，再看每个主题的局部细节。
+以下展示来自真实公众号排版预览。先看三个主题的顶部对齐长图，再看每个主题的局部细节。
 
 <table>
   <tr>
-    <td align="center" width="33%">
-      <a href="./assets/readme-showcase/red-white-long.jpg"><img src="./assets/readme-showcase/red-white-long.jpg" alt="红白色系完整长图预览" width="220"></a><br>
-      <sub>红白色系 · 完整长图</sub>
+    <td align="center" valign="top" width="33%">
+      <a href="./assets/readme-showcase/red-white-long.jpg"><img src="./assets/readme-showcase/red-white-long.jpg" alt="红白色系长图预览" width="220"></a><br>
+      <sub>红白色系 · 长图预览</sub>
     </td>
-    <td align="center" width="33%">
-      <a href="./assets/readme-showcase/moyu-green-long.jpg"><img src="./assets/readme-showcase/moyu-green-long.jpg" alt="摸鱼绿完整长图预览" width="220"></a><br>
-      <sub>摸鱼绿 · 完整长图</sub>
+    <td align="center" valign="top" width="33%">
+      <a href="./assets/readme-showcase/moyu-green-long.jpg"><img src="./assets/readme-showcase/moyu-green-long.jpg" alt="摸鱼绿长图预览" width="220"></a><br>
+      <sub>摸鱼绿 · 长图预览</sub>
     </td>
-    <td align="center" width="33%">
-      <a href="./assets/readme-showcase/olive-journal-long.jpg"><img src="./assets/readme-showcase/olive-journal-long.jpg" alt="橄榄手记完整长图预览" width="220"></a><br>
-      <sub>橄榄手记 · 完整长图</sub>
+    <td align="center" valign="top" width="33%">
+      <a href="./assets/readme-showcase/olive-journal-long.jpg"><img src="./assets/readme-showcase/olive-journal-long.jpg" alt="橄榄手记长图预览" width="220"></a><br>
+      <sub>橄榄手记 · 长图预览</sub>
     </td>
   </tr>
 </table>
