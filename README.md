@@ -342,6 +342,8 @@ python3 scripts/validate_task_intake.py task-state.json --phase draft
 
 如果用户明确说“只基于我给的资料写 / 不再外查”，系统会按有限资料整理处理，并保留事实边界；否则不能只解析用户给的链接或文件就开始写正文。
 
+商业利益相关来源的显名拦截词维护在 `references/commercial-source-terms.txt`。脚本仍保留“培训、网校、辅导、题库、课堂”等通用模式，历史案例词不写死在多个脚本里，后续可按实际测试统一增删。
+
 ### 正文质量检查
 
 交付前自动检查：模板化表达、同质化开头、机械翻案、名词堆叠、句长过度整齐、虚构第一人称、段落是否缺少信息增量、证据密度是否匹配文章类型、是否缺少引用来源、是否暴露后台资料处理动作，以及是否把利益相关第三方机构写成正文背书等。检查结果必须用于直接修改，不以“已检查”代替修正。
@@ -365,6 +367,8 @@ python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --plat
 ```
 
 通用 HTML 支持 Markdown 图片语法，例如 `![说明](assets/example.svg)`，会转换为带说明文字的 `<figure><img><figcaption>` 结构。
+
+公众号完整组件库渲染失败时，正式交付会阻断。`--allow-fallback-preview` 只允许临时预览或排查时使用，不能把 fallback 预览当成最终公众号排版交付。
 
 一篇公众号文章必须交付四份文件：
 
@@ -416,6 +420,7 @@ mr-li-writer-skill/
 │   ├── delivery-protocol.md
 │   ├── editorial-routing-protocol.md
 │   ├── editorial-evaluation-protocol.md
+│   ├── commercial-source-terms.txt
 │   ├── ideation-protocol.md
 │   ├── lint-checks.md
 │   ├── platform-native-protocol.md

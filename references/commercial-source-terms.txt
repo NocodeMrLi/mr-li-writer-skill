@@ -1,0 +1,8 @@
+# Reader-facing source names that should not be used as neutral data
+# endorsements when they have direct commercial interest in the article topic.
+#
+# Scripts load this list as examples in addition to generic patterns such as
+# 培训、网校、辅导、题库、课堂. Keep sensitive historical cases here instead
+# of hard-coding them into multiple validators.
+51CTO
+希赛网

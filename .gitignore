@@ -218,8 +218,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Mr.Li Writer
-!assets/gzh-design/references/
-!assets/gzh-design/references/**
 .DS_Store
 findings.md
 progress.md

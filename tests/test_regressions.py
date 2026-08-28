@@ -519,6 +519,12 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertNotIn("不能把“继续完成任务”视为确认", result.stdout)
 
+    def test_task_intake_resume_detection_covers_natural_chinese_variants(self):
+        validator = load_module("validate_task_intake_resume_variants", "scripts/validate_task_intake.py")
+        for text in ("继续吧", "继续把排版做完", "继续把正文写完", "接着把交付做完"):
+            with self.subTest(text=text):
+                self.assertTrue(validator.RESUME_RE.search(text))
+
     def test_task_intake_rejects_from_prompt_and_state_together(self):
         validator = ROOT / "scripts/validate_task_intake.py"
         with tempfile.TemporaryDirectory() as tmp:
@@ -542,6 +548,22 @@ class DeliveryProtocolTests(unittest.TestCase):
     def test_task_intake_does_not_silently_disable_research_scope_gate(self):
         source = (ROOT / "scripts/validate_task_intake.py").read_text(encoding="utf-8")
         self.assertNotIn("validate_research_scope = None", source)
+
+    def test_task_intake_reports_missing_research_scope_validator_without_traceback(self):
+        source = (ROOT / "scripts/validate_task_intake.py").read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            script = directory / "validate_task_intake.py"
+            script.write_text(source, encoding="utf-8")
+            state = self.write_task_state(directory)
+            result = subprocess.run(
+                [sys.executable, str(script), str(state), "--phase", "draft"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("资料搜集范围校验脚本", result.stdout)
+            self.assertNotIn("Traceback", result.stdout + result.stderr)
 
     def test_research_scope_blocks_user_link_only_for_time_sensitive_hard_info(self):
         validator = ROOT / "scripts/validate_research_scope.py"
@@ -1599,6 +1621,15 @@ class ArticleLintTests(unittest.TestCase):
         self.assertIn("商业相关第三方机构", output.getvalue())
         self.assertIn("相关机构公开汇总", output.getvalue())
 
+    def test_commercial_source_examples_are_configured_outside_scripts(self):
+        terms = (ROOT / "references/commercial-source-terms.txt").read_text(encoding="utf-8")
+        self.assertIn("51CTO", terms)
+        self.assertIn("希赛网", terms)
+        for script in ("scripts/lint_article.py", "scripts/build_html.py", "scripts/build_gzh_html.py"):
+            source = (ROOT / script).read_text(encoding="utf-8")
+            self.assertNotIn("51CTO", source)
+            self.assertNotIn("希赛网", source)
+
     def test_lint_accepts_generic_commercial_source_wording(self):
         article = """# 软考报名时间
 
@@ -1849,6 +1880,27 @@ class GzhThemeRegressionTests(unittest.TestCase):
 """
         errors, _, _ = validator.validate(source)
         self.assertTrue(any("章节编号" in error for error in errors), errors)
+
+    def test_generated_html_validator_extracts_real_component_chapter_numbers(self):
+        validator = load_module("validate_gzh_html_real_component_numbers", "scripts/validate_gzh_html.py")
+        for theme in build_gzh.THEMES:
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(SAMPLE_MD, "测试文章", theme)
+                self.assertEqual(validator.chapter_numbers(rendered), ["01", "02", "03"])
+
+    def test_generated_html_validator_rejects_mutated_real_component_numbers(self):
+        validator = load_module("validate_gzh_html_real_mutated_numbers", "scripts/validate_gzh_html.py")
+        rendered = build_gzh.build_component_section(SAMPLE_MD, "测试文章", "moyu-green")
+        rendered = rendered.replace("PART 02", "PART 04").replace("CHAPTER 02", "CHAPTER 04")
+        errors, _, _ = validator.validate(rendered)
+        self.assertTrue(any("编号不连续" in error for error in errors), errors)
+
+    def test_generated_html_validator_rejects_repeated_real_body_chapter_numbers(self):
+        validator = load_module("validate_gzh_html_real_repeated_body", "scripts/validate_gzh_html.py")
+        rendered = build_gzh.build_component_section(SAMPLE_MD, "测试文章", "graphite-minimal")
+        rendered = rendered.replace('<span leaf="">02</span>', '<span leaf="">01</span>')
+        errors, _, _ = validator.validate(rendered)
+        self.assertTrue(any("正文章节编号" in error for error in errors), errors)
 
     def test_generated_html_validator_does_not_reject_id_equals_inside_reader_text(self):
         validator = load_module("validate_gzh_html_text_id", "scripts/validate_gzh_html.py")

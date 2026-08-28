@@ -478,7 +478,7 @@ HTML 生成前置确认清单：
 
 三项未确认时，不生成任务列表、不写正文、不创建文件、不排版、不交付；先合并询问缺失项。不得只交付 Markdown 正文与标题方案来绕过确认。
 
-脚本安全约束：`scripts/validate_task_intake.py`、`scripts/validate_research_scope.py`、`scripts/build_html.py`、`scripts/build_gzh_html.py`、`scripts/wrap_gzh_preview.py` 和 `scripts/validate_delivery_bundle.py` 会在正式动作前校验任务状态。公众号具体主题必须带 `--theme-confirmed`，`auto/random` 必须带 `--auto-theme-ok`。这个约束用于防止不同智能体或模型绕过必要询问，直接默认生成石墨极简等主题；同样也防止知乎、小红书、官网/网页、个人博客被静默套用不合适的交付样式。任务状态还必须保留原始任务或 brief；用户提供链接/文件时，脚本会要求完成外部资料扩展、官方/权威来源核验、最新核验和来源组合说明。
+脚本安全约束：`scripts/validate_task_intake.py`、`scripts/validate_research_scope.py`、`scripts/build_html.py`、`scripts/build_gzh_html.py`、`scripts/wrap_gzh_preview.py` 和 `scripts/validate_delivery_bundle.py` 会在正式动作前校验任务状态。公众号具体主题必须带 `--theme-confirmed`，`auto/random` 必须带 `--auto-theme-ok`。完整组件库渲染失败时正式交付必须阻断；`--allow-fallback-preview` 只允许临时预览使用，不能作为最终公众号排版交付。这个约束用于防止不同智能体或模型绕过必要询问，直接默认生成石墨极简等主题；同样也防止知乎、小红书、官网/网页、个人博客被静默套用不合适的交付样式。任务状态还必须保留原始任务或 brief；用户提供链接/文件时，脚本会要求完成外部资料扩展、官方/权威来源核验、最新核验和来源组合说明。
 
 公众号排版必须走完整组件库流程，不得只使用简化颜色模板：
 

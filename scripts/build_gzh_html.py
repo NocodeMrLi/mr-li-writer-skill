@@ -33,9 +33,26 @@ PROCESS_LEAK_PATTERNS = (
 )
 
 COMMERCIAL_SOURCE_EXPOSURE = re.compile(
-    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:51CTO|希赛网|(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训|网校|辅导|题库|课堂))",
+    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训|网校|辅导|题库|课堂)",
     re.I,
 )
+
+
+def configured_commercial_source_regex():
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "references", "commercial-source-terms.txt")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            terms = [line.strip() for line in handle if line.strip() and not line.lstrip().startswith("#")]
+    except FileNotFoundError:
+        terms = []
+    if not terms:
+        return None
+    names = "|".join(re.escape(term) for term in terms)
+    return re.compile(
+        r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:%s)|(?:%s).{0,30}(?:公开汇总|数据|资料|统计|显示)"
+        % (names, names),
+        re.I,
+    )
 
 
 def warn_process_leaks(text, label="正文"):
@@ -50,7 +67,8 @@ def warn_process_leaks(text, label="正文"):
 
 
 def warn_commercial_source_exposure(text, label="正文"):
-    if COMMERCIAL_SOURCE_EXPOSURE.search(text):
+    configured = configured_commercial_source_regex()
+    if COMMERCIAL_SOURCE_EXPOSURE.search(text) or (configured and configured.search(text)):
         print(
             "[警告] %s疑似把商业相关第三方机构写成资料背书；请优先使用官方来源，第三方仅作辅助核对时改为“相关机构公开汇总”。" % label,
             file=sys.stderr,

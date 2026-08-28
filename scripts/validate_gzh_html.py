@@ -33,8 +33,11 @@ RAW_MARKDOWN_TABLE = re.compile(
     re.I,
 )
 
-HEADING_CONTEXT_RE = re.compile(r"(?P<context>(?:(?!<h[23]\b).){0,1200})<h[23]\b[^>]*>", re.I | re.S)
 LEAF_TEXT_RE = re.compile(r"<span\s+leaf=\"\">\s*([^<]+?)\s*</span>", re.I)
+NUMBER_RE = re.compile(r"^(\d{2})$")
+PART_NUMBER_RE = re.compile(r"^PART\s+(\d{2})$", re.I)
+CHAPTER_NUMBER_RE = re.compile(r"^/?\s*CHAPTER\s+(\d{2})$", re.I)
+NUMBER_CHAPTER_RE = re.compile(r"^(\d{2})\s*[·.]\s*CHAPTER$", re.I)
 
 FORBIDDEN_FRONT_BADGE = re.compile(
     r"<(?:span|section)\b[^>]*style=\"[^\"]*(?:border-radius|padding|background)[^\"]*\"[^>]*>\s*"
@@ -101,18 +104,91 @@ class LeafChecker(HTMLParser):
             self.half_punct.append(snippet)
 
 
-def chapter_numbers(html):
+def leaf_labels(html):
+    return [label.strip() for label in LEAF_TEXT_RE.findall(html) if label.strip()]
+
+
+def body_chapter_numbers(html):
+    """Extract numbers from real component-library chapter-title blocks."""
+    labels = leaf_labels(html)
     numbers = []
-    for match in HEADING_CONTEXT_RE.finditer(html):
-        context = match.group("context")
-        labels = [item.strip() for item in LEAF_TEXT_RE.findall(context)]
-        if not labels:
+    for index, label in enumerate(labels):
+        combined = NUMBER_CHAPTER_RE.fullmatch(label)
+        if combined:
+            numbers.append(combined.group(1))
             continue
-        has_chapter_marker = any(re.search(r"^(CHAPTER|PART|THE\b)", label, re.I) for label in labels)
-        nums = [label for label in labels if re.fullmatch(r"\d{2}", label)]
-        if has_chapter_marker and nums:
-            numbers.append(nums[-1])
+
+        number = NUMBER_RE.fullmatch(label)
+        if not number:
+            continue
+        next_one = labels[index + 1] if index + 1 < len(labels) else ""
+        next_two = labels[index + 2] if index + 2 < len(labels) else ""
+        if re.fullmatch(r"(PART|CHAPTER)", next_one, re.I):
+            numbers.append(number.group(1))
+        elif CHAPTER_NUMBER_RE.fullmatch(next_two):
+            numbers.append(number.group(1))
     return numbers
+
+
+def marker_number_sequences(html):
+    labels = leaf_labels(html)
+    sequences = {"PART": [], "CHAPTER": []}
+    for label in labels:
+        match = PART_NUMBER_RE.fullmatch(label)
+        if match:
+            sequences["PART"].append(match.group(1))
+            continue
+        match = CHAPTER_NUMBER_RE.fullmatch(label)
+        if match:
+            sequences["CHAPTER"].append(match.group(1))
+            continue
+        match = NUMBER_CHAPTER_RE.fullmatch(label)
+        if match:
+            sequences["CHAPTER"].append(match.group(1))
+    return sequences
+
+
+def chapter_numbers(html):
+    body_numbers = body_chapter_numbers(html)
+    if body_numbers:
+        return body_numbers
+    sequences = marker_number_sequences(html)
+    return sequences["PART"] or sequences["CHAPTER"]
+
+
+def expected_numbers(count):
+    return ["%02d" % index for index in range(1, count + 1)]
+
+
+def validate_single_chapter_run(numbers, label):
+    if len(numbers) < 2:
+        return ""
+    expected = expected_numbers(len(numbers))
+    if numbers != expected:
+        return "%s编号不连续或重复；应为 %s，实际为 %s" % (label, "/".join(expected), "/".join(numbers))
+    return ""
+
+
+def validate_marker_runs(numbers, label):
+    if len(numbers) < 2 or max(numbers) == "01":
+        return ""
+    index = 0
+    run_no = 1
+    while index < len(numbers):
+        if numbers[index] != "01":
+            return "%s编号不连续或重复；第 %d 组应从 01 开始，实际为 %s" % (label, run_no, numbers[index])
+        start = index
+        index += 1
+        expected = 2
+        while index < len(numbers) and numbers[index] != "01":
+            want = "%02d" % expected
+            if numbers[index] != want:
+                actual = "/".join(numbers[start : index + 1])
+                return "%s编号不连续或重复；第 %d 组应为连续编号，实际为 %s" % (label, run_no, actual)
+            expected += 1
+            index += 1
+        run_no += 1
+    return ""
 
 
 def validate(html, name="<input>"):
@@ -138,11 +214,14 @@ def validate(html, name="<input>"):
     if "id" in attr_hits:
         errors.append("id 属性会被剥离（命中 %d 处）" % attr_hits.count("id"))
 
-    numbers = chapter_numbers(html)
-    if len(numbers) >= 2:
-        expected = ["%02d" % index for index in range(1, len(numbers) + 1)]
-        if numbers != expected:
-            errors.append("章节编号不连续或重复；应为 %s，实际为 %s" % ("/".join(expected), "/".join(numbers)))
+    body_numbers = body_chapter_numbers(html)
+    body_error = validate_single_chapter_run(body_numbers, "正文章节")
+    if body_error:
+        errors.append(body_error)
+    for label, numbers in marker_number_sequences(html).items():
+        marker_error = validate_marker_runs(numbers, label)
+        if marker_error:
+            errors.append(marker_error)
 
     has_cjk = bool(CJK.search(html))
     if has_cjk and checker.span_leaf_count == 0:

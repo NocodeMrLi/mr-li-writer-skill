@@ -104,10 +104,27 @@ PROCESS_LEAK_PATTERNS = (
 )
 
 COMMERCIAL_SOURCE_EXPOSURE_PATTERNS = (
-    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:51CTO|希赛网)",
-    r"(?:51CTO|希赛网).{0,30}(?:公开汇总|数据|资料|统计|显示)",
     r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训|网校|辅导|题库|课堂)",
 )
+
+
+def configured_commercial_source_patterns():
+    path = Path(__file__).resolve().parents[1] / "references" / "commercial-source-terms.txt"
+    try:
+        terms = [
+            line.strip()
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+    except FileNotFoundError:
+        terms = []
+    if not terms:
+        return ()
+    names = "|".join(re.escape(term) for term in terms)
+    return (
+        r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:%s)" % names,
+        r"(?:%s).{0,30}(?:公开汇总|数据|资料|统计|显示)" % names,
+    )
 
 OVER_LITERARY_PHRASES = (
     "命运的齿轮",
@@ -304,9 +321,8 @@ def main():
             % "；".join(dict.fromkeys(process_leaks))
         )
 
-    if not args.allow_commercial_source_names and any(
-        re.search(pattern, text, re.I) for pattern in COMMERCIAL_SOURCE_EXPOSURE_PATTERNS
-    ):
+    commercial_patterns = COMMERCIAL_SOURCE_EXPOSURE_PATTERNS + configured_commercial_source_patterns()
+    if not args.allow_commercial_source_names and any(re.search(pattern, text, re.I) for pattern in commercial_patterns):
         warnings.append(
             "正文疑似把商业相关第三方机构写成资料背书。硬信息应优先使用官方来源；第三方仅作辅助核对时，请改为“相关机构公开汇总”，不要在正文显名宣传。"
         )

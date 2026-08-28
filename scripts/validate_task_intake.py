@@ -28,7 +28,12 @@ def load_research_scope_validator():
     return validator
 
 
-validate_research_scope = load_research_scope_validator()
+RESEARCH_SCOPE_VALIDATOR = None
+RESEARCH_SCOPE_LOAD_ERROR = ""
+try:
+    RESEARCH_SCOPE_VALIDATOR = load_research_scope_validator()
+except RuntimeError as exc:
+    RESEARCH_SCOPE_LOAD_ERROR = str(exc)
 
 
 REQUIRED_FIELDS = (
@@ -50,7 +55,7 @@ CONDITIONAL_FIELDS = (
 TRUSTED_SOURCES = {"user", "user_confirmed", "auto_authorized"}
 AUTO_AUTH_SOURCES = {"auto_authorized"}
 RESUME_RE = re.compile(
-    r"^\s*(?:请)?(?:继续(?:完成)?(?:未完成的)?任务|继续|接着做|恢复任务|按刚才的来|continue|resume|continue\s+(?:the\s+)?(?:unfinished\s+)?task|resume\s+(?:the\s+)?task)\s*[。.!！]*\s*$",
+    r"^\s*(?:请)?(?:继续(?:完成)?(?:未完成的)?(?:任务|写作|排版|交付)?|继续吧|继续把.{0,18}(?:做完|写完|排完|交付)|接着做|接着把.{0,18}(?:做完|写完|排完|交付)|恢复任务|按刚才的来|continue|resume|continue\s+(?:the\s+)?(?:unfinished\s+)?task|resume\s+(?:the\s+)?task)\s*[。.!！]*\s*$",
     re.I,
 )
 DIRECT_AUTO_RE = re.compile(r"(不用问|不要询问|直接处理)")
@@ -429,8 +434,11 @@ def validate(state, phase="draft", platform=None, last_user="", expected_style="
                     "任务状态缺少 original_prompt/topic/brief，无法判断用户是否提供资料链接或文件；不能绕过资料搜集范围校验",
                 )
             )
-        for reason in validate_research_scope(state, phase=phase):
-            errors.append(("资料搜集", reason))
+        if RESEARCH_SCOPE_VALIDATOR is None:
+            errors.append(("资料搜集", RESEARCH_SCOPE_LOAD_ERROR or "资料搜集范围校验脚本加载失败"))
+        else:
+            for reason in RESEARCH_SCOPE_VALIDATOR(state, phase=phase):
+                errors.append(("资料搜集", reason))
 
     resume_without_confirmation = phase == "resume" or bool(last_user and RESUME_RE.search(last_user))
     return errors, resume_without_confirmation, resolved_platform
