@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mr.Li Writer Promo Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #101113;
+      color: #fffdf8;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    main {
+      width: min(960px, 100%);
+      margin: 0 auto;
+      padding: 18px 14px 32px;
+    }
+    h1 {
+      margin: 8px 0 8px;
+      font-size: clamp(24px, 7vw, 42px);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0 0 14px;
+      color: #d9d0c4;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+    .video-wrap {
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      background: #050608;
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+    video {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #050608;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin: 14px 0 18px;
+    }
+    a {
+      display: block;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #fffdf8;
+      color: #101113;
+      font-weight: 750;
+      text-decoration: none;
+      text-align: center;
+    }
+    a.secondary {
+      background: #2f7d5c;
+      color: #fff;
+    }
+    .frames {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .frames img {
+      display: block;
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .note {
+      margin-top: 16px;
+      color: #9f978c;
+      font-size: 13px;
+    }
+    @media (min-width: 720px) {
+      main { padding-top: 28px; }
+      .actions { grid-template-columns: 1fr 1fr; }
+      .frames { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Mr.Li Writer 宣传视频预览</h1>
+    <p>20 秒 README 宣传片。手机端建议横屏播放；如果浏览器自动静音，点视频右下角音量即可。</p>
+
+    <div class="video-wrap">
+      <video controls playsinline preload="metadata" poster="../out/qa/final-check-001.png">
+        <source src="../out/mr-li-writer-promo.mp4" type="video/mp4">
+        当前浏览器不支持 HTML5 视频播放。
+      </video>
+    </div>
+
+    <div class="actions">
+      <a href="../out/mr-li-writer-promo.mp4">打开/下载带音乐版</a>
+      <a class="secondary" href="../out/mr-li-writer-promo-silent.mp4">打开/下载无音乐版</a>
+    </div>
+
+    <p>核心卖点已进片：编辑路由、最低必要创新、真实可靠不编造、引用最新可核验资料、标题/开头设计、去 AI 味、平台原生和真实交付。</p>
+
+    <div class="frames">
+      <img src="../out/qa/final-check-001.png" alt="片头品牌帧">
+      <img src="../out/qa/final-check-002.png" alt="资料核验帧">
+      <img src="../out/qa/final-check-003.png" alt="收尾交付帧">
+    </div>
+
+    <p class="note">这是本机临时预览页，不会上传到仓库或公网。你确认效果后再决定是否上传。</p>
+  </main>
+</body>
+</html>

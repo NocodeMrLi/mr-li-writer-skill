@@ -443,6 +443,13 @@ mr-li-writer-skill/
 │   ├── test_regressions.py
 │   └── fixtures/
 │       └── editorial-routing-cases.md
+├── promo-video/
+│   ├── scripts/
+│   │   └── generate-promo-video.js
+│   ├── mobile-preview/
+│   │   └── index.html
+│   ├── design-spec.md
+│   └── final-review.md
 └── assets/
     ├── readme-banner.svg
     └── gzh-design/
@@ -452,6 +459,8 @@ mr-li-writer-skill/
         │   └── preview-template.html
         └── references/  # gzh-design-skill 主题索引、公共组件和完整主题组件库
 ```
+
+`promo-video/out/` 是本地渲染产物目录，不纳入版本控制；宣传视频源码、预览页和制作说明纳入仓库，便于复现 README 中的演示素材。
 
 ---
 

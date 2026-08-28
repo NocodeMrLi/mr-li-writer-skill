@@ -222,4 +222,5 @@ __marimo__/
 findings.md
 progress.md
 task_plan.md
-promo-video/
+promo-video/out/
+promo-video/**/.DS_Store

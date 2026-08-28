@@ -55,7 +55,7 @@ CONDITIONAL_FIELDS = (
 TRUSTED_SOURCES = {"user", "user_confirmed", "auto_authorized"}
 AUTO_AUTH_SOURCES = {"auto_authorized"}
 RESUME_RE = re.compile(
-    r"^\s*(?:请)?(?:继续(?:完成)?(?:未完成的)?(?:任务|写作|排版|交付)?|继续吧|继续把.{0,18}(?:做完|写完|排完|交付)|接着做|接着把.{0,18}(?:做完|写完|排完|交付)|恢复任务|按刚才的来|continue|resume|continue\s+(?:the\s+)?(?:unfinished\s+)?task|resume\s+(?:the\s+)?task)\s*[。.!！]*\s*$",
+    r"^\s*(?:请)?(?:继续(?:完成)?(?:未完成的|剩下的|剩余的?|余下的)?(?:任务|写作|排版|交付)?|继续吧|继续把.{0,24}(?:做完|写完|排完|交付|完成)|接着做|接着把.{0,24}(?:做完|写完|排完|交付|完成)|恢复任务|按刚才的来|continue|resume|continue\s+(?:the\s+)?(?:unfinished\s+)?task|resume\s+(?:the\s+)?task)\s*[。.!！]*\s*$",
     re.I,
 )
 DIRECT_AUTO_RE = re.compile(r"(不用问|不要询问|直接处理)")

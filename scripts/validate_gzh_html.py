@@ -247,8 +247,13 @@ def main():
         source = sys.stdin.read()
         name = "<stdin>"
     else:
-        with open(args.file, encoding="utf-8", errors="replace") as f:
-            source = f.read()
+        try:
+            with open(args.file, encoding="utf-8", errors="replace") as f:
+                source = f.read()
+        except OSError as exc:
+            print("[阻断] 无法读取 HTML 文件: %s" % args.file)
+            print("原因: %s" % exc)
+            return 2
         name = args.file
 
     errors, warnings, leaf_n = validate(source, name)

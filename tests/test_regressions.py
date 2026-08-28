@@ -521,7 +521,14 @@ class DeliveryProtocolTests(unittest.TestCase):
 
     def test_task_intake_resume_detection_covers_natural_chinese_variants(self):
         validator = load_module("validate_task_intake_resume_variants", "scripts/validate_task_intake.py")
-        for text in ("继续吧", "继续把排版做完", "继续把正文写完", "接着把交付做完"):
+        for text in (
+            "继续吧",
+            "继续把排版做完",
+            "继续把正文写完",
+            "继续完成剩下的排版",
+            "继续完成剩余交付",
+            "接着把交付做完",
+        ):
             with self.subTest(text=text):
                 self.assertTrue(validator.RESUME_RE.search(text))
 
@@ -1562,8 +1569,25 @@ class ReadmeDocumentationTests(unittest.TestCase):
     def test_directory_tree_mentions_delivery_protocol_and_tests(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("delivery-protocol.md", text)
+        self.assertIn("commercial-source-terms.txt", text)
         self.assertIn("├── tests/", text)
         self.assertIn("test_regressions.py", text)
+
+    def test_promo_video_sources_are_trackable_but_outputs_stay_ignored(self):
+        source = ROOT / "promo-video/scripts/generate-promo-video.js"
+        output = ROOT / "promo-video/out/mr-li-writer-promo-silent.mp4"
+        self.assertTrue(source.exists(), "宣传视频生成器源码缺失")
+        self.assertTrue(output.exists(), "本地宣传视频产物缺失")
+        source_check = subprocess.run(
+            ["git", "check-ignore", "-q", str(source)],
+            cwd=ROOT,
+        )
+        output_check = subprocess.run(
+            ["git", "check-ignore", "-q", str(output)],
+            cwd=ROOT,
+        )
+        self.assertNotEqual(source_check.returncode, 0)
+        self.assertEqual(output_check.returncode, 0)
 
     def test_readme_documents_four_artifacts_and_runnable_checks(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -1629,6 +1653,21 @@ class ArticleLintTests(unittest.TestCase):
             source = (ROOT / script).read_text(encoding="utf-8")
             self.assertNotIn("51CTO", source)
             self.assertNotIn("希赛网", source)
+
+    def test_commercial_source_terms_missing_warns_before_generic_fallback(self):
+        checks = (
+            (build_html.configured_commercial_source_regex, "builtins.open"),
+            (build_gzh.configured_commercial_source_regex, "builtins.open"),
+            (lint_article.configured_commercial_source_patterns, "pathlib.Path.read_text"),
+        )
+        for func, patch_target in checks:
+            with self.subTest(func=func.__module__):
+                stderr = io.StringIO()
+                with mock.patch(patch_target, side_effect=FileNotFoundError):
+                    with contextlib.redirect_stderr(stderr):
+                        result = func()
+                self.assertIn("商业来源词表缺失", stderr.getvalue())
+                self.assertFalse(result)
 
     def test_lint_accepts_generic_commercial_source_wording(self):
         article = """# 软考报名时间
@@ -1863,6 +1902,17 @@ class GzhThemeRegressionTests(unittest.TestCase):
         source = '<section><p><span leaf="">| 省份 | 截止时间 |\n| --- | --- |</span></p></section>'
         errors, _, _ = validator.validate(source)
         self.assertTrue(any("Markdown 表格" in error for error in errors), errors)
+
+    def test_generated_html_validator_reports_missing_file_without_traceback(self):
+        validator = ROOT / "scripts/validate_gzh_html.py"
+        result = subprocess.run(
+            [sys.executable, str(validator), "/tmp/definitely-not-exist-mr-li.html"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("[阻断] 无法读取 HTML 文件", result.stdout)
+        self.assertNotIn("Traceback", result.stdout + result.stderr)
 
     def test_generated_html_validator_rejects_repeated_chapter_numbers(self):
         validator = load_module("validate_gzh_html_duplicate_chapters", "scripts/validate_gzh_html.py")

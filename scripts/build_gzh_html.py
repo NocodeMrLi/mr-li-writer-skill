@@ -44,6 +44,7 @@ def configured_commercial_source_regex():
         with open(path, encoding="utf-8") as handle:
             terms = [line.strip() for line in handle if line.strip() and not line.lstrip().startswith("#")]
     except FileNotFoundError:
+        print("[警告] 商业来源词表缺失: %s；将只使用通用商业来源模式。" % path, file=sys.stderr)
         terms = []
     if not terms:
         return None
