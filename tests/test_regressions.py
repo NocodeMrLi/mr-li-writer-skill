@@ -1597,6 +1597,13 @@ class ReadmeDocumentationTests(unittest.TestCase):
         self.assertIn("python3 -m unittest discover -s tests -v", text)
         self.assertIn("重要文章发布前", text)
 
+    def test_readme_showcase_images_exist(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        paths = re.findall(r"\./(assets/readme-showcase/[^\"')> ]+\.jpg)", text)
+        self.assertGreaterEqual(len(set(paths)), 12)
+        for path in set(paths):
+            self.assertTrue((ROOT / path).is_file(), path)
+
     def test_readme_documents_adaptive_innovation_and_human_writing_inspiration(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
         for phrase in ("最低必要创新", "读者任务", "点击契约", "说话位置"):

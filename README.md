@@ -318,6 +318,59 @@ assets/gzh-design/references/
 
 ---
 
+## 排版效果展示
+
+以下展示来自真实公众号排版预览。先看三个主题的完整长图，再看每个主题的局部细节。
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <a href="./assets/readme-showcase/red-white-long.jpg"><img src="./assets/readme-showcase/red-white-long.jpg" alt="红白色系完整长图预览" width="220"></a><br>
+      <sub>红白色系 · 完整长图</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="./assets/readme-showcase/moyu-green-long.jpg"><img src="./assets/readme-showcase/moyu-green-long.jpg" alt="摸鱼绿完整长图预览" width="220"></a><br>
+      <sub>摸鱼绿 · 完整长图</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="./assets/readme-showcase/olive-journal-long.jpg"><img src="./assets/readme-showcase/olive-journal-long.jpg" alt="橄榄手记完整长图预览" width="220"></a><br>
+      <sub>橄榄手记 · 完整长图</sub>
+    </td>
+  </tr>
+</table>
+
+### 红白色系
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/red-white-cover.jpg" alt="红白色系封面和开头" width="260"><br><sub>封面与开头</sub></td>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/red-white-table.jpg" alt="红白色系表格与数据模块" width="260"><br><sub>表格与数据模块</sub></td>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/red-white-section.jpg" alt="红白色系章节与提示卡" width="260"><br><sub>章节与提示卡</sub></td>
+  </tr>
+</table>
+
+### 摸鱼绿
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/moyu-green-cover.jpg" alt="摸鱼绿封面和目录" width="260"><br><sub>封面与目录</sub></td>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/moyu-green-content.jpg" alt="摸鱼绿正文和章节" width="260"><br><sub>正文与章节</sub></td>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/moyu-green-list.jpg" alt="摸鱼绿清单和要点卡" width="260"><br><sub>清单与要点卡</sub></td>
+  </tr>
+</table>
+
+### 橄榄手记
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/olive-journal-cover.jpg" alt="橄榄手记封面和开头" width="260"><br><sub>封面与开头</sub></td>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/olive-journal-content.jpg" alt="橄榄手记正文和提示模块" width="260"><br><sub>正文与提示模块</sub></td>
+    <td align="center" width="33%"><img src="./assets/readme-showcase/olive-journal-ending.jpg" alt="橄榄手记结尾和互动区" width="260"><br><sub>结尾与互动区</sub></td>
+  </tr>
+</table>
+
+---
+
 ## 脚本说明
 
 核心脚本使用 Python 3 标准库即可运行；只有 DOCX、PDF 和图片素材提取需要下面列出的可选依赖。
@@ -452,6 +505,7 @@ mr-li-writer-skill/
 │   └── final-review.md
 └── assets/
     ├── readme-banner.svg
+    ├── readme-showcase/
     └── gzh-design/
         ├── LICENSE
         ├── NOTICE.md
