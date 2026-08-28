@@ -219,12 +219,127 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("发布平台", result.stdout)
         self.assertIn("当前平台可选交付样式", result.stdout)
 
+    def test_task_intake_from_prompt_rejects_craft_mode_memory_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "按 Craft mode 和用户偏好直接处理，这次排版由 AI 自行决定并自动匹配。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("发布平台", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+        self.assertIn("当前平台可选交付样式", result.stdout)
+
+    def test_task_intake_rejects_platform_value_mixed_with_layout_theme(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                platform={
+                    "value": "公众号（橄榄手记）",
+                    "confirmed": True,
+                    "source": "user",
+                    "user_quote": "公众号",
+                },
+                delivery_style={
+                    "value": "橄榄手记",
+                    "confirmed": True,
+                    "source": "user",
+                    "user_quote": "橄榄手记",
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "layout", "--platform", "公众号"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("发布平台不能混入排版主题", result.stdout)
+
+    def test_task_intake_emit_question_card_separates_platform_and_layout_theme(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "这篇 Gemini 3.5 Transcribe 的文章发到哪个平台？",
+                "--phase",
+                "task-list",
+                "--emit-question-card",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("请先确认以下信息", result.stdout)
+        self.assertIn("1. 发布平台", result.stdout)
+        self.assertIn("公众号 / 小红书 / 知乎 / 官网/网页 / 个人博客", result.stdout)
+        self.assertIn("2. 内容目标", result.stdout)
+        self.assertIn("3. 创作方向", result.stdout)
+        self.assertIn("4. 平台交付样式", result.stdout)
+        self.assertIn("最推荐", result.stdout)
+        self.assertIn("次推荐", result.stdout)
+        self.assertIn("补充说明/自行输入", result.stdout)
+        self.assertIn("公众号排版主题不是发布平台", result.stdout)
+        self.assertNotIn("公众号（橄榄手记）", result.stdout)
+
+    def test_task_intake_from_prompt_always_outputs_standard_question_card(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "原文：https://example.com/article，帮我写一篇文章",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("请先确认以下信息", result.stdout)
+        self.assertIn("1. 发布平台", result.stdout)
+        self.assertIn("2. 内容目标", result.stdout)
+        self.assertIn("3. 创作方向", result.stdout)
+        self.assertIn("4. 平台交付样式", result.stdout)
+        self.assertIn("补充说明/自行输入", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_treat_title_auto_match_as_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，标题可以自动匹配，其他先问我。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
     def test_documents_require_intake_check_before_fetching_or_task_list(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
         for text in (skill, agent):
             self.assertIn("validate_task_intake.py", text)
             self.assertIn("--from-prompt", text)
+            self.assertIn("--emit-question-card", text)
         self.assertIn("抓取、检索、读取链接、生成任务列表", skill)
         self.assertIn("before fetching source links", agent)
 

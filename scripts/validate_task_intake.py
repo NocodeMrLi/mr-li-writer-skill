@@ -28,9 +28,10 @@ CONDITIONAL_FIELDS = (
 TRUSTED_SOURCES = {"user", "user_confirmed", "auto_authorized"}
 AUTO_AUTH_SOURCES = {"auto_authorized"}
 RESUME_RE = re.compile(r"(继续完成任务|继续|接着做|恢复任务|按刚才的来|continue|resume)", re.I)
-AUTO_RE = re.compile(r"(自动匹配|不用问|不要询问|直接处理|直接排|你看着办)")
+DIRECT_AUTO_RE = re.compile(r"(不用问|不要询问|直接处理|直接排|你看着办)")
+AUTO_MATCH_RE = re.compile(r"自动匹配")
 MEMORY_AUTH_RE = re.compile(
-    r"(长期偏好|长期记忆|历史偏好|历史默认|上次|之前偏好|standing instruction|memory|other skill|其他\s*skill|A\s*技能|旧技能)",
+    r"(长期偏好|长期记忆|用户偏好|历史偏好|历史默认|上次|之前偏好|习惯推断|standing instruction|memory|craft mode|other skill|其他\s*skill|A\s*技能|旧技能|排版\s*(由\s*AI\s*)?自行决定)",
     re.I,
 )
 
@@ -117,6 +118,48 @@ STYLE_CANONICAL = {
     "自动匹配": "auto",
 }
 
+PLATFORM_OPTIONS_TEXT = "公众号 / 小红书 / 知乎 / 官网/网页 / 个人博客"
+CONTENT_GOAL_OPTIONS_TEXT = "普通传播 / GEO 生成式搜索优化 / SEO 搜索引擎优化 / 转化销售 / 专业报告"
+GENERIC_DELIVERY_OPTIONS_TEXT = {
+    "公众号": "公众号排版主题：摸鱼绿 / 红白色系 / 石墨极简风 / 留白禅意风 / 摸鱼票据风 / 橄榄手记 / 自动匹配",
+    "知乎": "回答 / 专栏 / 回答 + HTML 预览 / 专栏 + HTML 预览 / 自动匹配",
+    "小红书": "清爽纯文本笔记 / 手机卡片预览 / 偏种草 / 偏避坑 / 偏收藏清单 / 自动匹配",
+    "官网/网页": "普通网页文章 / SEO-GEO 结构化样式 / 转化落地页 / 专业报告页 / CMS/模板适配 / 自动匹配",
+    "个人博客": "Markdown / CMS 富文本 / 静态 HTML / 作者随笔 / 技术长文 / 观点札记 / 自动匹配",
+    "未知平台": "先确认发布平台，再确认该平台的交付样式；不要把公众号排版主题写进发布平台选项",
+}
+
+DELIVERY_STYLE_MARKERS = {
+    "摸鱼绿",
+    "红白色系",
+    "石墨极简风",
+    "留白禅意风",
+    "摸鱼票据风",
+    "橄榄手记",
+    "moyu-green",
+    "red-white",
+    "graphite-minimal",
+    "zen-whitespace",
+    "moyu-ticket",
+    "olive-journal",
+    "回答",
+    "专栏",
+    "HTML 预览",
+    "手机卡片预览",
+    "清爽纯文本笔记",
+    "偏种草",
+    "偏避坑",
+    "偏收藏清单",
+    "普通网页文章",
+    "SEO-GEO 结构化样式",
+    "转化落地页",
+    "专业报告页",
+    "CMS/模板适配",
+    "Markdown",
+    "CMS 富文本",
+    "静态 HTML",
+}
+
 
 def load_state(path):
     try:
@@ -155,6 +198,20 @@ def quote_text(record):
     return str(record.get("user_quote") or record.get("authorization_quote") or "").strip()
 
 
+def has_task_level_auto_authorization(text):
+    text = str(text or "")
+    if DIRECT_AUTO_RE.search(text):
+        return True
+    for match in AUTO_MATCH_RE.finditer(text):
+        window = text[max(0, match.start() - 8) : match.end() + 8]
+        local_title_match = re.search(r"(标题|题目|主标题|封面标题)", window)
+        global_scope = re.search(r"(全部|所有|本次|整体|平台|内容目标|创作方向|交付样式|排版|执行|处理|即可|就行|吧)", window)
+        if local_title_match and not global_scope:
+            continue
+        return True
+    return False
+
+
 def missing_reason(record):
     if not str(record.get("value", "")).strip():
         return "缺少取值"
@@ -167,7 +224,7 @@ def missing_reason(record):
     quote = quote_text(record)
     if MEMORY_AUTH_RE.search(quote):
         return "长期记忆、历史偏好或其他 skill 的习惯不能代替当前任务用户确认"
-    if str(record.get("source", "")).strip().lower() in AUTO_AUTH_SOURCES and not AUTO_RE.search(quote):
+    if str(record.get("source", "")).strip().lower() in AUTO_AUTH_SOURCES and not has_task_level_auto_authorization(quote):
         return "自动匹配授权必须来自当前任务中的明确原话"
     return ""
 
@@ -193,7 +250,7 @@ def platform_key(value):
 def state_from_prompt(prompt):
     text = prompt or ""
     memory_based = bool(MEMORY_AUTH_RE.search(text))
-    source = "auto_authorized" if AUTO_RE.search(text) and not memory_based else "prompt_detected"
+    source = "auto_authorized" if has_task_level_auto_authorization(text) and not memory_based else "prompt_detected"
     confirmed = source == "auto_authorized"
     quote = "自动匹配" if confirmed else ""
     state = {}
@@ -261,12 +318,28 @@ def canonical_style(value):
     return STYLE_CANONICAL.get(str(value or "").strip(), str(value or "").strip())
 
 
+def platform_mixes_delivery_style(value):
+    text = str(value or "").strip()
+    if not text:
+        return False
+    if text in STYLE_OPTIONS or text in {"wechat", "gzh", "微信", "微信公众号", "zhihu", "xhs", "xiaohongshu", "web", "website", "blog"}:
+        return False
+    resolved = platform_key(text)
+    if resolved == "未知平台":
+        return False
+    if re.search(r"[（(].+[）)]", text):
+        return True
+    return any(marker in text and marker != resolved for marker in DELIVERY_STYLE_MARKERS)
+
+
 def validate(state, phase="draft", platform=None, last_user="", expected_style=""):
     errors = []
     platform_record = field_record(state, "platform")
     state_platform = str(platform_record.get("value", "")).strip()
     if platform and state_platform and platform_key(platform) != platform_key(state_platform):
         errors.append(("发布平台", "命令平台与任务状态不一致: %s != %s" % (platform, state_platform)))
+    if platform_mixes_delivery_style(state_platform):
+        errors.append(("发布平台", "发布平台不能混入排版主题或交付样式；请先只确认平台，再单独确认平台交付样式"))
 
     for key, label in REQUIRED_FIELDS:
         reason = missing_reason(field_record(state, key))
@@ -322,6 +395,23 @@ def print_new_task_hint():
     print("新任务尚未形成任务状态，必须先完成最低必要询问，再抓取、检索、读取链接、生成任务列表、写正文或排版。")
 
 
+def print_question_card(platform):
+    delivery_options = GENERIC_DELIVERY_OPTIONS_TEXT.get(platform, GENERIC_DELIVERY_OPTIONS_TEXT["未知平台"])
+    print("")
+    print("请先确认以下信息（可直接按序号回复；有特殊要求写在“补充说明/自行输入”）：")
+    print("1. 发布平台：%s" % PLATFORM_OPTIONS_TEXT)
+    print("   注意：公众号排版主题不是发布平台，不能把平台和主题合并成一个选项。")
+    print("2. 内容目标：%s" % CONTENT_GOAL_OPTIONS_TEXT)
+    print("3. 创作方向：")
+    print("   A. [最推荐] 读者最需要解决的现实问题/行动清单")
+    print("   B. [次推荐] 关键变化的深度解读/判断标准")
+    print("   C. 平台原生传播角度：更适合转发、收藏或评论讨论")
+    print("   D. 转化销售角度：突出信任、异议处理和下一步行动")
+    print("   E. 专业报告角度：强调来源、框架、边界和结论可靠性")
+    print("4. 平台交付样式：%s" % delivery_options)
+    print("补充说明/自行输入：可以写目标读者、阅读场景、立场边界、时效口径、来源边界、篇幅深度或你自己的表达偏好；也可以留空。")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Mr.Li Writer 任务询问与恢复状态硬门禁")
     parser.add_argument("state", nargs="?", help="任务状态 JSON 文件")
@@ -335,6 +425,7 @@ def main():
     parser.add_argument("--platform", default="", help="命令正在处理的发布平台，用于和任务状态交叉校验")
     parser.add_argument("--expected-style", default="", help="命令即将使用的交付样式/公众号主题，用于和任务状态交叉校验")
     parser.add_argument("--last-user", default="", help="最近一条用户消息，用于识别继续/恢复任务场景")
+    parser.add_argument("--emit-question-card", action="store_true", help="阻断时输出标准化问题卡，供智能体直接询问用户")
     args = parser.parse_args()
 
     if args.from_prompt:
@@ -364,6 +455,8 @@ def main():
     if from_prompt and errors:
         print_new_task_hint()
     print_report(errors, resume_without_confirmation, platform)
+    if errors and (args.emit_question_card or from_prompt):
+        print_question_card(platform)
     return 1 if errors else 0
 
 

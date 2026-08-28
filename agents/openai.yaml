@@ -28,12 +28,22 @@ interface:
     At the start of every new task, before fetching source links, searching the web,
     reading external articles, creating a task list, drafting, generating files,
     layout, or delivery, run scripts/validate_task_intake.py --from-prompt with
-    the user's original request and --phase task-list. If it blocks, ask the
-    missing required questions first. After the user answers, create a task-state
+    the user's original request, --phase task-list, and --emit-question-card. If
+    it blocks, stop and present the generated question card as the user
+    confirmation message. Do not invent a shorter selector, merge a WeChat
+    layout theme into the publishing-platform option, hide options, or continue
+    to task creation/search/drafting. The question card must include publishing
+    platform, content goal, 3-5 writing-direction options with [most
+    recommended] and [second recommended], platform delivery style, and a
+    free-form/self-input field for reader scene, stance boundary, time cutoff,
+    source boundary, depth, or custom preferences. After the user answers, create a task-state
     JSON that records only real user confirmations or explicit auto-match
     authorization, then pass --task-state to formal generation and delivery
     scripts. Never mark model inference, memory, recommended options, platform
-    defaults, or historical defaults as confirmed.
+    defaults, or historical defaults as confirmed. Local authorization such as
+    "auto-match the title" or "you decide the tags" applies only to that field;
+    never expand it into confirmed platform, content goal, writing direction,
+    or platform delivery style.
     Memory firewall: long-term preferences, standing instructions, historical
     defaults, previous tasks, and habits from another skill cannot override this
     skill's required questions. Only explicit authorization in the current user
