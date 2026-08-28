@@ -281,7 +281,7 @@ python3 scripts/validate_task_intake.py task-state.json --phase layout --platfor
 | 官网/网页 | 普通网页、SEO-GEO 结构化、转化落地页还是专业报告页；是否有 CMS/模板约束 |
 | 个人博客 | 使用 Markdown、CMS 富文本、静态 HTML，还是博客长文风格 |
 
-用户明确说“不要询问、直接处理、自动匹配”时，系统会按平台默认值继续，并在交付说明中写清实际选择。
+用户明确说“不要询问、直接处理、自动匹配”时，系统会按平台默认值继续，并在交付说明中写清实际选择。“标题你看着办”“主题你看着办”“标签你来定”只算局部授权，不能扩大成全流程免确认。
 
 当需要用户选择创作方向时，Skill 会给出 3-5 个候选，并标注【最推荐】和【次推荐】，帮助用户判断不同方向的读者任务、内容承诺和证据路径。
 
@@ -306,7 +306,7 @@ python3 scripts/validate_task_intake.py task-state.json --phase layout --platfor
 | `moyu-ticket` | 摸鱼票据风 | 工具对比、创意评测 |
 | `olive-journal` | 橄榄手记 | 案例复盘、内刊手记、系统说明 |
 
-如果用户没有指定主题，系统会先推荐适合的公众号主题；用户明确说“直接排”“不用问”时才会自动匹配。正式生成公众号 HTML 时，脚本会要求使用已确认的具体主题并传入 `--theme-confirmed`；只有用户明确授权自动匹配，才允许使用 `--auto-theme-ok`。
+如果用户没有指定主题，系统会先推荐适合的公众号主题；用户明确说“自动匹配”“不用问”或“直接处理”时才会自动匹配。正式生成公众号 HTML 时，脚本会要求使用已确认的具体主题并传入 `--theme-confirmed`；只有用户明确授权自动匹配，才允许使用 `--auto-theme-ok`。
 
 公众号主题组件库位于：
 
@@ -373,7 +373,7 @@ python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --plat
 - `article-gzh.html`：用于校验和手动粘贴兜底的干净正文片段
 - `article-preview.html`：浏览器打开后点击“复制到公众号”，再粘贴到公众号编辑器
 
-公众号脚本会根据正文输出名自动生成预览页，例如 `article-gzh.html` 对应 `article-gzh_preview.html`；整理最终四件套时可统一命名为 `article-preview.html`。
+公众号脚本会根据正文输出名自动生成预览页，例如 `article-gzh.html` 对应 `article-gzh-preview.html`；整理最终四件套时可统一命名为 `article-preview.html`。
 
 公众号交付前会运行固定四件套校验，少任何一件都不会进入最终交付。其他平台先校验标题策略和平台原生正文；本次涉及排版时再用 `--layout` 要求干净 HTML 与复制预览 HTML。交付时优先使用宿主原生附件/文件卡片；宿主不支持时会如实说明能力边界，不把本地绝对路径包装成看似可点击的链接。
 

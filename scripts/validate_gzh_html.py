@@ -16,8 +16,6 @@ FORBIDDEN = [
     (re.compile(r"<script[\s>]", re.I), "ERROR", "<script> 标签会被过滤"),
     (re.compile(r"</?div[\s>]", re.I), "ERROR", "<div> 会被改写，请用 <section>"),
     (re.compile(r"<link[\s>]", re.I), "ERROR", "外部 <link>（CSS/字体）会被过滤"),
-    (re.compile(r"\sclass\s*=", re.I), "ERROR", "class 属性会被剥离，请用内联 style"),
-    (re.compile(r"\sid\s*=", re.I), "ERROR", "id 属性会被剥离"),
     (re.compile(r"position\s*:\s*(fixed|absolute|sticky)", re.I), "ERROR", "position fixed/absolute/sticky 不被支持"),
     (re.compile(r"float\s*:", re.I), "ERROR", "float 不被支持"),
     (re.compile(r"@media", re.I), "ERROR", "@media 媒体查询不被支持"),
@@ -34,6 +32,9 @@ RAW_MARKDOWN_TABLE = re.compile(
     r"\|[^\n<>]+\|\s*(?:<[^>]+>\s*)*\|\s*:?-{3,}:?\s*\|",
     re.I,
 )
+
+HEADING_CONTEXT_RE = re.compile(r"(?P<context>(?:(?!<h[23]\b).){0,1200})<h[23]\b[^>]*>", re.I | re.S)
+LEAF_TEXT_RE = re.compile(r"<span\s+leaf=\"\">\s*([^<]+?)\s*</span>", re.I)
 
 FORBIDDEN_FRONT_BADGE = re.compile(
     r"<(?:span|section)\b[^>]*style=\"[^\"]*(?:border-radius|padding|background)[^\"]*\"[^>]*>\s*"
@@ -58,9 +59,13 @@ class LeafChecker(HTMLParser):
         self.span_leaf_count = 0
         self.unwrapped = []
         self.half_punct = []
+        self.forbidden_attrs = []
 
     def handle_starttag(self, tag, attrs):
         ad = dict(attrs)
+        for attr_name, _attr_value in attrs:
+            if attr_name in {"class", "id"}:
+                self.forbidden_attrs.append((tag, attr_name))
         is_leaf = tag == "span" and "leaf" in ad
         is_code = bool(CODE_STYLE.search(ad.get("style", "") or ""))
         if is_leaf:
@@ -96,6 +101,20 @@ class LeafChecker(HTMLParser):
             self.half_punct.append(snippet)
 
 
+def chapter_numbers(html):
+    numbers = []
+    for match in HEADING_CONTEXT_RE.finditer(html):
+        context = match.group("context")
+        labels = [item.strip() for item in LEAF_TEXT_RE.findall(context)]
+        if not labels:
+            continue
+        has_chapter_marker = any(re.search(r"^(CHAPTER|PART|THE\b)", label, re.I) for label in labels)
+        nums = [label for label in labels if re.fullmatch(r"\d{2}", label)]
+        if has_chapter_marker and nums:
+            numbers.append(nums[-1])
+    return numbers
+
+
 def validate(html, name="<input>"):
     errors, warnings = [], []
     for rx, level, msg in FORBIDDEN:
@@ -112,6 +131,18 @@ def validate(html, name="<input>"):
         checker.feed(html)
     except Exception as exc:
         warnings.append("HTML 解析中断: %s" % exc)
+
+    attr_hits = [attr for _tag, attr in checker.forbidden_attrs]
+    if "class" in attr_hits:
+        errors.append("class 属性会被剥离，请用内联 style（命中 %d 处）" % attr_hits.count("class"))
+    if "id" in attr_hits:
+        errors.append("id 属性会被剥离（命中 %d 处）" % attr_hits.count("id"))
+
+    numbers = chapter_numbers(html)
+    if len(numbers) >= 2:
+        expected = ["%02d" % index for index in range(1, len(numbers) + 1)]
+        if numbers != expected:
+            errors.append("章节编号不连续或重复；应为 %s，实际为 %s" % ("/".join(expected), "/".join(numbers)))
 
     has_cjk = bool(CJK.search(html))
     if has_cjk and checker.span_leaf_count == 0:

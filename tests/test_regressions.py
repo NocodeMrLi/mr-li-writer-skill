@@ -24,6 +24,7 @@ def load_module(name, path):
 
 build_gzh = load_module("build_gzh_html", "scripts/build_gzh_html.py")
 build_html = load_module("build_html", "scripts/build_html.py")
+extract_seed = load_module("extract_seed", "scripts/extract_seed.py")
 lint_article = load_module("lint_article", "scripts/lint_article.py")
 
 
@@ -333,6 +334,214 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("内容目标", result.stdout)
         self.assertIn("创作方向", result.stdout)
         self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_treat_theme_auto_match_as_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，公众号主题自动匹配，其他先问我。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_treat_local_layout_instruction_as_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，这篇文章直接排不用管目录，其他先问我。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_treat_title_you_decide_as_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，标题你看着办。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_treat_theme_you_decide_as_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，主题你看着办。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_treat_title_no_ask_as_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，标题不用问。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_treat_theme_direct_process_as_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，主题直接处理。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_does_not_treat_title_you_decide_ok_as_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，标题你看着办就行。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("内容目标", result.stdout)
+        self.assertIn("创作方向", result.stdout)
+        self.assertIn("平台交付样式", result.stdout)
+
+    def test_task_intake_from_prompt_all_you_decide_is_global_authorization(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "帮我写公众号文章，本次全部你看着办。",
+                "--phase",
+                "task-list",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_task_intake_resume_detection_does_not_trigger_on_incidental_english_continue(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = pathlib.Path(tmp) / "task-state.json"
+            state.write_text(
+                json.dumps(
+                    {
+                        "original_prompt": "写一篇文章",
+                        "platform": {
+                            "value": "公众号",
+                            "confirmed": True,
+                            "source": "user",
+                            "user_quote": "公众号",
+                        },
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(validator),
+                    str(state),
+                    "--phase",
+                    "draft",
+                    "--last-user",
+                    "please continue reading the source before writing",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("不能把“继续完成任务”视为确认", result.stdout)
+
+    def test_task_intake_rejects_from_prompt_and_state_together(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(tmp)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(validator),
+                    str(state),
+                    "--from-prompt",
+                    "不用问，自动匹配",
+                    "--phase",
+                    "task-list",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("不能同时使用", result.stdout + result.stderr)
+
+    def test_task_intake_does_not_silently_disable_research_scope_gate(self):
+        source = (ROOT / "scripts/validate_task_intake.py").read_text(encoding="utf-8")
+        self.assertNotIn("validate_research_scope = None", source)
 
     def test_research_scope_blocks_user_link_only_for_time_sensitive_hard_info(self):
         validator = ROOT / "scripts/validate_research_scope.py"
@@ -682,6 +891,37 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
             self.assertTrue(output.is_file())
 
+    def test_wrap_gzh_preview_help_uses_current_script_name(self):
+        wrapper = ROOT / "scripts/wrap_gzh_preview.py"
+        result = subprocess.run(
+            [sys.executable, str(wrapper), "--help"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("wrap_gzh_preview.py", result.stdout)
+
+    def test_docx_embedded_image_without_ocr_keeps_extracted_text(self):
+        try:
+            import docx
+            from PIL import Image
+        except ImportError as exc:
+            self.skipTest("DOCX image fixture dependencies unavailable: %s" % exc)
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            image_path = directory / "tiny.png"
+            Image.new("RGB", (8, 8), "white").save(image_path)
+            doc_path = directory / "seed.docx"
+            document = docx.Document()
+            document.add_paragraph("这段 DOCX 正文应该被保留。")
+            document.add_picture(str(image_path))
+            document.save(doc_path)
+            with mock.patch.object(extract_seed, "ocr_image", side_effect=SystemExit(2)):
+                text = extract_seed.extract_docx(str(doc_path))
+        self.assertIn("这段 DOCX 正文应该被保留", text)
+        self.assertIn("OCR", text)
+        self.assertIn("跳过", text)
+
     def test_skill_requires_native_file_attachments(self):
         text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("原生附件", text)
@@ -914,7 +1154,7 @@ class DeliveryProtocolTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            preview = directory / "article_preview.html"
+            preview = directory / "article-preview.html"
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertTrue(preview.is_file())
             text = preview.read_text(encoding="utf-8")
@@ -1307,7 +1547,7 @@ class ReadmeDocumentationTests(unittest.TestCase):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
         for artifact in ("title-strategy.md", "article-source.md", "article-gzh.html", "article-preview.html"):
             self.assertIn(artifact, text)
-        self.assertIn("article-gzh_preview.html", text)
+        self.assertIn("article-gzh-preview.html", text)
         self.assertIn("python3 -m unittest discover -s tests -v", text)
         self.assertIn("重要文章发布前", text)
 
@@ -1592,6 +1832,91 @@ class GzhThemeRegressionTests(unittest.TestCase):
         source = '<section><p><span leaf="">| 省份 | 截止时间 |\n| --- | --- |</span></p></section>'
         errors, _, _ = validator.validate(source)
         self.assertTrue(any("Markdown 表格" in error for error in errors), errors)
+
+    def test_generated_html_validator_rejects_repeated_chapter_numbers(self):
+        validator = load_module("validate_gzh_html_duplicate_chapters", "scripts/validate_gzh_html.py")
+        source = """
+<section>
+  <section>
+    <p><span leaf="">01</span></p><p><span leaf="">CHAPTER</span></p>
+    <h3><span leaf="">第一章</span></h3>
+  </section>
+  <section>
+    <p><span leaf="">01</span></p><p><span leaf="">CHAPTER</span></p>
+    <h3><span leaf="">第二章</span></h3>
+  </section>
+</section>
+"""
+        errors, _, _ = validator.validate(source)
+        self.assertTrue(any("章节编号" in error for error in errors), errors)
+
+    def test_generated_html_validator_does_not_reject_id_equals_inside_reader_text(self):
+        validator = load_module("validate_gzh_html_text_id", "scripts/validate_gzh_html.py")
+        source = '<section><p><span leaf="">讨论 HTML 中 id=example 的写法。</span></p></section>'
+        errors, _, _ = validator.validate(source)
+        self.assertFalse(any("id 属性" in error for error in errors), errors)
+
+    def test_generated_html_validator_rejects_real_id_attribute(self):
+        validator = load_module("validate_gzh_html_real_id", "scripts/validate_gzh_html.py")
+        source = '<section id="x"><p><span leaf="">正文。</span></p></section>'
+        errors, _, _ = validator.validate(source)
+        self.assertTrue(any("id 属性" in error for error in errors), errors)
+
+    def test_wechat_builder_blocks_component_fallback_without_explicit_preview_flag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            output = directory / "article.html"
+            source.write_text(SAMPLE_MD, encoding="utf-8")
+            with mock.patch.object(sys, "argv", [
+                "build_gzh_html.py",
+                str(source),
+                "-o",
+                str(output),
+                "-t",
+                "moyu-green",
+                "--theme-confirmed",
+                "--task-state",
+                str(directory / "task-state.json"),
+                "--no-preview",
+            ]):
+                with mock.patch.object(build_gzh, "require_task_state", return_value=0):
+                    with mock.patch.object(build_gzh, "build_component_section", side_effect=RuntimeError("boom")):
+                        stderr = io.StringIO()
+                        with contextlib.redirect_stderr(stderr):
+                            code = build_gzh.main()
+            self.assertNotEqual(code, 0)
+            self.assertIn("完整组件库渲染失败", stderr.getvalue())
+            self.assertFalse(output.exists())
+
+    def test_wechat_builder_allows_component_fallback_only_for_explicit_preview(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            source = directory / "article-source.md"
+            output = directory / "article.html"
+            source.write_text(SAMPLE_MD, encoding="utf-8")
+            with mock.patch.object(sys, "argv", [
+                "build_gzh_html.py",
+                str(source),
+                "-o",
+                str(output),
+                "-t",
+                "moyu-green",
+                "--theme-confirmed",
+                "--task-state",
+                str(directory / "task-state.json"),
+                "--no-preview",
+                "--allow-fallback-preview",
+            ]):
+                with mock.patch.object(build_gzh, "require_task_state", return_value=0):
+                    with mock.patch.object(build_gzh, "validate_file", return_value=0):
+                        with mock.patch.object(build_gzh, "build_component_section", side_effect=RuntimeError("boom")):
+                            stderr = io.StringIO()
+                            with contextlib.redirect_stderr(stderr):
+                                code = build_gzh.main()
+            self.assertEqual(code, 0, stderr.getvalue())
+            self.assertIn("快速预览器", stderr.getvalue())
+            self.assertTrue(output.exists())
 
     def test_multi_column_components_include_text_overflow_guards(self):
         checks = {

@@ -3,15 +3,32 @@
 """Validate Mr.Li Writer task intake confirmations before formal actions."""
 
 import argparse
+import importlib.util
 import json
 import pathlib
 import re
 import sys
 
-try:
-    from validate_research_scope import validate_research_scope
-except ImportError:
-    validate_research_scope = None
+
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+
+
+def load_research_scope_validator():
+    module_path = SCRIPT_DIR / "validate_research_scope.py"
+    if not module_path.is_file():
+        raise RuntimeError("缺少资料搜集范围校验脚本: %s" % module_path)
+    spec = importlib.util.spec_from_file_location("mr_li_validate_research_scope", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("无法加载资料搜集范围校验脚本: %s" % module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    validator = getattr(module, "validate_research_scope", None)
+    if not callable(validator):
+        raise RuntimeError("资料搜集范围校验脚本缺少 validate_research_scope")
+    return validator
+
+
+validate_research_scope = load_research_scope_validator()
 
 
 REQUIRED_FIELDS = (
@@ -32,9 +49,15 @@ CONDITIONAL_FIELDS = (
 
 TRUSTED_SOURCES = {"user", "user_confirmed", "auto_authorized"}
 AUTO_AUTH_SOURCES = {"auto_authorized"}
-RESUME_RE = re.compile(r"(继续完成任务|继续|接着做|恢复任务|按刚才的来|continue|resume)", re.I)
-DIRECT_AUTO_RE = re.compile(r"(不用问|不要询问|直接处理|直接排|你看着办)")
+RESUME_RE = re.compile(
+    r"^\s*(?:请)?(?:继续(?:完成)?(?:未完成的)?任务|继续|接着做|恢复任务|按刚才的来|continue|resume|continue\s+(?:the\s+)?(?:unfinished\s+)?task|resume\s+(?:the\s+)?task)\s*[。.!！]*\s*$",
+    re.I,
+)
+DIRECT_AUTO_RE = re.compile(r"(不用问|不要询问|直接处理)")
+YOU_DECIDE_RE = re.compile(r"你看着办")
 AUTO_MATCH_RE = re.compile(r"自动匹配")
+LOCAL_SCOPE_RE = re.compile(r"(公众号)?主题|排版主题|样式|交付样式|标题|题目|主标题|封面标题|标签|目录|大纲|小标题|直接排")
+GLOBAL_SCOPE_RE = re.compile(r"(全部|所有|本次|整体|整篇|全流程|平台|内容目标|创作方向|交付样式|都|全都)")
 MEMORY_AUTH_RE = re.compile(
     r"(长期偏好|长期记忆|用户偏好|历史偏好|历史默认|上次|之前偏好|习惯推断|standing instruction|memory|craft mode|other skill|其他\s*skill|A\s*技能|旧技能|排版\s*(由\s*AI\s*)?自行决定)",
     re.I,
@@ -213,13 +236,27 @@ def quote_text(record):
 
 def has_task_level_auto_authorization(text):
     text = str(text or "")
-    if DIRECT_AUTO_RE.search(text):
+    for match in DIRECT_AUTO_RE.finditer(text):
+        window = text[max(0, match.start() - 8) : match.end() + 8]
+        local_scope = LOCAL_SCOPE_RE.search(window)
+        global_scope = GLOBAL_SCOPE_RE.search(window)
+        if local_scope and not global_scope:
+            continue
+        return True
+    for match in YOU_DECIDE_RE.finditer(text):
+        window = text[max(0, match.start() - 8) : match.end() + 8]
+        local_scope = LOCAL_SCOPE_RE.search(window)
+        global_scope = GLOBAL_SCOPE_RE.search(window)
+        if local_scope and not global_scope:
+            continue
+        return True
+    if re.search(r"(全部|所有|全都|本次|整体|整篇|全流程).{0,12}自动匹配|自动匹配.{0,12}(全部|所有|全都|本次|整体|整篇|全流程)", text):
         return True
     for match in AUTO_MATCH_RE.finditer(text):
         window = text[max(0, match.start() - 8) : match.end() + 8]
-        local_title_match = re.search(r"(标题|题目|主标题|封面标题)", window)
-        global_scope = re.search(r"(全部|所有|本次|整体|平台|内容目标|创作方向|交付样式|排版|执行|处理|即可|就行|吧)", window)
-        if local_title_match and not global_scope:
+        local_scope = LOCAL_SCOPE_RE.search(window)
+        global_scope = GLOBAL_SCOPE_RE.search(window)
+        if local_scope and not global_scope:
             continue
         return True
     return False
@@ -275,9 +312,9 @@ def state_from_prompt(prompt):
     if platform:
         state["platform"] = {
             "value": platform,
-            "confirmed": confirmed,
-            "source": source,
-            "user_quote": quote,
+            "confirmed": True,
+            "source": "user",
+            "user_quote": platform,
         }
     for key, label in REQUIRED_FIELDS:
         state.setdefault(
@@ -384,7 +421,7 @@ def validate(state, phase="draft", platform=None, last_user="", expected_style="
         if reason:
             errors.append((label, "条件触发后必须确认: %s" % reason))
 
-    if phase in {"draft", "layout", "delivery"} and validate_research_scope is not None:
+    if phase in {"draft", "layout", "delivery"}:
         if not any(str(state.get(key, "")).strip() for key in TASK_CONTEXT_FIELDS):
             errors.append(
                 (
@@ -411,7 +448,7 @@ def print_report(errors, resume_without_confirmation, platform):
     for label, reason in errors:
         print("- %s：%s" % (label, reason))
     print("")
-    print("请先向用户合并确认缺失项；如果用户要省略询问，必须明确回复“自动匹配 / 不用问 / 直接处理 / 直接排”。")
+    print("请先向用户合并确认缺失项；如果用户要省略询问，必须明确回复“自动匹配 / 不用问 / 直接处理 / 本次全部你看着办”。")
     print("当前平台可选交付样式：%s" % STYLE_OPTIONS.get(platform, STYLE_OPTIONS["未知平台"]))
 
 
@@ -451,6 +488,11 @@ def main():
     parser.add_argument("--last-user", default="", help="最近一条用户消息，用于识别继续/恢复任务场景")
     parser.add_argument("--emit-question-card", action="store_true", help="阻断时输出标准化问题卡，供智能体直接询问用户")
     args = parser.parse_args()
+
+    if args.from_prompt and args.state:
+        print("[阻断] 不能同时使用任务状态文件和 --from-prompt。")
+        print("新任务入口只用 --from-prompt；正式写作、排版和交付阶段只用任务状态文件。")
+        return 2
 
     if args.from_prompt:
         state = state_from_prompt(args.from_prompt)

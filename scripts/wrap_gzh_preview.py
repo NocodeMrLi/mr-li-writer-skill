@@ -9,10 +9,11 @@
 validate_gzh_html.py（本预览页含 script/style，不参与校验）。
 
 用法:
-    wrap_preview.py <section.html> [output.html]
-    默认输出 <section去扩展名>_预览.html
+    wrap_gzh_preview.py <section.html> [output.html] --task-state <任务状态.json>
+    默认输出 <section去扩展名>-preview.html
 """
 
+import argparse
 import os
 import subprocess
 import sys
@@ -26,24 +27,18 @@ def require_task_state(task_state):
     return subprocess.call([sys.executable, checker, task_state, "--phase", "layout", "--platform", "公众号"])
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="把公众号正文片段包成带复制按钮的浏览器预览页")
+    parser.add_argument("section", help="已校验的公众号正文片段 HTML")
+    parser.add_argument("output", nargs="?", help="输出预览页路径，默认 <section>-preview.html")
+    parser.add_argument("--task-state", required=True, help="任务状态 JSON；必须已确认必问项")
+    return parser.parse_args()
+
+
 def main():
-    if len(sys.argv) < 2:
-        print("用法: wrap_preview.py <section.html> [output.html] --task-state <任务状态.json>")
-        sys.exit(1)
-    argv = sys.argv[1:]
-    task_state = ""
-    if "--task-state" in argv:
-        index = argv.index("--task-state")
-        if index + 1 >= len(argv):
-            print("[错误] --task-state 缺少路径", file=sys.stderr)
-            sys.exit(2)
-        task_state = argv[index + 1]
-        del argv[index:index + 2]
-    if len(argv) < 1:
-        print("用法: wrap_preview.py <section.html> [output.html] --task-state <任务状态.json>")
-        sys.exit(1)
-    src = argv[0]
-    intake_rc = require_task_state(task_state)
+    args = parse_args()
+    src = args.section
+    intake_rc = require_task_state(args.task_state)
     if intake_rc != 0:
         sys.exit(intake_rc)
     if not os.path.isfile(src):
@@ -62,7 +57,7 @@ def main():
     title = os.path.splitext(os.path.basename(src))[0]
     out_html = tpl.replace("{{TITLE}}", title).replace("<!--GZH_CONTENT-->", content)
 
-    out = argv[1] if len(argv) > 1 else os.path.splitext(src)[0] + "_预览.html"
+    out = args.output if args.output else os.path.splitext(src)[0] + "-preview.html"
     open(out, "w", encoding="utf-8").write(out_html)
     print(f"✓ 已生成带「复制」按钮的预览页: {out}")
     print("  用浏览器打开它，点右上角「复制到公众号」，再去公众号编辑器 Ctrl/⌘+V 粘贴。")

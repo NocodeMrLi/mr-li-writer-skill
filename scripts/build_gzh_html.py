@@ -177,7 +177,6 @@ def leaf(text):
 
 
 def normalize_cn_punctuation(text):
-    text = text.replace("，", "，")
     table = str.maketrans({
         ",": "，",
         ";": "；",
@@ -1331,7 +1330,7 @@ function gzhCopy(){
 
 
 def write_preview(section_html, out_path, title, theme):
-    preview_path = os.path.splitext(out_path)[0] + "_preview.html"
+    preview_path = os.path.splitext(out_path)[0] + "-preview.html"
     page = PREVIEW_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__MAIN__", theme["main"]).replace("__CONTENT__", section_html)
     with open(preview_path, "w", encoding="utf-8") as f:
         f.write(page)
@@ -1414,6 +1413,11 @@ def main():
     parser.add_argument("--title", default="", help="文章标题")
     parser.add_argument("--task-state", default="", help="任务状态 JSON；正式排版前必须通过必问项/恢复任务门禁")
     parser.add_argument("--no-preview", action="store_true", help="只生成干净 HTML，不生成复制预览页")
+    parser.add_argument(
+        "--allow-fallback-preview",
+        action="store_true",
+        help="只允许临时预览在完整组件库失败时回退到快速预览器；最终交付不要使用",
+    )
     parser.add_argument("--list-themes", action="store_true", help="列出公众号主题")
     parser.add_argument("--list-components", action="store_true", help="列出已接入的 gzh-design 完整组件库")
     args = parser.parse_args()
@@ -1458,9 +1462,13 @@ def main():
         section = build_component_section(md_text, title, theme_key)
         render_mode = "component-library"
     except Exception as exc:
-        print("[警告] 完整组件库渲染失败，回退到快速预览器: %s" % exc, file=sys.stderr)
+        if not args.allow_fallback_preview:
+            print("[错误] 完整组件库渲染失败，已阻断正式交付: %s" % exc, file=sys.stderr)
+            print("[提示] 只做临时预览时可添加 --allow-fallback-preview；最终交付必须修复组件库渲染问题。", file=sys.stderr)
+            return 1
+        print("[警告] 完整组件库渲染失败，仅回退到快速预览器生成临时预览: %s" % exc, file=sys.stderr)
         section = build_section(md_text, title, theme)
-        render_mode = "fallback"
+        render_mode = "fallback-preview"
 
     out_path = os.path.abspath(args.output or os.path.splitext(md_path)[0] + "_gzh.html")
     with open(out_path, "w", encoding="utf-8") as f:

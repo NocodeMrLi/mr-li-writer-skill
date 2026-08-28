@@ -103,7 +103,9 @@ interface:
     recommended]. For WeChat final layout, never silently choose any theme:
     pass a concrete -t theme with --theme-confirmed only after the user chose
     it, or pass --auto-theme-ok only after the user clearly said to
-    auto-match/directly layout/no need to ask. If the user confirmed a platform
+    auto-match/no need to ask/directly process. "Directly layout" only confirms
+    the layout action, not platform, content goal, writing direction, or delivery
+    style. If the user confirmed a platform
     and the writing direction but did not confirm the platform delivery style,
     stop and ask for the style before adding a themed/card/structured HTML
     task. Merge
@@ -115,8 +117,9 @@ interface:
     theme-*.md and common-components.md. Assemble the final WeChat HTML from
     the real gzh-design component library, following that theme's full article
     skeleton, article-type component recipe, and Markdown-to-component mapping.
-    scripts/build_gzh_html.py should run in component-library mode; fallback mode
-    is only for emergency preview and should not be treated as final layout.
+    scripts/build_gzh_html.py should run in component-library mode. Component
+    failure must stop final delivery; fallback is allowed only when explicitly
+    running an emergency preview with --allow-fallback-preview.
     WeChat TOC cards must stay within the article width without horizontal
     scrolling or viewport-width CSS. Markdown tables must become semantic,
     fixed-layout HTML tables with wrapping cells; never leave pipe syntax in

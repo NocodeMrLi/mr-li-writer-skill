@@ -100,7 +100,13 @@ def extract_docx(path):
                 image_path = os.path.join(tmpdir, "img_%d%s" % (index, ext))
                 with open(image_path, "wb") as handle:
                     handle.write(part.blob)
-                text = ocr_image(image_path)
+                try:
+                    text = ocr_image(image_path)
+                except SystemExit as exc:
+                    if int(exc.code or 0) == 2:
+                        out.append("\n[图片 OCR 已跳过：缺少 OCR 依赖；上方 DOCX 文字已保留。]")
+                        break
+                    raise
                 out.append("\n--- 图片 %d ---" % index)
                 out.append(text if text else "(未识别到文字)")
 
