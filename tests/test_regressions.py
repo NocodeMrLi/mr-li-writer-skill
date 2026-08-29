@@ -1971,6 +1971,22 @@ class GzhThemeRegressionTests(unittest.TestCase):
         errors, _, _ = validator.validate(rendered)
         self.assertTrue(any("正文章节编号" in error for error in errors), errors)
 
+    def test_generated_html_validator_reports_combined_marker_error_once(self):
+        validator = load_module("validate_gzh_html_combined_dedupe", "scripts/validate_gzh_html.py")
+        source = "".join(
+            '<p><span leaf="">%02d · CHAPTER</span></p>' % number for number in (1, 2, 5)
+        )
+        errors, _, _ = validator.validate(source)
+        numbered = [error for error in errors if "编号" in error]
+        self.assertEqual(len(numbered), 1, errors)
+        self.assertIn("01/02/05", numbered[0])
+
+    def test_generated_html_validator_ignores_part_marker_inside_prose(self):
+        validator = load_module("validate_gzh_html_prose_marker", "scripts/validate_gzh_html.py")
+        source = '<section><p><span leaf="">正文提到 PART 03 的说法。</span></p></section>'
+        errors, _, _ = validator.validate(source)
+        self.assertFalse(any("编号" in error for error in errors), errors)
+
     def test_generated_html_validator_does_not_reject_id_equals_inside_reader_text(self):
         validator = load_module("validate_gzh_html_text_id", "scripts/validate_gzh_html.py")
         source = '<section><p><span leaf="">讨论 HTML 中 id=example 的写法。</span></p></section>'

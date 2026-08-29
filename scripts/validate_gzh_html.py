@@ -170,6 +170,12 @@ def validate_single_chapter_run(numbers, label):
 
 
 def validate_marker_runs(numbers, label):
+    """校验每组 marker 编号各自从 01 连续递增。
+
+    只统计整个 leaf 文本恰好是“PART NN / CHAPTER NN / NN·CHAPTER”的标签；
+    正文散文里提到“PART 03”不会命中。若手工插入脱离章节结构的独立编号
+    标签，宁可误报阻断也不放过真实断号。
+    """
     if len(numbers) < 2 or max(numbers) == "01":
         return ""
     index = 0
@@ -219,6 +225,10 @@ def validate(html, name="<input>"):
     if body_error:
         errors.append(body_error)
     for label, numbers in marker_number_sequences(html).items():
+        # “01·CHAPTER”这类组合标签会同时进入正文序列和 marker 序列；
+        # 同一组坏编号已在正文路径报错时不再重复报，避免一处问题两条错误。
+        if body_error and numbers == body_numbers:
+            continue
         marker_error = validate_marker_runs(numbers, label)
         if marker_error:
             errors.append(marker_error)
