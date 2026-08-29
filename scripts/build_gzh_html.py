@@ -1231,7 +1231,7 @@ def hr(theme):
 
 
 def signature(theme):
-    return '<section style="margin:44px 10px 10px;padding:22px 20px;background:%s;border-radius:%s;border:1px solid %s;text-align:center;"><p style="font-size:14px;color:%s;margin:0 0 8px;line-height:1.8;">%s</p><p style="font-size:12px;color:%s;margin:0;">%s</p></section>' % (theme["light"], theme["radius"], theme["lighter"], theme["text"], leaf("我是 {{作者名}}，{{一句话简介}}"), theme["muted"], leaf("如果你觉得今天这篇有收获，欢迎点赞、在看、转发，我们下篇见"))
+    return '<section style="margin:44px 10px 10px;padding:22px 20px;background:%s;border-radius:%s;border:1px solid %s;text-align:center;"><p style="font-size:14px;color:%s;margin:0 0 8px;line-height:1.8;">%s</p><p style="font-size:12px;color:%s;margin:0;">%s</p></section>' % (theme["light"], theme["radius"], theme["lighter"], theme["text"], leaf("我是 Mr.Li Writer，让想法变成文章"), theme["muted"], leaf("如果你觉得今天这篇有收获，欢迎点赞、在看、转发，我们下篇见"))
 
 
 def build_section(md_text, title, theme):

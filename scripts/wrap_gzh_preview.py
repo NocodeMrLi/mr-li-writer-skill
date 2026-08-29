@@ -14,6 +14,7 @@ validate_gzh_html.py（本预览页含 script/style，不参与校验）。
 """
 
 import argparse
+import html
 import os
 import subprocess
 import sys
@@ -55,7 +56,7 @@ def main():
     tpl = open(tpl_path, encoding="utf-8").read()
 
     title = os.path.splitext(os.path.basename(src))[0]
-    out_html = tpl.replace("{{TITLE}}", title).replace("<!--GZH_CONTENT-->", content)
+    out_html = tpl.replace("{{TITLE}}", html.escape(title)).replace("<!--GZH_CONTENT-->", content)
 
     out = args.output if args.output else os.path.splitext(src)[0] + "-preview.html"
     open(out, "w", encoding="utf-8").write(out_html)

@@ -2055,6 +2055,11 @@ class GzhThemeRegressionTests(unittest.TestCase):
             self.assertIn("快速预览器", stderr.getvalue())
             self.assertTrue(output.exists())
 
+    def test_fallback_signature_has_no_unfilled_placeholders(self):
+        rendered = build_gzh.build_section("# 标题\n\n正文一段。", "标题", build_gzh.THEMES["moyu-green"])
+        self.assertNotIn("{{", rendered)
+        self.assertIn("我是 Mr.Li Writer", rendered)
+
     def test_multi_column_components_include_text_overflow_guards(self):
         checks = {
             "theme-graphite-minimal.md": ("## 组件 12 数据 / 要点卡片组", "## 组件 13"),
