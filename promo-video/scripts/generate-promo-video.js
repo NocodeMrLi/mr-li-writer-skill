@@ -12,6 +12,18 @@ const HEIGHT = 1080;
 const FPS = 30;
 const TOTAL = 600;
 
+// Shot boundaries (Iteration 2)
+const S_BRAND = 0;
+const S_GATE = 70;
+const S_ROUTE = 126;
+const S_INNOV = 186;
+const S_SRC = 242;
+const S_TITLE = 324;
+const S_HUMAN = 384;
+const S_PLAT = 454;
+const S_OUTRO = 518;
+const XFADE = 4;
+
 fs.mkdirSync(FRAMES, { recursive: true });
 fs.mkdirSync(QA, { recursive: true });
 
@@ -136,16 +148,16 @@ function shotBrand(f) {
   const t = f;
   const cross = 1 - fade(t, 26, 38);
   const letters = 'Mr.Li Writer'.split('');
-  const letterGroupOp = 1 - seg(t, 24, 30, (x) => x);
+  const letterGroupOp = 1 - seg(t, 22, 28, (x) => x);
   const letterSvg = letters.map((ch, i) => {
-    const u = seg(t, 8 + i * 2.2, 22 + i * 2.2);
+    const u = seg(t, 4 + i * 1.7, 18 + i * 1.7);
     const x = 612 + i * 49;
     const sc = lerp(1.45, 1, back(u));
     const op = u;
     return `<text x="${x}" y="510" fill="${C.white}" opacity="${op}" font-family="Georgia,'Times New Roman',serif" font-size="104" font-weight="800" transform="translate(${x} 510) scale(${sc}) translate(${-x} -510)">${esc(ch)}</text>`;
   }).join('');
   const sub = '写作 Skill，让想法变成可信内容';
-  const n = Math.floor(seg(t, 26, 42, (x) => x) * sub.length);
+  const n = Math.floor(seg(t, 20, 36, (x) => x) * sub.length);
   return `
     <g opacity="${cross}">
       <path d="M960 276V392" stroke="${C.amber}" stroke-width="4" stroke-linecap="round" stroke-dasharray="116" stroke-dashoffset="${116 * (1 - seg(t, 0, 10, (x) => x))}"/>
@@ -153,32 +165,79 @@ function shotBrand(f) {
     </g>
     ${logoMark(500, 462, 1.18, C.paper3)}
     <g opacity="${letterGroupOp}">${letterSvg}</g>
-    ${serif(1005, 510, 'Mr.Li Writer', 104, C.white, 800, `text-anchor="middle" opacity="${seg(t, 28, 36, (x) => x)}"`)}
+    ${serif(1005, 510, 'Mr.Li Writer', 104, C.white, 800, `text-anchor="middle" opacity="${seg(t, 22, 30, (x) => x)}"`)}
     ${text(960, 592, sub.slice(0, n), 44, '#d8cabb', 650, 'text-anchor="middle"')}
     <rect x="${960 + n * 13 - 350}" y="558" width="4" height="45" fill="${C.amber}" opacity="${Math.floor(f / 4) % 2 ? 0.25 : 1}"/>
-    ${text(960, 704, '编辑路由 · 事实核验 · 平台原生 · 真实交付', 36, '#a9a196', 650, 'text-anchor="middle" opacity="0.92"')}
+    ${text(960, 704, '编辑路由 · 确认门禁 · 事实核验 · 平台原生 · 真实交付', 36, '#a9a196', 650, `text-anchor="middle" opacity="${0.92 * seg(t, 30, 40, (x) => x)}"`)}
+  `;
+}
+
+function shotGate(f) {
+  const t = f - S_GATE;
+  const rows = [
+    ['发布平台', '公众号', C.olive],
+    ['内容目标', '普通传播', C.blue],
+    ['创作方向', '实用指南', C.amber],
+    ['交付样式', '摸鱼绿', C.red],
+  ];
+  const rowSvg = rows.map((r, i) => {
+    const u = seg(t, 6 + i * 5, 20 + i * 5);
+    const dx = lerp(46, 0, back(u));
+    return `<g opacity="${u}" transform="translate(${dx} 0)">
+      <rect x="1120" y="${368 + i * 76}" width="540" height="60" rx="12" fill="#f1eadf" stroke="#e0d5c6"/>
+      ${text(1150, 408 + i * 76, r[0], 30, C.ink, 800)}
+      ${text(1580, 408 + i * 76, r[1], 28, r[2], 800, 'text-anchor="end"')}
+      <circle cx="1618" cy="${398 + i * 76}" r="14" fill="${C.olive}" opacity="${seg(t, 14 + i * 5, 24 + i * 5)}"/>
+      ${text(1618, 407 + i * 76, '✓', 19, C.white, 900, `text-anchor="middle" opacity="${seg(t, 14 + i * 5, 24 + i * 5)}"`)}
+    </g>`;
+  }).join('');
+  const stampU = seg(t, 30, 38, back);
+  const quoteU = seg(t, 28, 42);
+  return `
+    ${text(150, 156, '先确认，再动笔', 66, C.white, 900)}
+    ${text(154, 218, '一次问清关键项，不用默认值赌你的预期', 34, '#d9d0c4', 650)}
+    ${panel(1060, 258, 660, 540, 22, C.paper3)}
+    ${text(1120, 330, '标准问题卡', 38, C.ink, 850)}
+    ${mono(1120, 706, 'memory firewall · 历史偏好 ≠ 本次确认', 24, C.muted, 700, `opacity="${seg(t, 36, 46)}"`)}
+    ${rowSvg}
+    <g transform="translate(1660 316) rotate(-10) scale(${stampU})" opacity="${stampU}">
+      <rect x="-58" y="-58" width="116" height="116" rx="14" fill="none" stroke="${C.red}" stroke-width="6"/>
+      ${text(0, 16, '必问', 42, C.red, 900, 'text-anchor="middle"')}
+    </g>
+    <g opacity="${seg(t, 22, 30)}">
+      ${chip(150, 430, '确认', C.olive, 128, seg(t, 22, 30))}
+      ${chip(338, 430, '开写', C.blue, 128, seg(t, 27, 35))}
+      ${chip(526, 430, '交付', C.amber, 128, seg(t, 32, 40))}
+      <path d="M282 457H332" stroke="#8b8378" stroke-width="4" opacity="${seg(t, 26, 34)}"/>
+      <path d="M470 457H520" stroke="#8b8378" stroke-width="4" opacity="${seg(t, 31, 39)}"/>
+    </g>
+    <g opacity="${quoteU}" transform="translate(0 ${lerp(24, 0, back(quoteU))})">
+      ${panel(150, 560, 620, 150, 18, C.paper3)}
+      ${text(190, 622, '"写公众号，写成实用指南"', 31, C.ink, 800)}
+      ${text(190, 672, '确认来源：用户原话', 25, C.olive, 800)}
+    </g>
   `;
 }
 
 function shotRouting(f) {
-  const t = f - 85;
+  const t = f - S_ROUTE;
   const labels = ['找答案', '做选择', '避风险', '学方法', '被理解', '看故事'];
   const chips = labels.map((l, i) => {
-    const u = seg(t, 6 + i * 5, 21 + i * 5);
+    const u = seg(t, 5 + i * 4, 18 + i * 4);
     const x = lerp(-220, 188 + (i % 3) * 220, back(u));
     const y = 224 + Math.floor(i / 3) * 86;
     const colors = [C.blue, C.olive, C.red, C.amber, '#6a5acd', '#8b5a2b'];
     return chip(x, y, l, colors[i], 172, u);
   }).join('');
-  const rowOp = seg(t, 38, 58);
+  const rowOp = seg(t, 34, 52);
   const skeleton = [0, 1, 2, 3].map((i) => `
-    <rect x="1110" y="${290 + i * 54}" width="${360 + i * 34}" height="12" rx="6" fill="#e4dacf" opacity="${0.75 - i * 0.08}"/>
-    <rect x="1110" y="${314 + i * 54}" width="${220 + i * 46}" height="8" rx="4" fill="#d4c7b4" opacity="${0.38 - i * 0.04}"/>
+    <rect x="1110" y="${290 + i * 54}" width="${360 + i * 34}" height="12" rx="6" fill="#e4dacf" opacity="${(0.75 - i * 0.08) * (1 - rowOp)}"/>
+    <rect x="1110" y="${314 + i * 54}" width="${220 + i * 46}" height="8" rx="4" fill="#d4c7b4" opacity="${(0.38 - i * 0.04) * (1 - rowOp)}"/>
   `).join('');
   return `
     ${panel(1050, 170, 620, 650, 22, C.paper3)}
     ${text(1110, 240, '编辑路由卡', 42, C.ink, 850)}
-    <g opacity="${1 - rowOp * 0.85}">${skeleton}</g>
+    <g opacity="${1 - rowOp}">${skeleton}</g>
     ${mono(1110, 306, 'reader_job: avoid_risk', 28, C.olive, 800, `opacity="${rowOp}"`)}
     ${mono(1110, 360, 'evidence_density: high', 28, C.blue, 800, `opacity="${rowOp}"`)}
     ${mono(1110, 414, 'innovation: minimum', 28, C.red, 800, `opacity="${rowOp}"`)}
@@ -193,7 +252,7 @@ function shotRouting(f) {
 }
 
 function shotInnovation(f) {
-  const t = f - 150;
+  const t = f - S_INNOV;
   const steps = [
     ['直给型', '能说清就不升维', C.olive],
     ['微创新', '增加一点新信息', C.blue],
@@ -201,10 +260,10 @@ function shotInnovation(f) {
     ['概念创新', '材料足够才启动', C.red],
   ];
   const cards = steps.map((s, i) => {
-    const u = seg(t, 4 + i * 8, 24 + i * 8);
+    const u = seg(t, 2 + i * 6, 18 + i * 6);
     const x = 255 + i * 345;
     const y = lerp(690, 420 - i * 42, back(u));
-    const glow = i === 1 ? seg(t, 43, 58) : 0;
+    const glow = i === 1 ? seg(t, 38, 50) : 0;
     return `<g transform="translate(${x} ${y})" opacity="${u}">
       <rect width="295" height="190" rx="20" fill="${i === 1 ? C.paper3 : '#25282f'}" stroke="${s[2]}" stroke-width="${i === 1 ? 5 : 2}" filter="url(#softShadow)"/>
       <rect x="22" y="24" width="58" height="58" rx="16" fill="${s[2]}"/>
@@ -219,7 +278,7 @@ function shotInnovation(f) {
     ${text(196, 270, '新角度只有在读者收益和材料支撑都增加时才成立', 34, '#d9d0c4', 650)}
     <path d="M230 748C520 650 802 704 1092 560C1288 462 1386 412 1610 398" stroke="${C.amber}" stroke-width="5" opacity="0.54" fill="none"/>
     ${cards}
-    <g opacity="${seg(t, 52, 64)}">
+    <g opacity="${seg(t, 40, 48)}">
       <rect x="1238" y="198" width="300" height="62" rx="31" fill="${C.red}"/>
       ${text(1388, 240, '停止条件', 32, C.white, 850, 'text-anchor="middle"')}
     </g>
@@ -238,45 +297,43 @@ function sourceCard(x, y, title, sub, color, u) {
 }
 
 function shotSources(f) {
-  const t = f - 220;
-  const scan = seg(t, 8, 76, (x) => x);
+  const t = f - S_SRC;
   return `
     ${text(150, 156, '真实可靠，不编造', 70, C.white, 900)}
-    ${text(154, 216, '硬信息优先官方一手来源，时效内容标注信息截至日期', 34, '#d9d0c4', 650)}
+    ${text(154, 216, '种子资料只作起点，硬信息继续核对官方最新来源', 34, '#d9d0c4', 650)}
     ${sourceCard(140, 320, '官方一手来源', '官网 / 公告 / 原始 PDF', C.olive, seg(t, 6, 22))}
-    ${sourceCard(560, 320, '最新时点核验', '信息截至 2026-08-26', C.blue, seg(t, 18, 34))}
-    ${sourceCard(980, 320, '冲突与降级', '冲突保留，不硬凑结论', C.amber, seg(t, 30, 46))}
-    <g opacity="${seg(t, 48, 66)}">
+    ${sourceCard(560, 320, '最新时点核验', '信息截至 2026-08-29', C.blue, seg(t, 16, 32))}
+    ${sourceCard(980, 320, '冲突与降级', '冲突保留，不硬凑结论', C.amber, seg(t, 26, 42))}
+    <g opacity="${seg(t, 36, 52)}">
       <rect x="1388" y="320" width="390" height="178" rx="18" fill="#2b1515" stroke="${C.red}" filter="url(#softShadow)"/>
       ${text(1584, 386, 'NO FABRICATION', 34, C.red, 900, 'text-anchor="middle"')}
       ${text(1584, 440, '查不到就降级或标注', 30, C.white, 800, 'text-anchor="middle"')}
     </g>
-    <rect x="120" y="${580 + scan * 268}" width="1680" height="4" fill="${C.blue}" opacity="0.85"/>
     <g transform="translate(190 610)">
       <rect width="1540" height="218" rx="22" fill="#0b0d12" stroke="#303744"/>
       ${mono(38, 58, '$ verify sources --risk high', 30, '#9dffcf')}
-      ${mono(38, 108, 'A: official notice ... ok', 28, '#c9d3ea', 700, `opacity="${seg(t, 54, 62)}"`)}
-      ${mono(38, 154, 'date: information as of 2026-08-26', 28, '#c9d3ea', 700, `opacity="${seg(t, 62, 70)}"`)}
-      ${mono(38, 200, 'claim strength: supported / downgrade if stale', 28, '#c9d3ea', 700, `opacity="${seg(t, 70, 78)}"`)}
+      ${mono(38, 108, 'A: official notice ... ok', 28, '#c9d3ea', 700, `opacity="${seg(t, 46, 54)}"`)}
+      ${mono(38, 154, 'date: information as of 2026-08-29', 28, '#c9d3ea', 700, `opacity="${seg(t, 54, 62)}"`)}
+      ${mono(38, 200, 'claim strength: supported / downgrade if stale', 28, '#c9d3ea', 700, `opacity="${seg(t, 62, 70)}"`)}
     </g>
   `;
 }
 
 function shotTitleOpening(f) {
-  const t = f - 310;
+  const t = f - S_TITLE;
   const bad = ['随着时代发展', '后台有人问', '你是否也曾', '震惊速看'];
   const layoutShift = 215;
   const badSvg = bad.map((b, i) => {
     const y = 305 + i * 78;
-    const u = seg(t, 8 + i * 4, 22 + i * 4);
+    const u = seg(t, 6 + i * 4, 18 + i * 4);
     return `<g opacity="${u}">
       <rect x="${156 + layoutShift}" y="${y - 42}" width="420" height="58" rx="12" fill="#2a2d34" stroke="#444955"/>
       ${text(182 + layoutShift, y, b, 31, '#cfc7bb', 700)}
-      <path d="M${174 + layoutShift} ${y - 14}L${552 + layoutShift} ${y - 14}" stroke="${C.red}" stroke-width="5" opacity="${seg(t, 28 + i * 2, 36 + i * 2)}"/>
+      <path d="M${174 + layoutShift} ${y - 14}L${552 + layoutShift} ${y - 14}" stroke="${C.red}" stroke-width="5" opacity="${seg(t, 24 + i * 2, 32 + i * 2)}"/>
     </g>`;
   }).join('');
   const contract = ['目标读者', '此刻相关', '标题承诺', '正文证据'].map((l, i) =>
-    chip(1090 + layoutShift, 278 + i * 86, l, [C.olive, C.blue, C.amber, C.red][i], 244, seg(t, 12 + i * 6, 28 + i * 6))
+    chip(1090 + layoutShift, 278 + i * 86, l, [C.olive, C.blue, C.amber, C.red][i], 244, seg(t, 10 + i * 6, 24 + i * 6))
   ).join('');
   return `
     ${text(145, 160, '标题和开头，先做编辑决策', 66, C.white, 900)}
@@ -287,14 +344,13 @@ function shotTitleOpening(f) {
     ${text(790 + layoutShift, 458, '直接回答', 34, C.olive, 850)}
     ${text(790 + layoutShift, 512, '具体场景', 34, C.blue, 850)}
     ${text(790 + layoutShift, 566, '判断先行', 34, C.red, 850)}
-    <rect x="${783 + layoutShift}" y="592" width="${200 * seg(t, 48, 62)}" height="8" rx="4" fill="${C.amber}"/>
+    <rect x="${783 + layoutShift}" y="592" width="${200 * seg(t, 44, 54)}" height="8" rx="4" fill="${C.amber}"/>
     ${contract}
   `;
 }
 
 function shotHumanize(f) {
-  const t = f - 380;
-  const reveal = seg(t, 6, 62, (x) => x);
+  const t = f - S_HUMAN;
   const lines = [
     ['删除模板开头', '保留说话位置'],
     ['删掉虚构经历', '只写真实材料'],
@@ -302,55 +358,55 @@ function shotHumanize(f) {
     ['降低证据腔', '匹配文章体裁'],
   ];
   const rows = lines.map((r, i) => {
-    const u = seg(t, 12 + i * 8, 28 + i * 8);
+    const u = seg(t, i * 4, 10 + i * 4);
     return `<g opacity="${u}">
       <rect x="250" y="${308 + i * 82}" width="620" height="58" rx="12" fill="#2a1d1d" stroke="#613433"/>
       ${text(282, 348 + i * 82, r[0], 30, '#efb0a7', 750)}
-      <path d="M272 ${332 + i * 82}L806 ${332 + i * 82}" stroke="${C.red}" stroke-width="4"/>
+      <path d="M272 ${332 + i * 82}L806 ${332 + i * 82}" stroke="${C.red}" stroke-width="4" opacity="${seg(t, 14 + i * 3, 22 + i * 3)}"/>
       <rect x="958" y="${308 + i * 82}" width="620" height="58" rx="12" fill="${C.paper3}" stroke="#dfd4c5"/>
       ${text(990, 348 + i * 82, r[1], 30, C.ink, 800)}
     </g>`;
   }).join('');
   return `
     ${text(160, 156, '去 AI 味不是伪装', 70, C.white, 900)}
-    ${text(164, 216, '两轮检查后直接改写：材料、位置、取舍、节奏', 34, '#d9d0c4', 650)}
+    <rect x="162" y="188" width="${330 * seg(t, 2, 12)}" height="7" rx="4" fill="${C.amber}"/>
+    ${text(164, 246, '两轮检查后直接改写：材料、位置、取舍、节奏', 34, '#d9d0c4', 650)}
     ${rows}
-    <g opacity="${seg(t, 54, 68)}">
+    <g opacity="${seg(t, 36, 48)}">
       <rect x="710" y="760" width="500" height="78" rx="39" fill="${C.olive}"/>
       ${text(960, 812, 'PASS 1 + PASS 2', 36, C.white, 900, 'text-anchor="middle"')}
     </g>
-    <rect x="245" y="690" width="${1430 * reveal}" height="6" rx="3" fill="${C.amber}"/>
   `;
 }
 
 function shotPlatforms(f) {
-  const t = f - 460;
+  const t = f - S_PLAT;
   const plats = [
-    ['公众号', '富文本四件套', C.olive],
+    ['公众号', '主题排版四件套', C.olive],
     ['知乎', '回答 / 专栏原文', C.blue],
-    ['小红书', '原生短笔记', C.red],
-    ['官网/网页', 'SEO / GEO HTML', C.amber],
+    ['小红书', '纯文本 / 卡片预览', C.red],
+    ['官网/网页', 'SEO / GEO 结构化', C.amber],
     ['个人博客', 'Markdown 长文', '#6a5acd'],
   ];
   const cards = plats.map((p, i) => {
-    const u = seg(t, 5 + i * 5, 25 + i * 5);
+    const u = seg(t, 2 + i * 4, 16 + i * 4);
     const x = lerp(210 + i * 300, 235 + i * 292, u);
     const y = lerp(780, 430 + Math.sin(i) * 42, back(u));
     return fileCard(x, y, p[0], p[1], p[2], 1, u);
   }).join('');
   return `
     ${text(145, 164, '平台不是格式参数', 72, C.white, 900)}
-    ${text(150, 224, '同一想法，会被写成不同平台的原生内容', 34, '#d9d0c4', 650)}
+    ${text(150, 224, '交付样式逐平台确认，再写平台原生内容', 34, '#d9d0c4', 650)}
     <path d="M164 706C436 572 666 718 922 572C1174 428 1382 508 1694 352" stroke="${C.paper3}" stroke-width="4" opacity="0.18" fill="none"/>
     ${cards}
-    ${text(960, 818, '不把公众号长文缩短后分发到所有平台', 42, C.white, 850, 'text-anchor="middle" opacity="0.96"')}
+    ${text(960, 818, '不把公众号长文缩短后分发到所有平台', 42, C.white, 850, `text-anchor="middle" opacity="${0.96 * seg(t, 40, 50)}"`)}
   `;
 }
 
 function shotOutro(f) {
-  const t = f - 535;
+  const t = f - S_OUTRO;
   const items = [
-    ['route.card', '编辑判断', C.blue],
+    ['route.card', '路由与确认', C.blue],
     ['sources.log', '最新核验', C.olive],
     ['title.md', '点击契约', C.amber],
     ['article.md', '自然正文', C.red],
@@ -359,38 +415,43 @@ function shotOutro(f) {
     ['validate.py', '交付校验', C.red],
   ];
   const itemSvg = items.map((it, i) => {
-    const u = seg(t, 2 + i * 3, 22 + i * 3);
+    const u = seg(t, 2 + i * 1.5, 12 + i * 1.5);
+    const op = Math.max(u, seg(t, 0, 4));
     const angle = (i / items.length) * Math.PI * 2;
-    const tx = 960 + Math.cos(angle) * 515 - 128;
-    const ty = 515 + Math.sin(angle) * 268 - 74;
+    const tx = 960 + Math.cos(angle) * 560 - 128;
+    const ty = 510 + Math.sin(angle) * 305 - 74;
     const sx = i % 2 ? -220 : 1960;
     const sy = 120 + i * 110;
-    return fileCard(lerp(sx, tx, back(u)), lerp(sy, ty, back(u)), it[0], it[1], it[2], 0.82, u);
+    return fileCard(lerp(sx, tx, back(u)), lerp(sy, ty, back(u)), it[0], it[1], it[2], 0.82, op);
   }).join('');
-  const word = seg(t, 26, 48);
+  const word = seg(t, 24, 44);
   return `
-    <g opacity="${seg(t, 0, 20)}">${itemSvg}</g>
-    <g transform="translate(960 520) scale(${lerp(0.86, 1, back(word))})" opacity="${word}">
-      <rect x="-365" y="-138" width="730" height="276" rx="34" fill="${C.paper3}" filter="url(#shadow)"/>
-      ${logoMark(-250, -4, 1.02, C.paper3)}
-      ${serif(-152, -10, 'Mr.Li Writer', 68, C.ink, 900)}
-      ${text(0, 74, '从判断、核验、写作到真实交付', 34, C.muted, 800, 'text-anchor="middle"')}
-      <rect x="-250" y="104" width="${500 * seg(t, 46, 58)}" height="7" rx="4" fill="${C.amber}"/>
+    ${itemSvg}
+    <g transform="translate(960 505) scale(${lerp(0.86, 1, back(word))})" opacity="${word}">
+      <rect x="-340" y="-130" width="680" height="260" rx="30" fill="${C.paper3}" filter="url(#shadow)"/>
+      ${logoMark(-240, -6, 0.98, C.paper3)}
+      ${serif(-148, -12, 'Mr.Li Writer', 64, C.ink, 900)}
+      ${text(15, 70, '从判断、核验、写作到真实交付', 32, C.muted, 800, 'text-anchor="middle"')}
+      <rect x="-240" y="96" width="${480 * seg(t, 40, 52)}" height="7" rx="4" fill="${C.amber}"/>
     </g>
-    ${text(960, 875, '真实可靠 · 不编造 · 引用最新可核验资料', 43, C.white, 850, `text-anchor="middle" opacity="${seg(t, 45, 58)}"`)}
+    ${text(960, 940, '真实可靠 · 不编造 · 引用最新可核验资料', 43, C.white, 850, `text-anchor="middle" opacity="${seg(t, 40, 52)}"`)}
   `;
 }
 
 function scene(f) {
   let body = '';
-  if (f < 85) body = shotBrand(f);
-  else if (f < 150) body = shotRouting(f);
-  else if (f < 220) body = shotInnovation(f);
-  else if (f < 310) body = shotSources(f);
-  else if (f < 380) body = shotTitleOpening(f);
-  else if (f < 460) body = shotHumanize(f);
-  else if (f < 535) body = shotPlatforms(f);
-  else body = shotOutro(f);
+  if (f < S_GATE) body = shotBrand(f);
+  else if (f < S_ROUTE) body = shotGate(f);
+  else if (f < S_INNOV) body = shotRouting(f);
+  else if (f < S_SRC) body = shotInnovation(f);
+  else if (f < S_TITLE) body = shotSources(f);
+  else if (f < S_HUMAN) body = shotTitleOpening(f);
+  else if (f < S_PLAT) body = shotHumanize(f);
+  else if (f < S_OUTRO) body = shotPlatforms(f);
+  else if (f < S_OUTRO + XFADE) {
+    const k = 1 - (f - S_OUTRO) / XFADE;
+    body = `<g opacity="${k}">${shotPlatforms(f)}</g>${shotOutro(f)}`;
+  } else body = shotOutro(f);
   const vignette = `<rect width="${WIDTH}" height="${HEIGHT}" fill="none" stroke="#000" stroke-width="80" opacity="0.14"/>`;
   return `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
     ${defs()}
@@ -401,7 +462,7 @@ function scene(f) {
 }
 
 async function main() {
-  const keyFrames = new Set([0, 42, 100, 178, 264, 344, 420, 498, 570, 599]);
+  const keyFrames = new Set([0, 30, 60, 98, 156, 214, 262, 300, 354, 420, 480, 524, 560, 599]);
   for (let f = 0; f < TOTAL; f++) {
     const svg = scene(f);
     const file = path.join(FRAMES, `frame-${String(f).padStart(4, '0')}.png`);
@@ -411,7 +472,7 @@ async function main() {
     }
     if (f % 30 === 0) process.stdout.write(`frame ${f}/${TOTAL}\n`);
   }
-  fs.writeFileSync(path.join(OUT, 'render-info.json'), JSON.stringify({ width: WIDTH, height: HEIGHT, fps: FPS, frames: TOTAL }, null, 2));
+  fs.writeFileSync(path.join(OUT, 'render-info.json'), JSON.stringify({ width: WIDTH, height: HEIGHT, fps: FPS, frames: TOTAL, shots: { brand: S_BRAND, gate: S_GATE, routing: S_ROUTE, innovation: S_INNOV, sources: S_SRC, title: S_TITLE, humanize: S_HUMAN, platforms: S_PLAT, outro: S_OUTRO, xfade: XFADE } }, null, 2));
 }
 
 main().catch((err) => {
