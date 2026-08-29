@@ -17,7 +17,7 @@
 
 如果你想先快速了解这个 Skill 解决什么问题、从哪里形成差异、适合怎么用，可以先看这个 [20 秒视频](https://raw.githubusercontent.com/NocodeMrLi/mr-li-writer-skill/main/assets/mr-li-writer-promo-silent.mp4)。
 
-https://github.com/user-attachments/assets/0463a2b6-1edc-4bb8-98d6-99afe89bdc4c
+https://github.com/user-attachments/assets/70898d3b-9d74-4e0e-8013-cdc14cf4620d
 
 <sub>视频仅用于说明本项目已写入README的定位、特点和使用边界。</sub>
 
