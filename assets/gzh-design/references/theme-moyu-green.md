@@ -87,11 +87,11 @@
         <p style="font-size:15px;color:#D1D5DB;margin:0 0 6px;text-decoration:line-through;letter-spacing:0.5px;">
           <span leaf="">{{划线旧认知}}</span>
         </p>
-        <p style="font-size:24px;font-weight:900;color:#111827;margin:0;line-height:1.05;letter-spacing:-2px;">
+        <p style="font-size:24px;font-weight:900;color:#111827;margin:0;line-height:1.08;letter-spacing:0;word-break:keep-all;overflow-wrap:anywhere;">
           <span leaf="">{{主标题行1}}</span>
           <span style="color:#059669;"><span leaf="">{{绿色高亮词}}</span></span>
         </p>
-        <p style="font-size:24px;font-weight:900;color:#059669;margin:0 0 16px;line-height:1.05;letter-spacing:-2px;">
+        <p style="font-size:24px;font-weight:900;color:#059669;margin:0 0 16px;line-height:1.08;letter-spacing:0;word-break:break-word;overflow-wrap:anywhere;">
           <span leaf="">{{主标题行2}}</span>
         </p>
         <section style="width:48px;height:3px;background:linear-gradient(to right,#059669,#34D399);border-radius:2px;margin-bottom:12px;">
@@ -106,14 +106,12 @@
       </section>
     </section>
   </section>
-  <section style="background:linear-gradient(135deg,#059669,#10B981);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;">
-    <p style="font-size:12px;color:rgba(255,255,255,0.9);margin:0;font-weight:600;letter-spacing:0.5px;">
+  <section style="background:linear-gradient(135deg,#059669,#10B981);padding:12px 28px;">
+    <p style="font-size:12px;color:rgba(255,255,255,0.9);margin:0;font-weight:600;letter-spacing:0.5px;line-height:1.7;word-break:break-word;overflow-wrap:anywhere;">
       <span leaf="">{{底部左侧文字}}</span>
+      <span style="display:inline-block;margin-left:8px;margin-top:4px;text-align:center;background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:3px;font-size:8px;line-height:1.4;color:#fff;font-weight:600;word-break:keep-all;overflow-wrap:normal;vertical-align:middle;"><span leaf="">{{标签1}}</span></span>
+      <span style="display:inline-block;margin-left:4px;margin-top:4px;text-align:center;background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:3px;font-size:8px;line-height:1.4;color:#fff;font-weight:600;word-break:keep-all;overflow-wrap:normal;vertical-align:middle;"><span leaf="">{{标签2}}</span></span>
     </p>
-    <section style="display:flex;gap:4px;">
-      <span style="background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:3px;font-size:8px;color:#fff;font-weight:600;"><span leaf="">{{标签1}}</span></span>
-      <span style="background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:3px;font-size:8px;color:#fff;font-weight:600;"><span leaf="">{{标签2}}</span></span>
-    </section>
   </section>
 </section>
 ```
@@ -133,11 +131,11 @@
       <p style="font-size:15px;color:#D1D5DB;margin:0 0 6px;text-decoration:line-through;letter-spacing:0.5px;">
         <span leaf="">{{划线旧认知}}</span>
       </p>
-      <p style="font-size:24px;font-weight:900;color:#111827;margin:0;line-height:1.05;letter-spacing:-2px;">
+      <p style="font-size:24px;font-weight:900;color:#111827;margin:0;line-height:1.08;letter-spacing:0;word-break:keep-all;overflow-wrap:anywhere;">
         <span leaf="">{{主标题行1}}</span>
         <span style="color:#059669;"><span leaf="">{{绿色高亮词}}</span></span>
       </p>
-      <p style="font-size:24px;font-weight:900;color:#059669;margin:0 0 16px;line-height:1.05;letter-spacing:-2px;">
+      <p style="font-size:24px;font-weight:900;color:#059669;margin:0 0 16px;line-height:1.08;letter-spacing:0;word-break:break-word;overflow-wrap:anywhere;">
         <span leaf="">{{主标题行2}}</span>
       </p>
       <section style="width:48px;height:3px;background:linear-gradient(to right,#059669,#34D399);border-radius:2px;margin-bottom:12px;">
@@ -148,14 +146,12 @@
       </p>
     </section>
   </section>
-  <section style="background:linear-gradient(135deg,#059669,#10B981);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;">
-    <p style="font-size:12px;color:rgba(255,255,255,0.9);margin:0;font-weight:600;letter-spacing:0.5px;">
+  <section style="background:linear-gradient(135deg,#059669,#10B981);padding:12px 28px;">
+    <p style="font-size:12px;color:rgba(255,255,255,0.9);margin:0;font-weight:600;letter-spacing:0.5px;line-height:1.7;word-break:break-word;overflow-wrap:anywhere;">
       <span leaf="">{{底部左侧文字}}</span>
+      <span style="display:inline-block;margin-left:8px;margin-top:4px;text-align:center;background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:3px;font-size:8px;line-height:1.4;color:#fff;font-weight:600;word-break:keep-all;overflow-wrap:normal;vertical-align:middle;"><span leaf="">{{标签1}}</span></span>
+      <span style="display:inline-block;margin-left:4px;margin-top:4px;text-align:center;background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:3px;font-size:8px;line-height:1.4;color:#fff;font-weight:600;word-break:keep-all;overflow-wrap:normal;vertical-align:middle;"><span leaf="">{{标签2}}</span></span>
     </p>
-    <section style="display:flex;gap:4px;">
-      <span style="background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:3px;font-size:8px;color:#fff;font-weight:600;"><span leaf="">{{标签1}}</span></span>
-      <span style="background:rgba(255,255,255,0.2);padding:1px 6px;border-radius:3px;font-size:8px;color:#fff;font-weight:600;"><span leaf="">{{标签2}}</span></span>
-    </section>
   </section>
 </section>
 ```
@@ -164,7 +160,7 @@
 - `{{顶部标签}}` → 如 `TUTORIAL · 品牌实战`、`AI VIDEO · 实战案例`、`BREAKING`（建议 10-15 字符以内）
 - `{{日期}}` → 如 `2026.07`
 - `{{划线旧认知}}` → 被颠覆的旧观念（例：`MV要专业团队？`）
-- `{{主标题行1}}` → 标题前半段（黑色）；`{{绿色高亮词}}` → 标题中的绿色强调词；`{{主标题行2}}` → 标题第二行（全绿色）
+- `{{主标题行1}}` → 标题前半段（黑色）；`{{绿色高亮词}}` → 标题中的绿色强调词（可为空，避免窄屏出现黑绿之间异常留白）；`{{主标题行2}}` → 标题第二行（全绿色）
 - `{{副标题关键词}}` → 简短关键词，用 `·` 分隔
 - `{{底部左侧文字}}` → 产品/品牌名；`{{标签1/2}}` → 底部小标签
 

@@ -383,6 +383,39 @@ def short_text(text, limit=34):
     return clean[:limit].rstrip("，。；、 ") + "…"
 
 
+def connected_title(text):
+    raw = str(text or "").strip()
+    parts = re.split(r"\s*[|｜]\s*", raw, maxsplit=1)
+    if len(parts) != 2:
+        return raw
+
+    left, right = (part.strip() for part in parts)
+    if len(right) > 8:
+        right_line_1, right_line_2 = split_title(right, 6)
+        if right_line_2:
+            right = right_line_1 + "\u200b" + right_line_2
+    return "%s · %s" % (left, right)
+
+
+def emphasis_parts(text, limit=34):
+    clean = short_text(text, limit)
+    if not clean:
+        return "", "", ""
+    patterns = (
+        r"真正[^，。！？；]{1,6}",
+        r"更[^，。！？；]{1,6}",
+        r"关键[^，。！？；]{0,5}",
+        r"核心[^，。！？；]{0,5}",
+        r"不是[^，。！？；]{0,5}",
+        r"而是[^，。！？；]{0,5}",
+    )
+    match = next((found for pattern in patterns if (found := re.search(pattern, clean))), None)
+    if match is None:
+        keyword_len = min(6, len(clean))
+        return "", clean[:keyword_len], clean[keyword_len:]
+    return clean[:match.start()], match.group(0), clean[match.end():]
+
+
 FORBIDDEN_FRONT_LABELS = {
     "中立",
     "客观中立",
@@ -597,6 +630,9 @@ def apply_component(snippet, replacements):
         return html_text(replacements.get(key, ""))
 
     rendered = PLACEHOLDER_RE.sub(repl, snippet)
+    rendered = re.sub(r"\s*<span\b[^>]*>\s*<span leaf=\"\"></span>\s*</span>", "", rendered)
+    rendered = re.sub(r"\s*<span leaf=\"\"></span>", "", rendered)
+    rendered = re.sub(r"\n\s*<p\b[^>]*>\s*</p>", "", rendered, flags=re.S)
     return re.sub(r"\n?\s*<!--.*?-->\s*", "\n", rendered, flags=re.S)
 
 
@@ -604,7 +640,7 @@ def zen_hero(title, blocks):
     intro = pick_first_paragraph(blocks)
     return """
 <section style="margin:32px 16px 48px;padding:40px 24px;border-top:1px solid #E8E8E8;border-bottom:1px solid #E8E8E8;text-align:center;">
-  <p style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:19px;font-weight:600;color:#2B2B2B;margin:0 0 24px;line-height:1.85;letter-spacing:0.8px;">
+  <p style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:19px;font-weight:600;color:#2B2B2B;margin:0 0 24px;line-height:1.85;letter-spacing:0.8px;word-break:keep-all;overflow-wrap:anywhere;">
     <span leaf="">%s</span>
   </p>
   <p style="font-size:12px;color:#A3A3A3;margin:0;letter-spacing:1.5px;">
@@ -665,19 +701,28 @@ def component_container(components, theme):
 
 
 def component_hero(theme_key, components, title, blocks):
+    display_title = connected_title(title)
     if theme_key == "zen-whitespace":
-        return zen_hero(title, blocks)
+        return zen_hero(display_title, blocks)
     intro = pick_first_paragraph(blocks)
-    line1, line2 = split_title(title, 13)
+    quote_before, quote_keyword, quote_after = emphasis_parts(intro)
+    line1, line2 = split_title(display_title, 13)
     highlight_len = min(4, max(2, len(line1) // 3)) if len(line1) > 2 else 0
     line1_text = line1[:-highlight_len] if highlight_len else line1
     line1_highlight = line1[-highlight_len:] if highlight_len else ""
     today = __import__("datetime").date.today().strftime("%Y.%m.%d")
     topic_tag_1, topic_tag_2 = public_topic_tags(title, blocks)
+    if theme_key == "moyu-green":
+        if re.search(r"[|｜]", title or ""):
+            line1_text = display_title
+            line2 = ""
+        else:
+            line1_text = line1 or title
+        line1_highlight = ""
     base = {
-        "标题": title,
-        "主标题": title,
-        "主标题行1": line1_text or title,
+        "标题": display_title,
+        "主标题": display_title,
+        "主标题行1": line1_text or display_title,
         "主标题行2": line2,
         "绿色高亮词": line1_highlight,
         "强调词": "判断",
@@ -687,6 +732,12 @@ def component_hero(theme_key, components, title, blocks):
         "日期": today,
         "副标题关键词": short_text(intro, 28),
         "副标题说明": short_text(intro, 34),
+        "金句前段": quote_before,
+        "高亮关键词": quote_keyword,
+        "金句中段": quote_after,
+        "高亮关键词2": "",
+        "石墨下划线关键词": quote_keyword,
+        "金句收尾": "" if theme_key == "red-white" else quote_after,
         "底部左侧文字": short_text(pick_last_paragraph(blocks), 30),
         "底部摘要": short_text(pick_last_paragraph(blocks), 30),
         "标签1": topic_tag_1,
@@ -694,7 +745,7 @@ def component_hero(theme_key, components, title, blocks):
         "#标签1": "#%s" % topic_tag_1,
         "#标签2": "#%s" % topic_tag_2,
         "#标签3": "#阅读笔记",
-        "大标题": title,
+        "大标题": display_title,
         "副标题": short_text(intro, 28),
         "简介段落": short_text(intro, 38),
         "作者名": "Mr.Li Writer",

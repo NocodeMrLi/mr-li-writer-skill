@@ -78,7 +78,7 @@
   </section>
   <section style="display:flex;">
     <section style="flex:1;min-width:0;box-sizing:border-box;padding:24px 20px;border-right:2px dashed #A7F3D0;word-break:break-word;overflow-wrap:anywhere;">
-      <section style="font-size:24px;font-weight:900;color:#1a1a1a;letter-spacing:0.5px;margin-bottom:4px;text-shadow:0.5px 0 0 #1a1a1a;word-break:break-word;overflow-wrap:anywhere;"><span leaf="">{{大标题}}</span></section>
+      <section style="font-size:24px;font-weight:900;color:#1a1a1a;letter-spacing:0.5px;margin-bottom:4px;text-shadow:0.5px 0 0 #1a1a1a;word-break:keep-all;overflow-wrap:anywhere;"><span leaf="">{{大标题}}</span></section>
       <section style="font-size:14px;color:#666;letter-spacing:1px;margin-bottom:20px;word-break:break-word;overflow-wrap:anywhere;"><span leaf="">{{副标题}}</span></section>
       <section style="border-top:1px dashed #A7F3D0;margin-bottom:16px;"><span leaf=""><br></span></section>
       <section style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
@@ -93,9 +93,9 @@
         <span leaf="">{{简介段落}}</span>
       </section>
       <section style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
-        <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签1}}</span></section>
-        <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签2}}</span></section>
-        <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签3}}</span></section>
+        <section style="display:inline-block;min-width:44px;text-align:center;font-size:10px;line-height:1.4;color:#059669;border:1px solid #059669;padding:4px 10px;word-break:keep-all;overflow-wrap:normal;"><span leaf="">{{#标签1}}</span></section>
+        <section style="display:inline-block;min-width:44px;text-align:center;font-size:10px;line-height:1.4;color:#059669;border:1px solid #059669;padding:4px 10px;word-break:keep-all;overflow-wrap:normal;"><span leaf="">{{#标签2}}</span></section>
+        <section style="display:inline-block;min-width:44px;text-align:center;font-size:10px;line-height:1.4;color:#059669;border:1px solid #059669;padding:4px 10px;word-break:keep-all;overflow-wrap:normal;"><span leaf="">{{#标签3}}</span></section>
       </section>
     </section>
     <section style="width:48px;padding:14px 4px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;background:#F0FDF4;">
@@ -325,9 +325,9 @@
 ```html
 <section style="margin-bottom:32px;padding:0 20px;">
   <section style="display:flex;gap:8px;flex-wrap:wrap;">
-    <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签1}}</span></section>
-    <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签2}}</span></section>
-    <section style="font-size:10px;color:#059669;border:1px solid #059669;padding:4px 10px;"><span leaf="">{{#标签3}}</span></section>
+    <section style="display:inline-block;min-width:44px;text-align:center;font-size:10px;line-height:1.4;color:#059669;border:1px solid #059669;padding:4px 10px;word-break:keep-all;overflow-wrap:normal;"><span leaf="">{{#标签1}}</span></section>
+    <section style="display:inline-block;min-width:44px;text-align:center;font-size:10px;line-height:1.4;color:#059669;border:1px solid #059669;padding:4px 10px;word-break:keep-all;overflow-wrap:normal;"><span leaf="">{{#标签2}}</span></section>
+    <section style="display:inline-block;min-width:44px;text-align:center;font-size:10px;line-height:1.4;color:#059669;border:1px solid #059669;padding:4px 10px;word-break:keep-all;overflow-wrap:normal;"><span leaf="">{{#标签3}}</span></section>
   </section>
 </section>
 ```

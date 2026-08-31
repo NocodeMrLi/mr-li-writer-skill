@@ -1833,6 +1833,66 @@ class GzhThemeRegressionTests(unittest.TestCase):
         plain = re.sub(r"\s+", "", plain)
         self.assertEqual(plain.count(title), 1)
 
+    def test_moyu_cover_separator_title_has_no_inline_highlight_gap(self):
+        title = "9月第一周｜软考报名收官作战表"
+        rendered = build_gzh.build_component_section(SAMPLE_MD, title, "moyu-green")
+        plain = html.unescape(re.sub(r"<[^>]+>", "", rendered))
+        plain = re.sub(r"[\s\u200b]+", "", plain)
+        self.assertEqual(plain.count("9月第一周·软考报名收官作战表"), 1)
+        self.assertNotIn('<span leaf="">｜软</span>', rendered)
+        hero = rendered.split("03 PARTS", 1)[0]
+        self.assertIn("9月第一周 · 软考报名收官作战表", hero.replace("\u200b", ""))
+        self.assertIn("\u200b", hero)
+        self.assertNotIn('<span leaf=""></span>', hero)
+        self.assertNotRegex(hero, r"<p\b[^>]*>\s*</p>")
+        self.assertNotIn("letter-spacing:-2px", hero)
+
+    def test_separator_titles_use_connected_dot_across_cover_themes(self):
+        title = "9月第一周｜软考报名收官作战表"
+        for theme in ("moyu-green", "zen-whitespace", "moyu-ticket", "olive-journal"):
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(SAMPLE_MD, title, theme)
+                self.assertIn("9月第一周 · 软考报名收官作战表", rendered.replace("\u200b", ""))
+                self.assertIn("\u200b", rendered)
+                self.assertNotIn(title, rendered)
+
+    def test_cover_titles_prioritize_semantic_breaks_without_fixed_desktop_split(self):
+        for theme in ("moyu-green", "zen-whitespace", "moyu-ticket", "olive-journal"):
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(
+                    SAMPLE_MD,
+                    "9月第一周｜软考报名收官作战表",
+                    theme,
+                )
+                self.assertIn("word-break:keep-all", rendered)
+                self.assertIn("overflow-wrap:anywhere", rendered)
+
+    def test_olive_cover_wraps_illustration_only_when_space_is_narrow(self):
+        rendered = build_gzh.build_component_section(
+            SAMPLE_MD,
+            "9月第一周｜软考报名收官作战表",
+            "olive-journal",
+        )
+        self.assertIn("justify-content:center;gap:18px;flex-wrap:wrap", rendered)
+        self.assertIn("flex:1 1 260px;min-width:0", rendered)
+        self.assertIn("flex-shrink:0;width:112px", rendered)
+
+    def test_quote_cover_themes_render_the_intro_instead_of_an_empty_card(self):
+        intro = "真正重要的不是多写一点，而是把值得说的话说清楚。"
+        md = "# 标题\n\n%s\n\n## 第一部分\n正文。" % intro
+        for theme in ("red-white", "graphite-minimal"):
+            with self.subTest(theme=theme):
+                rendered = build_gzh.component_hero(
+                    theme,
+                    build_gzh.load_theme_components(theme),
+                    "测试文章",
+                    build_gzh.parse_blocks(md),
+                )
+                plain = html.unescape(re.sub(r"<[^>]+>", "", rendered))
+                plain = re.sub(r"\s+", "", plain)
+                self.assertEqual(plain.count(intro), 1)
+                self.assertNotRegex(rendered, r"<p\b[^>]*>\s*</p>")
+
     def test_graphite_section_number_is_a_placeholder(self):
         text = (ROOT / "assets/gzh-design/references/theme-graphite-minimal.md").read_text(encoding="utf-8")
         component = text.split("## 组件 5 章节标题", 1)[1].split("## 组件 6", 1)[0]
@@ -1904,6 +1964,19 @@ class GzhThemeRegressionTests(unittest.TestCase):
                     self.assertNotIn("overflow-x:auto", component)
                     self.assertNotRegex(component, r"width:\s*\d+(?:\.\d+)?vw")
                     self.assertNotIn("white-space:nowrap", component)
+
+    def test_front_cover_badges_resist_vertical_wrapping_across_themes(self):
+        for theme in ("moyu-green", "moyu-ticket", "olive-journal"):
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(SAMPLE_MD, "软考报名收官作战表", theme)
+                self.assertIn("word-break:keep-all", rendered)
+                self.assertIn("overflow-wrap:normal", rendered)
+        for theme in ("moyu-green", "olive-journal"):
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(SAMPLE_MD, "软考报名收官作战表", theme)
+                hero = rendered.split("03 PARTS", 1)[0]
+                self.assertNotIn("justify-content:space-between;gap:", hero)
+                self.assertNotIn("min-width:96px", hero)
 
     def test_markdown_tables_render_as_semantic_responsive_tables_in_every_theme(self):
         blocks = build_gzh.parse_blocks(TABLE_MD)

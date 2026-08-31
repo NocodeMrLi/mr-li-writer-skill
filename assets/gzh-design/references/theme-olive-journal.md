@@ -73,10 +73,10 @@
       <span style="flex:1;height:1px;background:#bfc1b7;display:inline-block;overflow:hidden;vertical-align:middle;font-size:0;line-height:0;"><span leaf="">&nbsp;</span></span>
       <span style="font-size:10px;color:#9ea096;font-weight:500;font-variant-numeric:tabular-nums;"><span leaf="">{{日期}}</span></span>
     </section>
-    <section style="display:flex;align-items:stretch;gap:18px;">
-      <section style="flex:1;min-width:0;">
+    <section style="display:flex;align-items:stretch;justify-content:center;gap:18px;flex-wrap:wrap;">
+      <section style="flex:1 1 260px;min-width:0;">
         <p style="font-size:14px;color:#9ea096;margin:0 0 8px;letter-spacing:0.3px;text-decoration:line-through;"><span leaf="">{{旧标题占位}}</span></p>
-        <p style="font-size:24px;font-weight:800;color:#23251d;margin:0 0 10px;line-height:1.15;letter-spacing:-0.75px;">
+        <p style="font-size:24px;font-weight:800;color:#23251d;margin:0 0 10px;line-height:1.15;letter-spacing:0;word-break:keep-all;overflow-wrap:anywhere;">
           <span leaf="">{{主标题}}</span><span style="color:#4d4f46;"><span leaf="">&nbsp;·&nbsp;</span></span><span style="border-bottom:3px solid #e5e7e0;"><span leaf="">{{强调词}}</span></span>
         </p>
         <section style="display:flex;align-items:center;gap:4px;margin-bottom:12px;">
@@ -97,12 +97,12 @@
       </section>
     </section>
   </section>
-  <section style="background:#1e1f23;padding:11px 24px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-    <p style="font-size:12px;color:rgba(255,255,255,0.92);margin:0;font-weight:600;"><span leaf="">{{底部摘要}}</span></p>
-    <section style="display:flex;gap:6px;flex-wrap:wrap;">
-      <span style="background:#e5e7e0;color:#23251d;padding:3px 8px;border-radius:4px;font-size:8px;font-weight:700;border:1px solid #bfc1b7;"><span leaf="">{{标签1}}</span></span>
-      <span style="background:#e5e7e0;color:#23251d;padding:3px 8px;border-radius:4px;font-size:8px;font-weight:700;border:1px solid #bfc1b7;"><span leaf="">{{标签2}}</span></span>
-    </section>
+  <section style="background:#1e1f23;padding:11px 24px;">
+    <p style="font-size:12px;color:rgba(255,255,255,0.92);margin:0;font-weight:600;line-height:1.7;word-break:break-word;overflow-wrap:anywhere;">
+      <span leaf="">{{底部摘要}}</span>
+      <span style="display:inline-block;margin-left:8px;margin-top:4px;text-align:center;background:#e5e7e0;color:#23251d;padding:3px 8px;border-radius:4px;font-size:8px;line-height:1.4;font-weight:700;border:1px solid #bfc1b7;word-break:keep-all;overflow-wrap:normal;vertical-align:middle;"><span leaf="">{{标签1}}</span></span>
+      <span style="display:inline-block;margin-left:4px;margin-top:4px;text-align:center;background:#e5e7e0;color:#23251d;padding:3px 8px;border-radius:4px;font-size:8px;line-height:1.4;font-weight:700;border:1px solid #bfc1b7;word-break:keep-all;overflow-wrap:normal;vertical-align:middle;"><span leaf="">{{标签2}}</span></span>
+    </p>
   </section>
 </section>
 ```
