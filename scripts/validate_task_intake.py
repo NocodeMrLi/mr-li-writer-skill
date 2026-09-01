@@ -61,6 +61,7 @@ RESUME_RE = re.compile(
 DIRECT_AUTO_RE = re.compile(r"(不用问|不要询问|直接处理)")
 YOU_DECIDE_RE = re.compile(r"你看着办")
 AUTO_MATCH_RE = re.compile(r"自动匹配")
+NEGATED_INTENT_PREFIX_RE = re.compile(r"(?:不是|不想|不要|不能|不许|禁止|拒绝|别|不)\s*(?:再|直接|继续|由你|让你)?\s*$")
 LOCAL_SCOPE_RE = re.compile(r"(公众号)?主题|排版主题|样式|交付样式|标题|题目|主标题|封面标题|标签|目录|大纲|小标题|直接排")
 GLOBAL_SCOPE_RE = re.compile(r"(全部|所有|本次|整体|整篇|全流程|平台|内容目标|创作方向|交付样式|都|全都)")
 MEMORY_AUTH_RE = re.compile(
@@ -242,6 +243,8 @@ def quote_text(record):
 def has_task_level_auto_authorization(text):
     text = str(text or "")
     for match in DIRECT_AUTO_RE.finditer(text):
+        if NEGATED_INTENT_PREFIX_RE.search(text[max(0, match.start() - 12) : match.start()]):
+            continue
         window = text[max(0, match.start() - 8) : match.end() + 8]
         local_scope = LOCAL_SCOPE_RE.search(window)
         global_scope = GLOBAL_SCOPE_RE.search(window)
@@ -249,15 +252,17 @@ def has_task_level_auto_authorization(text):
             continue
         return True
     for match in YOU_DECIDE_RE.finditer(text):
+        if NEGATED_INTENT_PREFIX_RE.search(text[max(0, match.start() - 12) : match.start()]):
+            continue
         window = text[max(0, match.start() - 8) : match.end() + 8]
         local_scope = LOCAL_SCOPE_RE.search(window)
         global_scope = GLOBAL_SCOPE_RE.search(window)
         if local_scope and not global_scope:
             continue
         return True
-    if re.search(r"(全部|所有|全都|本次|整体|整篇|全流程).{0,12}自动匹配|自动匹配.{0,12}(全部|所有|全都|本次|整体|整篇|全流程)", text):
-        return True
     for match in AUTO_MATCH_RE.finditer(text):
+        if NEGATED_INTENT_PREFIX_RE.search(text[max(0, match.start() - 12) : match.start()]):
+            continue
         window = text[max(0, match.start() - 8) : match.end() + 8]
         local_scope = LOCAL_SCOPE_RE.search(window)
         global_scope = GLOBAL_SCOPE_RE.search(window)
@@ -307,7 +312,7 @@ def state_from_prompt(prompt):
     memory_based = bool(MEMORY_AUTH_RE.search(text))
     source = "auto_authorized" if has_task_level_auto_authorization(text) and not memory_based else "prompt_detected"
     confirmed = source == "auto_authorized"
-    quote = "自动匹配" if confirmed else ""
+    quote = text.strip() if confirmed else ""
     state = {}
     platform = ""
     for candidate in ("公众号", "小红书", "知乎", "官网/网页", "个人博客"):

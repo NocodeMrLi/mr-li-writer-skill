@@ -499,10 +499,10 @@ body{margin:0;color:#212322;font:15px/1.7 -apple-system,BlinkMacSystemFont,"Ping
     </footer>
   </article>
 </main>
-<script type="text/plain" id="plainText">__PLAIN_TEXT__</script>
+<textarea id="plainText" hidden aria-hidden="true">__PLAIN_TEXT__</textarea>
 <script>
 function copyPlain(){
-  var text=document.getElementById('plainText').textContent;
+  var text=document.getElementById('plainText').value;
   try{
     if(navigator.clipboard&&navigator.clipboard.writeText){
       navigator.clipboard.writeText(text).then(function(){toast('已复制纯文本笔记');},function(){fallbackCopy(text);});
@@ -611,15 +611,17 @@ def require_task_state(task_state, phase, platform="", expected_style=""):
     return subprocess.call(cmd)
 
 
-def escape_script_text(text):
-    return text.replace("</script", "<\\/script")
+def embed_plain_text(text):
+    """Embed untrusted publishable text without entering an executable HTML context."""
+    return html.escape(text)
 
 
 def clean_page_from_preview(page):
     """Remove preview controls while retaining the platform-styled article."""
     page = re.sub(r'<div class="reading-progress".*?</div>\s*', "", page, flags=re.S)
     page = re.sub(r'<div class="toolbar">.*?</div>\s*', "", page, count=1, flags=re.S)
-    page = re.sub(r'<script(?:\s+type="text/plain")?.*?</script>\s*', "", page, flags=re.S)
+    page = re.sub(r'<textarea\b[^>]*\bid="plainText"[^>]*>.*?</textarea>\s*', "", page, flags=re.S | re.I)
+    page = re.sub(r'<script.*?</script>\s*', "", page, flags=re.S | re.I)
     return page
 
 
@@ -737,7 +739,7 @@ def main():
         page = (XHS_HTML_TEMPLATE
                 .replace("__TITLE__", html.escape(title))
                 .replace("__BODY__", body)
-                .replace("__PLAIN_TEXT__", escape_script_text(plain_text)))
+                .replace("__PLAIN_TEXT__", embed_plain_text(plain_text)))
     else:
         page = (HTML_TEMPLATE
                 .replace("__TITLE__", html.escape(title))

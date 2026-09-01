@@ -23,7 +23,7 @@ def check_dep(module_name, pip_name, feature):
         sys.stderr.write(
             "[缺少依赖] 功能 '%s' 需要 %s。\n"
             "请安装到受管环境后再运行，例如:\n"
-            "  python -m pip install %s\n" % (feature, pip_name, pip_name)
+            "  python3 -m pip install %s\n" % (feature, pip_name, pip_name)
         )
         sys.exit(2)
 

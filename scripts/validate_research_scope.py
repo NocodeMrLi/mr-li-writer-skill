@@ -18,6 +18,7 @@ TIME_SENSITIVE_RE = re.compile(
 )
 SOURCE_FILE_RE = re.compile(r"\.(docx|pdf|md|txt|png|jpe?g|webp)\b", re.I)
 SEED_ONLY_RE = re.compile(r"(只基于|仅基于|不要外查|不再外查|不用外查|不要联网|不联网|只用我给|仅用我给|只看我给|仅看我给)")
+NEGATED_INTENT_PREFIX_RE = re.compile(r"(?:不是|不想|不要|不能|不许|禁止|拒绝|别|不)\s*(?:再|仅仅|只是)?\s*$")
 
 
 def load_state(path):
@@ -134,7 +135,11 @@ def explicit_seed_only_authorized(state, scope):
         if isinstance(record, dict):
             candidates.extend([record.get("value", ""), record.get("user_quote", ""), record.get("authorization_quote", "")])
     for text in candidates:
-        if SEED_ONLY_RE.search(str(text or "")):
+        value = str(text or "")
+        for match in SEED_ONLY_RE.finditer(value):
+            prefix = value[max(0, match.start() - 12) : match.start()]
+            if NEGATED_INTENT_PREFIX_RE.search(prefix):
+                continue
             return True
     return has_truthy(scope, "seed_only_confirmed") or has_truthy(scope, "no_external_search_confirmed")
 

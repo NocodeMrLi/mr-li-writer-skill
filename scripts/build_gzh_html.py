@@ -1366,17 +1366,21 @@ body{margin:0;background:#eef0f2;font-family:-apple-system,BlinkMacSystemFont,'P
 .gzh-toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px);box-sizing:border-box;text-align:center;}
 .gzh-toast.show{opacity:1;}
 .gzh-stage{max-width:700px;margin:78px auto 64px;padding:0 8px;}
+.gzh-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 </style>
 </head>
 <body>
-<section class="gzh-toolbar">
+<header class="gzh-toolbar">
   <span class="gzh-hint">下方是排版效果 · 点右侧 <b>复制</b> 直接粘到公众号</span>
-  <button class="gzh-copy" id="gzhCopyBtn" onclick="gzhCopy()">复制到公众号</button>
-</section>
-<section class="gzh-toast" id="gzhToast"></section>
-<section class="gzh-stage"><section id="gzh-content">
+  <button type="button" class="gzh-copy" id="gzhCopyBtn" onclick="gzhCopy()">复制到公众号</button>
+</header>
+<div class="gzh-toast" id="gzhToast" role="status" aria-live="polite"></div>
+<main class="gzh-stage">
+<h1 class="gzh-sr-only">__TITLE__</h1>
+<article id="gzh-content">
 __CONTENT__
-</section></section>
+</article>
+</main>
 <script>
 function gzhShowToast(msg){var t=document.getElementById('gzhToast');t.textContent=msg;t.classList.add('show');clearTimeout(t._timer);t._timer=setTimeout(function(){t.classList.remove('show');},2800);}
 function gzhClipboardHtml(el){

@@ -223,4 +223,5 @@ findings.md
 progress.md
 task_plan.md
 promo-video/out/
+promo-video/node_modules/
 promo-video/**/.DS_Store

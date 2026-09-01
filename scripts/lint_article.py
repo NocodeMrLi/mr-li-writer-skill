@@ -184,6 +184,7 @@ XHS_LONGFORM_PATTERNS = (
 EMOJI_OR_SYMBOL_PATTERN = re.compile(
     r"[\U0001F300-\U0001FAFF]|[✅⚠️📌✨🔥💡🌟👉❗️❤️⭐️]"
 )
+PERCENT_PATTERN = re.compile(r"(?<!\d)\d{1,3}(?:\.\d+)?%(?!\w)")
 
 
 def parse_args():
@@ -213,6 +214,11 @@ def parse_args():
         "--allow-commercial-source-names",
         action="store_true",
         help="文章本身在评测/介绍相关商业机构时，允许正文显名并要求说明利益关系",
+    )
+    parser.add_argument(
+        "--strict-delivery",
+        action="store_true",
+        help="正式交付模式：流程泄漏、商业资料背书、未经证实的第一人称和无来源百分比将阻断交付",
     )
     return parser.parse_args()
 
@@ -317,19 +323,28 @@ def main():
         if matches:
             process_leaks.append(message)
     if process_leaks:
-        warnings.append(
+        message = (
             "正文疑似暴露内容生产/资料处理过程：%s。请改为读者可接受的来源口径，如“信息截至 YYYY-MM-DD”“据官网当前页面”“公开资料显示”，不要出现抓取、爬取、采集、检索结果、AI 生成、提示词等后台动作。"
             % "；".join(dict.fromkeys(process_leaks))
         )
+        warnings.append(message)
+        if args.strict_delivery:
+            errors.append("严格交付门禁：%s" % message)
 
     commercial_patterns = COMMERCIAL_SOURCE_EXPOSURE_PATTERNS + configured_commercial_source_patterns()
     if not args.allow_commercial_source_names and any(re.search(pattern, text, re.I) for pattern in commercial_patterns):
-        warnings.append(
+        message = (
             "正文疑似把商业相关第三方机构写成资料背书。硬信息应优先使用官方来源；第三方仅作辅助核对时，请改为“相关机构公开汇总”，不要在正文显名宣传。"
         )
+        warnings.append(message)
+        if args.strict_delivery:
+            errors.append("严格交付门禁：%s" % message)
 
     if re.search(r"我亲自|我亲身|我翻了[一二三四五六七八九十0-9]+份|我采访过", text):
-        warnings.append("发现可能未经证实的第一人称经历或采访表达，请核对来源。")
+        message = "发现可能未经证实的第一人称经历或采访表达，请核对来源。"
+        warnings.append(message)
+        if args.strict_delivery:
+            errors.append("严格交付门禁：%s" % message)
 
     if args.title:
         title_length = len(args.title.strip())
@@ -344,8 +359,11 @@ def main():
         if not re.search(r"https?://\S+", text):
             errors.append("参考资料章节中没有可验证的 URL。")
 
-    if re.search(r"\b\d{2,3}%\b", text) and not re.search(r"https?://\S+", text):
-        warnings.append("正文包含百分比数据，但未发现 URL；请补充来源或删除数字。")
+    if PERCENT_PATTERN.search(text) and not re.search(r"https?://\S+", text):
+        message = "正文包含百分比数据，但未发现 URL；请补充来源或删除数字。"
+        warnings.append(message)
+        if args.strict_delivery:
+            errors.append("严格交付门禁：%s" % message)
 
     evidence_hits = sum(text.count(phrase) for phrase in EVIDENCE_PHRASES)
     density = args.evidence_density
@@ -356,7 +374,7 @@ def main():
                 "低证据体裁/密度中出现数据、研究或专家话术 %d 次；检查是否喧宾夺主。"
                 % evidence_hits
             )
-        if len(re.findall(r"\b\d{2,3}%\b", text)) >= 2:
+        if len(PERCENT_PATTERN.findall(text)) >= 2:
             warnings.append("低证据文章包含多个百分比数字；检查是否把生活/关系内容写成报告。")
         if args.require_sources and not re.search(r"^##\s+(参考资料|References)\s*$", text, re.M):
             warnings.append("低证据文章未列参考资料可以接受，但请确认正文没有硬事实承诺。")

@@ -539,7 +539,7 @@ python3 scripts/build_html.py <正文.md> --platform 公众号 -t random --auto-
 python3 scripts/validate_delivery_bundle.py <交付目录> --platform 公众号 --task-state <任务状态.json>
 ```
 
-缺少任一文件或校验失败时，先补齐并重新检查，不能向用户交付不完整结果。
+缺少任一文件或校验失败时，先补齐并重新检查，不能向用户交付不完整结果。交付校验会自动调用严格正文门禁：生产流程泄漏、商业第三方冒充硬信息背书、未经核验的第一人称经历、无来源百分比均阻断；文风类提醒保持非阻断。中高证据密度、研究解释类、政策行业类或专业报告还必须有参考资料章节和可验证 URL。
 
 非公众号平台若本次涉及排版，运行：
 
@@ -612,11 +612,12 @@ HTML 交付前检查桌面端和移动端的阅读宽度、标题/金句换行�
 - `scripts/extract_seed.py`：DOCX、PDF、图片素材提取和可选人工指定脱敏。
 - `scripts/validate_task_intake.py`：新任务、恢复任务、正式写作/排版/交付前的必问项与条件项硬门禁。
 - `scripts/validate_research_scope.py`：用户资料种子化、外部扩展检索、官方/权威核验、最新核验和来源组合硬门禁。
-- `scripts/lint_article.py`：正文、引用、标题和常见 AI 腔的静态检查。
+- `scripts/lint_article.py`：正文、引用、标题和常见 AI 腔的静态检查；`--strict-delivery` 将读者端政策违规升级为正式交付阻断。
 - `scripts/build_html.py`：零外部依赖的多平台 HTML 交付入口，公众号平台会调用公众号专用排版器。
 - `scripts/build_gzh_html.py`：Markdown 到公众号内联 HTML 快速排版器，支持 6 套 gzh-design 风格主题、自动匹配、干净正文片段和复制预览页；正式精排以 `assets/gzh-design/references/` 的完整组件库为准。
 - `scripts/validate_gzh_html.py`：公众号 HTML 合规校验器。
-- `scripts/validate_delivery_bundle.py`：跨平台交付完整性校验器，支持基础两件和条件式排版四件；公众号固定四件。
+- `scripts/validate_delivery_bundle.py`：跨平台交付完整性与正文质量校验器，支持基础两件和条件式排版四件；公众号固定四件。
+- `scripts/scan_sensitive.py`：跟踪文本文件的高置信度凭据扫描器，用于本地自检和 CI。
 - `scripts/component_lint.py`：公众号主题组件库源头检查器。
 - `scripts/gzh_component_inventory.py`：公众号主题与组件清单检查器。
 - `scripts/wrap_gzh_preview.py`：把干净公众号正文片段包成带复制按钮的浏览器预览页。

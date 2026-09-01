@@ -382,7 +382,7 @@ python3 scripts/extract_seed.py <file.docx|file.pdf|image.png>
 python3 scripts/extract_seed.py <file.docx> --redact-term "需要隐藏的词"
 ```
 
-依赖：`pip install python-docx pypdf rapidocr_onnxruntime`
+依赖：`python3 -m pip install python-docx pypdf rapidocr_onnxruntime`
 
 ### 资料范围校验
 
@@ -432,7 +432,7 @@ python3 scripts/build_html.py <web.md> -o web.html --title "网页标题" --plat
 
 公众号脚本会根据正文输出名自动生成预览页，例如 `article-gzh.html` 对应 `article-gzh-preview.html`；整理最终四件套时可统一命名为 `article-preview.html`。
 
-公众号交付前会运行固定四件套校验，少任何一件都不会进入最终交付。其他平台先校验标题策略和平台原生正文；本次涉及排版时再用 `--layout` 要求干净 HTML 与复制预览 HTML。交付时优先使用宿主原生附件/文件卡片；宿主不支持时会如实说明能力边界，不把本地绝对路径包装成看似可点击的链接。
+公众号交付前会运行固定四件套校验，少任何一件都不会进入最终交付。其他平台先校验标题策略和平台原生正文；本次涉及排版时再用 `--layout` 要求干净 HTML 与复制预览 HTML。所有平台的正式交付校验还会自动执行正文质量门禁：生产流程泄漏、商业第三方冒充硬信息背书、未经核验的第一人称经历和无来源百分比会阻断；普通文风提醒仍作为非阻断警告。中高证据密度、研究解释类、政策行业类或专业报告会同时要求参考资料章节与可验证 URL。交付时优先使用宿主原生附件/文件卡片；宿主不支持时会如实说明能力边界，不把本地绝对路径包装成看似可点击的链接。
 
 公众号组件库检查：
 
@@ -449,10 +449,15 @@ python3 scripts/validate_delivery_bundle.py ./delivery --platform 官网/网页 
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 -m py_compile scripts/*.py tests/test_regressions.py
+python3 -m compileall -q scripts tests
 python3 scripts/gzh_component_inventory.py .
 python3 scripts/component_lint.py .
+python3 scripts/scan_sensitive.py
+npm --prefix promo-video ci
+npm --prefix promo-video audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
 ```
+
+仓库内的 GitHub Actions 会在 Python 3.9、3.11 和 3.13 上重复执行 Python、组件与敏感信息门禁，并使用 Node.js 20 检查宣传片锁定依赖、生产依赖安全审计、生成器语法和 Sharp 原生模块加载。
 
 涉及写作规则升级时，还应使用 [编辑效果评测规范](references/editorial-evaluation-protocol.md) 和 12 个[跨体裁种子题](tests/fixtures/editorial-routing-cases.md)做盲评与同题多跑。评测同时关注点击意愿、任务完成度、理解成本、可信度、活人感、信息增量和平台原生度；没有实际评测数据时，不宣称写作效果已经得到证明。
 
@@ -464,6 +469,8 @@ python3 scripts/component_lint.py .
 
 ```text
 mr-li-writer-skill/
+├── .github/workflows/
+│   └── quality.yml
 ├── README.md
 ├── SKILL.md
 ├── LICENSE
@@ -491,12 +498,17 @@ mr-li-writer-skill/
 │   ├── validate_delivery_bundle.py
 │   ├── component_lint.py
 │   ├── gzh_component_inventory.py
+│   ├── scan_sensitive.py
 │   └── wrap_gzh_preview.py
 ├── tests/
 │   ├── test_regressions.py
+│   ├── test_quality_gates.py
 │   └── fixtures/
 │       └── editorial-routing-cases.md
 ├── promo-video/
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── README.md
 │   ├── scripts/
 │   │   └── generate-promo-video.js
 │   ├── mobile-preview/
@@ -514,7 +526,7 @@ mr-li-writer-skill/
         └── references/  # gzh-design-skill 主题索引、公共组件和完整主题组件库
 ```
 
-`promo-video/out/` 是本地渲染产物目录，不纳入版本控制；宣传视频源码、预览页和制作说明纳入仓库，便于复现 README 中的演示素材。
+`promo-video/out/` 是本地渲染产物目录，不纳入版本控制；宣传视频源码、锁定依赖、FFmpeg 编码命令和制作说明均纳入仓库。复现步骤见 [`promo-video/README.md`](promo-video/README.md)。
 
 ---
 

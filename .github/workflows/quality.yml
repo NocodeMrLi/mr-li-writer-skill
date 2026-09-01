@@ -1,0 +1,57 @@
+name: Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile Python sources
+        run: python -m compileall -q scripts tests
+      - name: Run regression and quality-gate tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate component inventory
+        run: |
+          python scripts/gzh_component_inventory.py .
+          python scripts/component_lint.py .
+      - name: Scan tracked files for sensitive credentials
+        run: python scripts/scan_sensitive.py
+
+  promo-video-supply-chain:
+    name: Promo video supply chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: promo-video/package-lock.json
+      - name: Install locked renderer dependencies
+        working-directory: promo-video
+        run: npm ci
+      - name: Audit production dependencies
+        working-directory: promo-video
+        run: npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
+      - name: Verify renderer entrypoint and native Sharp load
+        working-directory: promo-video
+        run: |
+          node --check scripts/generate-promo-video.js
+          node -e "require('sharp')"

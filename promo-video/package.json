@@ -1,0 +1,18 @@
+{
+  "name": "mr-li-writer-promo-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reproducible renderer for the Mr.Li Writer README promo video",
+  "scripts": {
+    "render:frames": "node scripts/generate-promo-video.js",
+    "render:video": "ffmpeg -y -framerate 30 -start_number 0 -i out/frames/frame-%04d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart out/mr-li-writer-promo-silent.mp4",
+    "build": "npm run render:frames && npm run render:video",
+    "inspect": "ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration -of default=noprint_wrappers=1 out/mr-li-writer-promo-silent.mp4"
+  },
+  "dependencies": {
+    "sharp": "0.35.4"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

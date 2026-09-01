@@ -2,6 +2,7 @@
 """Validate platform-native source, title strategy, and optional layout artifacts."""
 
 import argparse
+import json
 import pathlib
 import re
 import subprocess
@@ -121,6 +122,69 @@ def require_task_state(task_state, platform):
     return subprocess.call([sys.executable, str(checker), task_state, "--phase", "delivery", "--platform", platform])
 
 
+def state_value(state, key):
+    value = state.get(key, "")
+    if isinstance(value, dict):
+        return str(value.get("value", "")).strip()
+    return str(value).strip()
+
+
+def load_task_state(task_state):
+    try:
+        return json.loads(pathlib.Path(task_state).read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def task_requires_sources(state):
+    direct = state.get("require_sources", False)
+    if isinstance(direct, dict):
+        direct = direct.get("value", False)
+    if direct is True or str(direct).strip().lower() in {"1", "true", "yes", "是", "需要"}:
+        return True
+
+    density = state_value(state, "evidence_density").lower()
+    if density in {"high", "medium", "高", "中"}:
+        return True
+    mode = state_value(state, "mode").lower()
+    genre = state_value(state, "genre").lower()
+    goal = state_value(state, "content_goal")
+    return (
+        mode in {"research-explainer", "policy-analysis"}
+        or genre in {"policy-industry", "medical-health", "legal-finance"}
+        or goal == "专业报告"
+    )
+
+
+def validate_content_quality(source, platform, task_state):
+    state = load_task_state(task_state)
+    command = [
+        sys.executable,
+        str(SCRIPT_DIR / "lint_article.py"),
+        str(source),
+        "--platform",
+        platform,
+        "--strict-delivery",
+    ]
+    for state_key, option in (
+        ("mode", "--mode"),
+        ("genre", "--genre"),
+        ("evidence_density", "--evidence-density"),
+    ):
+        value = state_value(state, state_key)
+        if value:
+            command.extend([option, value])
+    if task_requires_sources(state):
+        command.append("--require-sources")
+
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.stdout:
+        print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
+    if result.stderr:
+        print(result.stderr, end="" if result.stderr.endswith("\n") else "\n", file=sys.stderr)
+    return result.returncode
+
+
 def main():
     parser = argparse.ArgumentParser(description="发布交付物完整性校验")
     parser.add_argument("directory", help="交付目录")
@@ -154,6 +218,12 @@ def main():
     for error in errors:
         print("[错误] %s" % error)
     if errors:
+        return 1
+
+    source = roles.get("平台原生正文")
+    quality_rc = validate_content_quality(source, args.platform, args.task_state)
+    if quality_rc != 0:
+        print("[错误] 正文质量门禁未通过；请修复阻断项后重新校验。")
         return 1
 
     if needs_layout:
