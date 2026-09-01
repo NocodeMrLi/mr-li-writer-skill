@@ -194,21 +194,21 @@
 
 ## 四、语义化数据表格组件（Markdown 表格必用）
 
-Markdown 表格必须转换为真实 `<table>`，不能把 `| 字段 |` 和 `| --- |` 当普通段落输出，也不能用横向滚动或卡片假装表格。所有列保持在正文宽度内，内容过长时在单元格内部自然换行。四列及以上使用 `12px` 字号和 `5px` 横向内边距。
+Markdown 表格必须转换为真实 `<table>`，不能把 `| 字段 |` 和 `| --- |` 当普通段落输出，也不能用卡片假装表格。桌面宽度内完整展示；窄屏使用有上限的表格最小宽度和容器内横向滚动，避免短日期、短词被压成逐字竖排。四列及以上使用 `12px` 字号和 `5px` 横向内边距。
 
 ```html
-<section style="width:100%;max-width:100%;box-sizing:border-box;margin:0 0 24px;overflow:hidden;">
-  <table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;box-sizing:border-box;">
+<section style="width:100%;max-width:100%;box-sizing:border-box;margin:0 0 24px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">
+  <table style="width:100%;min-width:360px;max-width:760px;table-layout:fixed;border-collapse:collapse;border-spacing:0;box-sizing:border-box;">
     <thead><tr>
-      <th style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;background:#FEF2F2;color:#991B1B;font-size:13px;font-weight:800;text-align:left;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
-      <th style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;background:#FEF2F2;color:#991B1B;font-size:13px;font-weight:800;text-align:left;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
+      <th style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;background:#FEF2F2;color:#991B1B;font-size:13px;font-weight:800;text-align:left;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
+      <th style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;background:#FEF2F2;color:#991B1B;font-size:13px;font-weight:800;text-align:left;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
     </tr></thead>
     <tbody><tr>
-      <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;background:#FFFFFF;color:#374151;font-size:13px;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
-      <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;background:#FFFFFF;color:#374151;font-size:13px;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+      <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;background:#FFFFFF;color:#374151;font-size:13px;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+      <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;background:#FFFFFF;color:#374151;font-size:13px;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
     </tr></tbody>
   </table>
 </section>
 ```
 
-按主题替换边框、表头底色、表头文字色和斑马纹底色，不改变 `width/max-width/table-layout/box-sizing/word-break/overflow-wrap/white-space` 这些自适应约束。
+按主题替换边框、表头底色、表头文字色和斑马纹底色，不改变 `width/min-width/max-width/table-layout/box-sizing/word-break/overflow-wrap/white-space` 这些自适应约束。表格最小宽度按 `max(360px, 列数 × 124px)` 计算，并以 `760px` 为上限；增减列时同步调整。

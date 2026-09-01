@@ -24,7 +24,6 @@ FORBIDDEN = [
     (re.compile(r"display\s*:\s*grid", re.I), "ERROR", "display:grid 不被支持，请用 flex"),
     (re.compile(r"var\s*\(\s*--", re.I), "ERROR", "CSS 变量 var(--x) 不被支持，请写死值"),
     (re.compile(r"url\s*\(\s*['\"]?https?://[^)]*\.(woff2?|ttf|otf|eot)", re.I), "ERROR", "外部字体不被支持"),
-    (re.compile(r"overflow-x\s*:\s*auto", re.I), "ERROR", "横向滚动在公众号发布后不稳定，请改为容器内自适应换行"),
     (re.compile(r"(?:width|min-width|max-width)\s*:\s*\d+(?:\.\d+)?vw", re.I), "ERROR", "vw 宽度在公众号 PC/手机端不稳定，请使用百分比或 flex 自适应"),
 ]
 
@@ -51,6 +50,9 @@ SKIP_TAGS = {"head", "title", "style", "script"}
 HALF_PUNCT = re.compile(r"[一-鿿㐀-䶿][,;!?]")
 ASCII_QUOTE = re.compile(r"[\"']")
 CODE_STYLE = re.compile(r"monospace|white-space\s*:\s*pre|courier|consolas|sf mono", re.I)
+OVERFLOW_X_AUTO = re.compile(r"overflow-x\s*:\s*auto", re.I)
+MIN_WIDTH_PX = re.compile(r"min-width\s*:\s*(\d+)px", re.I)
+MAX_WIDTH_PX = re.compile(r"max-width\s*:\s*(\d+)px", re.I)
 
 
 class LeafChecker(HTMLParser):
@@ -102,6 +104,53 @@ class LeafChecker(HTMLParser):
         if self.code_depth == 0 and (HALF_PUNCT.search(text) or ASCII_QUOTE.search(text)):
             snippet = text[:24] + ("…" if len(text) > 24 else "")
             self.half_punct.append(snippet)
+
+
+class ResponsiveTableScrollChecker(HTMLParser):
+    """Allow horizontal scrolling only on bounded semantic-table wrappers."""
+
+    VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.stack = []
+        self.scroll_wrappers = []
+        self.invalid = []
+
+    def handle_starttag(self, tag, attrs):
+        style = dict(attrs).get("style", "") or ""
+        depth = len(self.stack)
+        if OVERFLOW_X_AUTO.search(style):
+            if tag != "section":
+                self.invalid.append("横向滚动只能用于语义表格的外层 section")
+            else:
+                self.scroll_wrappers.append({"depth": depth, "valid_table": False})
+
+        if tag == "table" and self.scroll_wrappers:
+            min_match = MIN_WIDTH_PX.search(style)
+            max_match = MAX_WIDTH_PX.search(style)
+            min_width = int(min_match.group(1)) if min_match else 0
+            max_width = int(max_match.group(1)) if max_match else 0
+            bounded = 320 <= min_width <= 760 and min_width <= max_width <= 760
+            if bounded and re.search(r"table-layout\s*:\s*fixed", style, re.I):
+                for wrapper in self.scroll_wrappers:
+                    wrapper["valid_table"] = True
+
+        if tag not in self.VOID_TAGS:
+            self.stack.append(tag)
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index] != tag:
+                continue
+            if tag == "section":
+                closing = [item for item in self.scroll_wrappers if item["depth"] == index]
+                for item in closing:
+                    if not item["valid_table"]:
+                        self.invalid.append("横向滚动仅允许包裹宽度有上限的语义化 table")
+                    self.scroll_wrappers.remove(item)
+            del self.stack[index:]
+            break
 
 
 def leaf_labels(html):
@@ -207,6 +256,14 @@ def validate(html, name="<input>"):
         errors.append("检测到未转换的 Markdown 表格；必须渲染为语义化 <table> 后再交付")
     if FORBIDDEN_FRONT_BADGE.search(html):
         errors.append("检测到不适合暴露给读者的前端标签词；请改为信息指南、判断参考、深度解读、避坑提醒等读者口径")
+
+    table_scroll_checker = ResponsiveTableScrollChecker()
+    try:
+        table_scroll_checker.feed(html)
+    except Exception as exc:
+        warnings.append("表格滚动校验中断: %s" % exc)
+    if table_scroll_checker.invalid:
+        errors.append("；".join(dict.fromkeys(table_scroll_checker.invalid)))
 
     checker = LeafChecker()
     try:

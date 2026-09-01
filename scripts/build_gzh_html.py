@@ -376,6 +376,22 @@ def split_title(text, max_len=12):
     return clean[:cut], clean[cut:]
 
 
+def split_colored_title(text, max_len=13):
+    """Split a two-tone title on a semantic boundary without hanging punctuation."""
+    clean = re.sub(r"\s+", "", text or "")
+    for marker in ("：", ":"):
+        if marker not in clean:
+            continue
+        left, right = clean.split(marker, 1)
+        if len(left) >= 5 and len(right) >= 5:
+            return left.rstrip("，、；：: "), right.lstrip("，、；：: ")
+
+    line1, line2 = split_title(clean, max_len)
+    if not line2:
+        return line1, line2
+    return line1.rstrip("，、；：: "), line2.lstrip("，、；：: ")
+
+
 def short_text(text, limit=34):
     clean = re.sub(r"\s+", " ", text or "").strip()
     if len(clean) <= limit:
@@ -706,7 +722,10 @@ def component_hero(theme_key, components, title, blocks):
         return zen_hero(display_title, blocks)
     intro = pick_first_paragraph(blocks)
     quote_before, quote_keyword, quote_after = emphasis_parts(intro)
-    line1, line2 = split_title(display_title, 13)
+    if theme_key == "moyu-green" and not re.search(r"[|｜]", title or ""):
+        line1, line2 = split_colored_title(display_title, 13)
+    else:
+        line1, line2 = split_title(display_title, 13)
     highlight_len = min(4, max(2, len(line1) // 3)) if len(line1) > 2 else 0
     line1_text = line1[:-highlight_len] if highlight_len else line1
     line1_highlight = line1[-highlight_len:] if highlight_len else ""
@@ -1034,14 +1053,15 @@ def component_list(theme_key, components, items, ordered=False):
 
 
 def component_table(theme_key, headers, rows):
-    """Render semantic data tables without viewport-dependent scrolling."""
+    """Render semantic tables with bounded horizontal scrolling on narrow screens."""
     theme = THEMES[theme_key]
     compact = len(headers) >= 4
     font_size = "12px" if compact else "13px"
     padding = "8px 5px" if compact else "9px 7px"
+    min_width = min(760, max(360, len(headers) * 124))
     cell_style = (
         "box-sizing:border-box;padding:%s;border:1px solid %s;vertical-align:top;"
-        "font-size:%s;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"
+        "font-size:%s;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"
         % (padding, theme["line"], font_size)
     )
     head_cells = "".join(
@@ -1059,10 +1079,12 @@ def component_table(theme_key, headers, rows):
         )
         body_rows.append("<tr>%s</tr>" % cells)
     return (
-        '<section style="width:100%%;max-width:100%%;box-sizing:border-box;margin:0 0 24px;overflow:hidden;">'
-        '<table style="width:100%%;max-width:100%%;table-layout:fixed;border-collapse:collapse;border-spacing:0;box-sizing:border-box;">'
+        '<section style="width:100%%;max-width:100%%;box-sizing:border-box;margin:0 0 24px;'
+        'overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">'
+        '<table style="width:100%%;min-width:%dpx;max-width:760px;table-layout:fixed;border-collapse:collapse;'
+        'border-spacing:0;box-sizing:border-box;">'
         '<thead><tr>%s</tr></thead><tbody>%s</tbody></table></section>'
-        % (head_cells, "".join(body_rows))
+        % (min_width, head_cells, "".join(body_rows))
     )
 
 

@@ -437,22 +437,22 @@
 ### 表格（真实数据表用）
 
 ```html
-<section style="width:100%;max-width:100%;box-sizing:border-box;margin-bottom:24px;overflow:hidden;">
-  <table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;font-size:13px;box-sizing:border-box;">
+<section style="width:100%;max-width:100%;box-sizing:border-box;margin-bottom:24px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">
+  <table style="width:100%;min-width:360px;max-width:760px;table-layout:fixed;border-collapse:collapse;border-spacing:0;font-size:13px;box-sizing:border-box;">
     <thead>
       <tr>
-        <th style="box-sizing:border-box;background:#DC2626;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
-        <th style="box-sizing:border-box;background:#DC2626;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
+        <th style="box-sizing:border-box;background:#DC2626;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
+        <th style="box-sizing:border-box;background:#DC2626;color:#fff;font-weight:700;padding:8px 6px;text-align:left;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{列标题}}</span></th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;color:#374151;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
-        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;color:#374151;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;color:#374151;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;color:#374151;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
       </tr>
       <tr>
-        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;color:#374151;background:#FEF2F2;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
-        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;color:#374151;background:#FEF2F2;word-break:break-word;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;color:#374151;background:#FEF2F2;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
+        <td style="box-sizing:border-box;padding:8px 6px;border:1px solid #FEE2E2;color:#374151;background:#FEF2F2;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{内容}}</span></td>
       </tr>
     </tbody>
   </table>
@@ -625,7 +625,7 @@
 | 并列要点 | 组件 11b pill-list | |
 | `1. 2. 3.` 编号列表 | 组件 11a ordered-list | 红色圆标 |
 | 数据展示 | 组件 12 数据卡片组 / 表格 | 红色大号数据 |
-| Markdown 表格 | 组件 12 表格 | 必须输出语义化 `<table>`；固定表格布局并在单元格内换行，禁止保留 Markdown 竖线文本或横向滚动 |
+| Markdown 表格 | 组件 12 表格 | 必须输出语义化 `<table>`；桌面完整展示，窄屏仅在表格容器内有限横向滚动，禁止保留 Markdown 竖线文本 |
 | 注意/警告 | 组件 9a 红色提示 / 9b 踩坑提示 | |
 | 行内标签 | 组件 13 标签胶囊 | 浅红底默认 |
 | `---` | 组件 4 章节分割线 | 红色渐变 |

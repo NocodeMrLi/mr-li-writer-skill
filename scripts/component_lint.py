@@ -33,8 +33,6 @@ CHECKS = [
     (re.compile(r"display\s*:\s*grid", re.I), "ERROR", "display:grid 不被支持"),
     (re.compile(r"var\s*\(\s*--", re.I), "ERROR", "用了 CSS 变量 var(--x)"),
     (re.compile(r"@(media|keyframes|import)", re.I), "ERROR", "@media/@keyframes/@import 不被支持"),
-    (re.compile(r"overflow-x\s*:\s*auto", re.I), "ERROR",
-     "用了横向滚动 —— 公众号发布后的 PC/手机端宽度不稳定，应在正文宽度内自适应换行"),
     (re.compile(r"(?:width|min-width|max-width)\s*:\s*\d+(?:\.\d+)?vw", re.I), "ERROR",
      "用了 vw 卡片宽度 —— 公众号发布容器与浏览器视口不同，应使用百分比或 flex 自适应"),
 ]
@@ -71,6 +69,16 @@ def lint_file(path):
         for rx, level, msg in CHECKS:
             if rx.search(html):
                 add(level, msg)
+        if re.search(r"overflow-x\s*:\s*auto", html, re.I):
+            table_style = re.search(r"<table\b[^>]*style=\"([^\"]*)\"", html, re.I)
+            style = table_style.group(1) if table_style else ""
+            min_match = re.search(r"min-width\s*:\s*(\d+)px", style, re.I)
+            max_match = re.search(r"max-width\s*:\s*(\d+)px", style, re.I)
+            min_width = int(min_match.group(1)) if min_match else 0
+            max_width = int(max_match.group(1)) if max_match else 0
+            bounded = 320 <= min_width <= 760 and min_width <= max_width <= 760
+            if not table_style or not bounded or not re.search(r"table-layout\s*:\s*fixed", style, re.I):
+                add("ERROR", "横向滚动仅允许用于宽度有上限的语义化表格容器")
         if re.search(r"<table[\s>]", html, re.I):
             if not re.search(r"table-layout\s*:\s*fixed", html, re.I):
                 add("ERROR", "语义化表格缺少 table-layout:fixed，窄屏可能被内容撑宽")

@@ -1867,15 +1867,26 @@ class GzhThemeRegressionTests(unittest.TestCase):
                 self.assertIn("word-break:keep-all", rendered)
                 self.assertIn("overflow-wrap:anywhere", rendered)
 
-    def test_olive_cover_wraps_illustration_only_when_space_is_narrow(self):
+    def test_olive_cover_keeps_title_and_illustration_side_by_side(self):
         rendered = build_gzh.build_component_section(
             SAMPLE_MD,
             "9月第一周｜软考报名收官作战表",
             "olive-journal",
         )
-        self.assertIn("justify-content:center;gap:18px;flex-wrap:wrap", rendered)
-        self.assertIn("flex:1 1 260px;min-width:0", rendered)
-        self.assertIn("flex-shrink:0;width:112px", rendered)
+        self.assertIn("justify-content:center;gap:12px", rendered)
+        self.assertIn("flex:1;min-width:0", rendered)
+        self.assertIn("flex:0 0 22%;width:22%;min-width:64px;max-width:112px", rendered)
+        hero = rendered.split("03 PARTS", 1)[0]
+        self.assertNotIn("justify-content:center;gap:12px;flex-wrap:wrap", hero)
+
+    def test_moyu_colored_title_uses_semantic_break_without_hanging_punctuation(self):
+        title = "软考报名生死线：福建明天就截，缴费还比报名晚两天"
+        rendered = build_gzh.build_component_section(SAMPLE_MD, title, "moyu-green")
+        hero = rendered.split("03 PARTS", 1)[0]
+        self.assertIn('<span leaf="">软考报名生死线</span>', hero)
+        self.assertIn('<span leaf="">福建明天就截，缴费还比报名晚两天</span>', hero)
+        self.assertNotIn('<span leaf="">软考报名生死线：', hero)
+        self.assertNotRegex(hero, r'<span leaf="">[^<]*[，、；：:]</span>\s*</p>')
 
     def test_quote_cover_themes_render_the_intro_instead_of_an_empty_card(self):
         intro = "真正重要的不是多写一点，而是把值得说的话说清楚。"
@@ -1986,6 +1997,10 @@ class GzhThemeRegressionTests(unittest.TestCase):
                 rendered = build_gzh.build_component_section(TABLE_MD, "报名状态", theme)
                 self.assertIn("<table", rendered)
                 self.assertIn("table-layout:fixed", rendered)
+                self.assertIn("overflow-x:auto", rendered)
+                self.assertIn("max-width:760px", rendered)
+                self.assertRegex(rendered, r"min-width:(?:360|372|496|620|744|760)px")
+                self.assertIn("word-break:keep-all", rendered)
                 self.assertIn("overflow-wrap:anywhere", rendered)
                 self.assertNotIn("| --- |", rendered)
 
@@ -1994,6 +2009,24 @@ class GzhThemeRegressionTests(unittest.TestCase):
         source = '<section><p><span leaf="">| 省份 | 截止时间 |\n| --- | --- |</span></p></section>'
         errors, _, _ = validator.validate(source)
         self.assertTrue(any("Markdown 表格" in error for error in errors), errors)
+
+    def test_generated_html_validator_allows_only_bounded_table_scrolling(self):
+        validator = load_module("validate_gzh_html_table_scroll", "scripts/validate_gzh_html.py")
+        allowed = (
+            '<section style="overflow-x:auto;overflow-y:hidden;">'
+            '<table style="width:100%;min-width:620px;max-width:760px;table-layout:fixed;">'
+            '<tr><td><span leaf="">9月7日</span><br></td></tr></table></section>'
+        )
+        errors, _, _ = validator.validate(allowed)
+        self.assertFalse(any("横向滚动" in error for error in errors), errors)
+
+        for source in (
+            '<section style="overflow-x:auto;"><p><span leaf="">目录卡片</span></p></section>',
+            '<section style="overflow-x:auto;"><table style="min-width:1200px;table-layout:fixed;"><tr><td><span leaf="">数据</span></td></tr></table></section>',
+        ):
+            with self.subTest(source=source):
+                errors, _, _ = validator.validate(source)
+                self.assertTrue(any("横向滚动" in error for error in errors), errors)
 
     def test_generated_html_validator_reports_missing_file_without_traceback(self):
         validator = ROOT / "scripts/validate_gzh_html.py"
