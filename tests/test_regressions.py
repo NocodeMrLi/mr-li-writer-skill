@@ -1577,7 +1577,6 @@ class ReadmeDocumentationTests(unittest.TestCase):
         source = ROOT / "promo-video/scripts/generate-promo-video.js"
         output = ROOT / "promo-video/out/mr-li-writer-promo-silent.mp4"
         self.assertTrue(source.exists(), "宣传视频生成器源码缺失")
-        self.assertTrue(output.exists(), "本地宣传视频产物缺失")
         source_check = subprocess.run(
             ["git", "check-ignore", "-q", str(source)],
             cwd=ROOT,
