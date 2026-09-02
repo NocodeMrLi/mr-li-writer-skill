@@ -79,11 +79,9 @@ def seed_sources(state, scope):
     return seen
 
 
-def risk_requires_external_research(state, scope, seeds):
+def risk_requires_external_research(state, scope):
     if has_truthy(scope, "requires_external_research"):
         return True
-    if not seeds:
-        return False
     text = " ".join(
         [
             str(state.get("original_prompt", "")),
@@ -99,6 +97,33 @@ def risk_requires_external_research(state, scope, seeds):
     if re.search(r"(high|高|policy|industry|research|专业报告|SEO|GEO|转化|time_sensitive|hard_info)", text, re.I):
         return True
     return bool(HARD_INFO_RE.search(text))
+
+
+def validate_source_entities(scope):
+    entities = scope.get("source_entities")
+    if not isinstance(entities, list) or not entities:
+        return ["资料搜集：缺少 source_entities 来源角色台账；必须逐一记录机构名、角色、事实适用范围和读者端可见性，不能只凭机构名单判断权威性。"]
+
+    errors = []
+    valid_roles = {"official", "authoritative", "independent", "commercial_interested", "unknown"}
+    valid_visibility = {"named", "anonymous", "omit", "internal_only"}
+    for index, entity in enumerate(entities, 1):
+        if not isinstance(entity, dict):
+            errors.append("资料搜集：source_entities 第 %d 项必须是 object。" % index)
+            continue
+        name = str(entity.get("name", "")).strip()
+        role = str(entity.get("role", "")).strip().lower().replace("-", "_")
+        claim_scope = str(entity.get("claim_scope", "")).strip()
+        visibility = str(entity.get("reader_visibility", "")).strip().lower()
+        if not name or role not in valid_roles or not claim_scope or visibility not in valid_visibility:
+            errors.append("资料搜集：source_entities 第 %d 项缺少有效的 name/role/claim_scope/reader_visibility。" % index)
+            continue
+        if role in {"commercial_interested", "unknown"} and visibility == "named":
+            purpose = str(entity.get("purpose", "")).strip().lower()
+            disclosed = bool(entity.get("interest_disclosed"))
+            if purpose not in {"subject", "evaluation", "comparison", "profile"} or not disclosed:
+                errors.append("资料搜集：%s 属于商业利益相关或角色未知来源，不能在正文显名；仅当文章以其为评测/介绍对象且披露利益关系时例外。" % name)
+    return errors
 
 
 def risk_requires_freshness(state, scope):
@@ -153,16 +178,15 @@ def validate_research_scope(state, phase="draft"):
     if not isinstance(scope, dict):
         return ["资料搜集：research_scope 必须是 JSON object。"]
 
-    seeds = seed_sources(state, scope)
-    if not seeds:
-        return []
+    requires_external = risk_requires_external_research(state, scope)
+    requires_freshness = risk_requires_freshness(state, scope)
+    errors = []
+
+    if requires_external:
+        errors.extend(validate_source_entities(scope))
 
     if explicit_seed_only_authorized(state, scope):
-        return []
-
-    errors = []
-    requires_external = risk_requires_external_research(state, scope, seeds)
-    requires_freshness = risk_requires_freshness(state, scope)
+        return errors
 
     if requires_external:
         if not has_truthy(scope, "external_search_done") and not external_sources(scope):

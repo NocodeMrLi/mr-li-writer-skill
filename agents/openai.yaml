@@ -90,7 +90,8 @@ interface:
     registration, eligibility, prices, product updates, and industry news,
     record research_scope in the task-state JSON with user_seed_sources,
     user_sources_checked, external_search_done, official_sources_checked,
-    freshness_checked, independent_crosscheck_checked, and source_mix. Run
+    freshness_checked, independent_crosscheck_checked, source_mix, and a
+    source_entities ledger with name, role, claim_scope, and reader_visibility. Run
     scripts/validate_research_scope.py and scripts/validate_task_intake.py
     before draft/layout/delivery. Do not bypass this by omitting
     original_prompt, omitting user links, or calling the work a rewrite. If

@@ -165,6 +165,8 @@ def validate_content_quality(source, platform, task_state):
         "--platform",
         platform,
         "--strict-delivery",
+        "--task-state",
+        task_state,
     ]
     for state_key, option in (
         ("mode", "--mode"),

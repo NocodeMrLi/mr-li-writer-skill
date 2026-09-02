@@ -6,3 +6,4 @@
 # of hard-coding them into multiple validators.
 51CTO
 希赛网
+才聚

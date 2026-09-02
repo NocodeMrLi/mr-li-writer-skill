@@ -611,6 +611,14 @@ class DeliveryProtocolTests(unittest.TestCase):
                     "requires_external_research": True,
                     "risk": "time_sensitive_hard_info",
                     "source_mix": "用户种子资料 + 全国软考报名平台 + 各省软考办通知",
+                    "source_entities": [
+                        {
+                            "name": "全国软考报名平台",
+                            "role": "official",
+                            "claim_scope": "2026 年软考报名安排",
+                            "reader_visibility": "named",
+                        }
+                    ],
                 },
             )
             result = subprocess.run(
@@ -631,6 +639,14 @@ class DeliveryProtocolTests(unittest.TestCase):
                     "user_sources_checked": True,
                     "requires_external_research": True,
                     "risk": "time_sensitive_hard_info",
+                    "source_entities": [
+                        {
+                            "name": "用户提供资料",
+                            "role": "unknown",
+                            "claim_scope": "有限资料整理",
+                            "reader_visibility": "anonymous",
+                        }
+                    ],
                 },
                 source_boundary={
                     "value": "只基于用户给的资料，不再外查",
@@ -645,6 +661,37 @@ class DeliveryProtocolTests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_research_scope_blocks_commercial_entity_named_as_authority(self):
+        validator = ROOT / "scripts/validate_research_scope.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                original_prompt="2026 年证书考试报名信息",
+                research_scope={
+                    "external_search_done": True,
+                    "official_sources_checked": True,
+                    "freshness_checked": True,
+                    "independent_crosscheck_checked": True,
+                    "requires_external_research": True,
+                    "source_mix": "官方信息与第三方交叉核对",
+                    "source_entities": [
+                        {
+                            "name": "星河学习",
+                            "role": "commercial_interested",
+                            "claim_scope": "考试城市汇总",
+                            "reader_visibility": "named",
+                        }
+                    ],
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "draft"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("不能在正文显名", result.stdout)
 
     def test_task_intake_requires_task_context_before_draft(self):
         validator = ROOT / "scripts/validate_task_intake.py"
@@ -704,6 +751,7 @@ class DeliveryProtocolTests(unittest.TestCase):
             "official_sources_checked",
             "freshness_checked",
             "source_mix",
+            "source_entities",
         ):
             self.assertIn(token, skill + research + agent)
         self.assertIn("只基于我给的资料", skill + research + readme)
@@ -1661,16 +1709,99 @@ class ArticleLintTests(unittest.TestCase):
                     code = lint_article.main()
         self.assertEqual(code, 0)
         self.assertIn("商业相关第三方机构", output.getvalue())
-        self.assertIn("相关机构公开汇总", output.getvalue())
+        self.assertIn("据相关第三方机构公开信息/公开汇总", output.getvalue())
+        self.assertIn("尚待官方确认", output.getvalue())
 
     def test_commercial_source_examples_are_configured_outside_scripts(self):
         terms = (ROOT / "references/commercial-source-terms.txt").read_text(encoding="utf-8")
         self.assertIn("51CTO", terms)
         self.assertIn("希赛网", terms)
+        self.assertIn("才聚", terms)
         for script in ("scripts/lint_article.py", "scripts/build_html.py", "scripts/build_gzh_html.py"):
             source = (ROOT / script).read_text(encoding="utf-8")
             self.assertNotIn("51CTO", source)
             self.assertNotIn("希赛网", source)
+            self.assertNotIn("才聚", source)
+
+    def test_strict_lint_blocks_named_commercial_vendor_in_narrative_source_sentence(self):
+        article = """# PMP 考点信息
+
+才聚刚把 2026 年全部考点城市清单放出来：全国 51 城，覆盖七大区。
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "article.md"
+            path.write_text(article, encoding="utf-8")
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", ["lint_article.py", str(path), "--strict-delivery"]):
+                with contextlib.redirect_stdout(output):
+                    code = lint_article.main()
+        self.assertEqual(code, 1)
+        self.assertIn("商业相关第三方机构", output.getvalue())
+
+    def test_strict_lint_uses_source_roles_instead_of_only_known_name_list(self):
+        article = """# 考试城市信息
+
+星河学习刚发布了全年考试城市汇总。
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            path = directory / "article.md"
+            state = directory / "task-state.json"
+            path.write_text(article, encoding="utf-8")
+            state.write_text(
+                json.dumps(
+                    {
+                        "research_scope": {
+                            "source_entities": [
+                                {
+                                    "name": "星河学习",
+                                    "role": "commercial_interested",
+                                    "claim_scope": "考试城市汇总",
+                                    "reader_visibility": "omit",
+                                }
+                            ]
+                        }
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            with mock.patch.object(
+                sys,
+                "argv",
+                ["lint_article.py", str(path), "--strict-delivery", "--task-state", str(state)],
+            ):
+                with contextlib.redirect_stdout(output):
+                    code = lint_article.main()
+        self.assertEqual(code, 1)
+        self.assertIn("商业相关第三方机构", output.getvalue())
+
+    def test_html_builders_warn_on_named_commercial_vendor_without_source_keywords(self):
+        articles = (
+            "才聚刚把 2026 年全部考点城市清单放出来。",
+            "启航培训机构发布了全年考试城市汇总。",
+        )
+        for article in articles:
+            for warn in (build_html.warn_commercial_source_exposure, build_gzh.warn_commercial_source_exposure):
+                with self.subTest(article=article, module=warn.__module__):
+                    output = io.StringIO()
+                    with contextlib.redirect_stderr(output):
+                        warn(article)
+                    self.assertIn("商业相关第三方机构", output.getvalue())
+
+    def test_generic_commercial_patterns_do_not_treat_ministry_name_as_training_vendor(self):
+        articles = (
+            "教育部发布了最新通知。",
+            "这座城市正在形成人才聚集效应。",
+        )
+        for article in articles:
+            for warn in (build_html.warn_commercial_source_exposure, build_gzh.warn_commercial_source_exposure):
+                with self.subTest(article=article, module=warn.__module__):
+                    output = io.StringIO()
+                    with contextlib.redirect_stderr(output):
+                        warn(article)
+                    self.assertNotIn("商业相关第三方机构", output.getvalue())
 
     def test_commercial_source_terms_missing_warns_before_generic_fallback(self):
         checks = (
@@ -2227,11 +2358,26 @@ class GzhThemeRegressionTests(unittest.TestCase):
         self.assertNotIn("中立", labels)
         self.assertEqual(labels, ("深度解读", "判断参考"))
 
+    def test_front_labels_do_not_expose_information_demystification_capability(self):
+        for internal_label in ("信息祛魅", "信息去魅"):
+            with self.subTest(label=internal_label):
+                self.assertEqual(build_gzh.safe_front_label(internal_label, "信息指南"), "信息指南")
+
+    def test_front_labels_use_allowlist_not_an_expanding_internal_word_blacklist(self):
+        for internal_label in ("内容降噪", "事实筛选", "来源治理", "编辑增强", "反营销审查"):
+            with self.subTest(label=internal_label):
+                self.assertEqual(build_gzh.safe_front_label(internal_label, "信息指南"), "信息指南")
+        for public_label in ("最新消息", "考试动态", "政策动态", "前沿观察"):
+            with self.subTest(label=public_label):
+                self.assertEqual(build_gzh.safe_front_label(public_label), public_label)
+
     def test_validator_rejects_forbidden_reader_facing_badges(self):
         validator = load_module("validate_gzh_html_front_badge", "scripts/validate_gzh_html.py")
-        source = '<section><span style="padding:2px 8px;border-radius:4px;"><span leaf="">中立</span></span></section>'
-        errors, _, _ = validator.validate(source)
-        self.assertTrue(any("前端标签" in error for error in errors), errors)
+        for label in ("中立", "信息祛魅", "信息去魅"):
+            with self.subTest(label=label):
+                source = '<section><span style="padding:2px 8px;border-radius:4px;"><span leaf="">%s</span></span></section>' % label
+                errors, _, _ = validator.validate(source)
+                self.assertTrue(any("前端标签" in error for error in errors), errors)
 
     def test_skill_documents_frontend_badge_and_title_linebreak_guards(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")

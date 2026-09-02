@@ -40,7 +40,7 @@ NUMBER_CHAPTER_RE = re.compile(r"^(\d{2})\s*[·.]\s*CHAPTER$", re.I)
 
 FORBIDDEN_FRONT_BADGE = re.compile(
     r"<(?:span|section)\b[^>]*style=\"[^\"]*(?:border-radius|padding|background)[^\"]*\"[^>]*>\s*"
-    r"(?:<span leaf=\"\">)?\s*(中立|客观中立|模型生成|AI\s*生成|提示词|Prompt|公众号排版|深度文章|内部标签)\s*"
+    r"(?:<span leaf=\"\">)?\s*(中立|客观中立|模型生成|AI\s*生成|提示词|Prompt|公众号排版|深度文章|内部标签|信息祛魅|信息去魅)\s*"
     r"(?:</span>)?",
     re.I,
 )

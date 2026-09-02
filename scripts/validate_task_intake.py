@@ -443,7 +443,8 @@ def validate(state, phase="draft", platform=None, last_user="", expected_style="
             errors.append(("资料搜集", RESEARCH_SCOPE_LOAD_ERROR or "资料搜集范围校验脚本加载失败"))
         else:
             for reason in RESEARCH_SCOPE_VALIDATOR(state, phase=phase):
-                errors.append(("资料搜集", reason))
+                clean_reason = re.sub(r"^资料搜集：\s*", "", reason)
+                errors.append(("资料搜集", clean_reason))
 
     resume_without_confirmation = phase == "resume" or bool(last_user and RESUME_RE.search(last_user))
     return errors, resume_without_confirmation, resolved_platform

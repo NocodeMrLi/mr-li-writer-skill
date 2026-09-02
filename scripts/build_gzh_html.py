@@ -33,7 +33,9 @@ PROCESS_LEAK_PATTERNS = (
 )
 
 COMMERCIAL_SOURCE_EXPOSURE = re.compile(
-    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训|网校|辅导|题库|课堂)",
+    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司))"
+    r"|(?:据|来自|来源于|参考|援引).{0,40}[\u4e00-\u9fffA-Za-z0-9·]{2,24}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司))"
+    r"|[\u4e00-\u9fffA-Za-z0-9·]{2,24}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司)).{0,30}(?:发布|放出|整理|汇总|统计|披露|表示|指出|显示)",
     re.I,
 )
 
@@ -48,12 +50,17 @@ def configured_commercial_source_regex():
         terms = []
     if not terms:
         return None
-    names = "|".join(re.escape(term) for term in terms)
-    return re.compile(
-        r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:%s)|(?:%s).{0,30}(?:公开汇总|数据|资料|统计|显示)"
-        % (names, names),
-        re.I,
-    )
+    patterns = []
+    for term in terms:
+        escaped = re.escape(term)
+        if len(term) <= 2 and re.fullmatch(r"[\u4e00-\u9fff]+", term):
+            patterns.append(
+                r"(?:据|来自|来源于|参考|援引).{0,40}%s|%s.{0,30}(?:刚(?:把)?|发布|放出|整理|汇总|统计|披露|表示|指出|显示)"
+                % (escaped, escaped)
+            )
+        else:
+            patterns.append(escaped)
+    return re.compile(r"(?:%s)" % "|".join(patterns), re.I)
 
 
 def warn_process_leaks(text, label="正文"):
@@ -71,7 +78,7 @@ def warn_commercial_source_exposure(text, label="正文"):
     configured = configured_commercial_source_regex()
     if COMMERCIAL_SOURCE_EXPOSURE.search(text) or (configured and configured.search(text)):
         print(
-            "[警告] %s疑似把商业相关第三方机构写成资料背书；请优先使用官方来源，第三方仅作辅助核对时改为“相关机构公开汇总”。" % label,
+            "[警告] %s疑似把商业相关第三方机构写成资料背书；请使用与该事实匹配的官方来源。第三方仅作辅助核对时应匿名写“据相关第三方机构公开信息/公开汇总”；未获官方确认时还须明确待核实。" % label,
             file=sys.stderr,
         )
 
@@ -432,6 +439,30 @@ def emphasis_parts(text, limit=34):
     return clean[:match.start()], match.group(0), clean[match.end():]
 
 
+PUBLIC_FRONT_LABELS = {
+    "实用指南",
+    "行动清单",
+    "信息指南",
+    "时间提醒",
+    "最新消息",
+    "考试动态",
+    "政策动态",
+    "行业观察",
+    "前沿观察",
+    "深度解读",
+    "判断参考",
+    "选择参考",
+    "避坑提醒",
+    "案例复盘",
+    "经验总结",
+    "科技观察",
+    "产品思考",
+    "生活观察",
+    "关系思考",
+    "问题拆解",
+    "方法参考",
+}
+
 FORBIDDEN_FRONT_LABELS = {
     "中立",
     "客观中立",
@@ -443,26 +474,33 @@ FORBIDDEN_FRONT_LABELS = {
     "公众号排版",
     "深度文章",
     "内部标签",
+    "信息祛魅",
+    "信息去魅",
 }
 
 
 def safe_front_label(label, fallback="判断参考"):
     clean = re.sub(r"\s+", "", str(label or "")).strip("#：:，,。 ")
-    if not clean or any(word.lower() in clean.lower() for word in FORBIDDEN_FRONT_LABELS):
-        return fallback
-    return short_text(clean, 8)
+    safe_fallback = fallback if fallback in PUBLIC_FRONT_LABELS else "判断参考"
+    if not clean or clean not in PUBLIC_FRONT_LABELS:
+        return safe_fallback
+    if any(word.lower() in clean.lower() for word in FORBIDDEN_FRONT_LABELS):
+        return safe_fallback
+    return clean
 
 
 def public_topic_tags(title, blocks):
     """Return reader-facing topic labels, never production metadata."""
     text = "%s\n%s" % (title, "\n".join(block[2] if block[0] == "heading" else str(block[1]) for block in blocks if len(block) > 1))
     rules = (
+        (("最新", "刚刚", "公布", "发布", "消息", "动态"), ("最新消息", "信息指南")),
         (("含金量", "证书", "职称资格", "软考"), ("深度解读", "判断参考")),
         (("教程", "安装", "步骤", "指南", "怎么", "如何"), ("实用指南", "行动清单")),
         (("测评", "对比", "选择", "避坑"), ("选择参考", "避坑提醒")),
         (("复盘", "案例", "实战"), ("案例复盘", "经验总结")),
         (("科技", "AI", "产品", "设计"), ("科技观察", "产品思考")),
-        (("报名", "考试", "政策", "时间"), ("信息指南", "时间提醒")),
+        (("报名", "考试", "时间"), ("考试动态", "时间提醒")),
+        (("政策", "通知", "公告"), ("政策动态", "信息指南")),
         (("关系", "情感", "生活", "成长"), ("生活观察", "关系思考")),
     )
     for keywords, labels in rules:

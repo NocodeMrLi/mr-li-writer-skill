@@ -44,7 +44,7 @@ COMPONENT_BLOCK = re.compile(
     r"^##\s+组件\s+\d+\s+(.+?)\n(.*?)(?=^##\s+组件\s+\d+\s+|^##\s+完整文章模板骨架|\Z)",
     re.M | re.S,
 )
-PUBLIC_PROCESS_LABEL = re.compile(r"公众号排版|深度文章|中文内容创作\s*Skill", re.I)
+PUBLIC_PROCESS_LABEL = re.compile(r"公众号排版|深度文章|中文内容创作\s*Skill|信息祛魅|信息去魅", re.I)
 NARROW_FIXED_CARD = re.compile(r"width\s*:\s*(?:[6-9]\d|1[01]\d|120)px", re.I)
 ADAPTIVE_CARD_COMPONENT = re.compile(
     r"数据|要点卡|对比|布局组件|flow-cards|three-col|ticket-cover|票据封面",
@@ -101,7 +101,7 @@ def lint_file(path):
             if "min-width:0" not in html or "overflow-wrap:anywhere" not in html:
                 add("ERROR", "多列卡片缺少 min-width:0 或 overflow-wrap:anywhere，长文本可能溢出")
         if PUBLIC_PROCESS_LABEL.search(html):
-            add("ERROR", "组件可见文本含公众号排版/深度文章/内容创作 Skill 等生产标签")
+            add("ERROR", "组件可见文本含公众号排版/深度文章/内容创作 Skill/信息祛魅等生产标签")
     return name, found
 
 

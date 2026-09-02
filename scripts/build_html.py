@@ -55,7 +55,9 @@ PROCESS_LEAK_PATTERNS = (
 )
 
 COMMERCIAL_SOURCE_EXPOSURE = re.compile(
-    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训|网校|辅导|题库|课堂)",
+    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司))"
+    r"|(?:据|来自|来源于|参考|援引).{0,40}[\u4e00-\u9fffA-Za-z0-9·]{2,24}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司))"
+    r"|[\u4e00-\u9fffA-Za-z0-9·]{2,24}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司)).{0,30}(?:发布|放出|整理|汇总|统计|披露|表示|指出|显示)",
     re.I,
 )
 
@@ -70,12 +72,17 @@ def configured_commercial_source_regex():
         terms = []
     if not terms:
         return None
-    names = "|".join(re.escape(term) for term in terms)
-    return re.compile(
-        r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?:%s)|(?:%s).{0,30}(?:公开汇总|数据|资料|统计|显示)"
-        % (names, names),
-        re.I,
-    )
+    patterns = []
+    for term in terms:
+        escaped = re.escape(term)
+        if len(term) <= 2 and re.fullmatch(r"[\u4e00-\u9fff]+", term):
+            patterns.append(
+                r"(?:据|来自|来源于|参考|援引).{0,40}%s|%s.{0,30}(?:刚(?:把)?|发布|放出|整理|汇总|统计|披露|表示|指出|显示)"
+                % (escaped, escaped)
+            )
+        else:
+            patterns.append(escaped)
+    return re.compile(r"(?:%s)" % "|".join(patterns), re.I)
 
 
 def warn_process_leaks(text, label="正文"):
@@ -94,7 +101,7 @@ def warn_commercial_source_exposure(text, label="正文"):
     configured = configured_commercial_source_regex()
     if COMMERCIAL_SOURCE_EXPOSURE.search(text) or (configured and configured.search(text)):
         sys.stderr.write(
-            "[警告] %s疑似把商业相关第三方机构写成资料背书；请优先使用官方来源，第三方仅作辅助核对时改为“相关机构公开汇总”。\n"
+            "[警告] %s疑似把商业相关第三方机构写成资料背书；请使用与该事实匹配的官方来源。第三方仅作辅助核对时应匿名写“据相关第三方机构公开信息/公开汇总”；未获官方确认时还须明确待核实。\n"
             % label
         )
 

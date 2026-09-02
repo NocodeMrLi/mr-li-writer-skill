@@ -105,6 +105,16 @@ class ResearchBoundaryQualityGateTests(unittest.TestCase):
         state = confirmed_state(
             original_prompt="只基于我给的链接整理，不要外查：https://example.com/policy"
         )
+        state["research_scope"] = {
+            "source_entities": [
+                {
+                    "name": "用户提供资料",
+                    "role": "unknown",
+                    "claim_scope": "有限资料整理",
+                    "reader_visibility": "anonymous",
+                }
+            ]
+        }
         with tempfile.TemporaryDirectory() as tmp:
             state_path = pathlib.Path(tmp) / "state.json"
             state_path.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
@@ -143,6 +153,21 @@ class FormalDeliveryContentGateTests(unittest.TestCase):
             "confirmed": True,
             "source": "user",
             "user_quote": "普通传播",
+        }
+        state["research_scope"] = {
+            "external_search_done": True,
+            "official_sources_checked": True,
+            "freshness_checked": True,
+            "independent_crosscheck_checked": True,
+            "source_mix": "官方产品资料与独立资料交叉核对",
+            "source_entities": [
+                {
+                    "name": "产品官方资料",
+                    "role": "official",
+                    "claim_scope": "工具功能与当前状态",
+                    "reader_visibility": "named",
+                }
+            ],
         }
         state_path = directory / "task-state.json"
         state_path.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
