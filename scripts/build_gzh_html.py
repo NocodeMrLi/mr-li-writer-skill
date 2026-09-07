@@ -1079,15 +1079,16 @@ def component_list(theme_key, components, items, ordered=False):
 
 
 def component_table(theme_key, headers, rows):
-    """Render semantic tables with bounded horizontal scrolling on narrow screens."""
+    """Render mobile-first semantic tables with bounded scrolling only when needed."""
     theme = THEMES[theme_key]
-    compact = len(headers) >= 4
+    column_count = max(1, len(headers))
+    compact = column_count >= 4
+    scrollable = column_count >= 5
     font_size = "12px" if compact else "13px"
     padding = "8px 5px" if compact else "9px 7px"
-    min_width = min(760, max(360, len(headers) * 124))
     cell_style = (
         "box-sizing:border-box;padding:%s;border:1px solid %s;vertical-align:top;"
-        "font-size:%s;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"
+        "font-size:%s;line-height:1.55;word-break:normal;overflow-wrap:anywhere;white-space:normal;"
         % (padding, theme["line"], font_size)
     )
     head_cells = "".join(
@@ -1104,13 +1105,20 @@ def component_table(theme_key, headers, rows):
             for value in row
         )
         body_rows.append("<tr>%s</tr>" % cells)
+    wrapper_style = "width:100%;max-width:100%;box-sizing:border-box;margin:0 0 24px;"
+    table_width_style = "max-width:100%;"
+    if scrollable:
+        min_width = min(680, max(420, column_count * 92))
+        wrapper_style += "overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;"
+        table_width_style = "min-width:%dpx;max-width:680px;" % min_width
+    table_style = (
+        "width:100%;"
+        + table_width_style
+        + "table-layout:fixed;border-collapse:collapse;border-spacing:0;box-sizing:border-box;"
+    )
     return (
-        '<section style="width:100%%;max-width:100%%;box-sizing:border-box;margin:0 0 24px;'
-        'overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">'
-        '<table style="width:100%%;min-width:%dpx;max-width:760px;table-layout:fixed;border-collapse:collapse;'
-        'border-spacing:0;box-sizing:border-box;">'
-        '<thead><tr>%s</tr></thead><tbody>%s</tbody></table></section>'
-        % (min_width, head_cells, "".join(body_rows))
+        '<section style="%s"><table style="%s"><thead><tr>%s</tr></thead><tbody>%s</tbody></table></section>'
+        % (wrapper_style, table_style, head_cells, "".join(body_rows))
     )
 
 

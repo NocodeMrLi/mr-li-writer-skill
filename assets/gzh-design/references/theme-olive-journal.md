@@ -525,23 +525,23 @@
 **可替换字段**：`{{维度列名}}` `{{方案A名}}` `{{方案B名}}` + 每行 `{{行标题}}` `{{A值}}` `{{B值}}`
 
 ```html
-<section style="width:100%;max-width:100%;box-sizing:border-box;margin-top:24px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">
-  <table style="width:100%;min-width:372px;max-width:760px;table-layout:fixed;border-collapse:collapse;border-spacing:0;box-sizing:border-box;background:#fdfdf8;font-family:'IBM Plex Sans',-apple-system,sans-serif;">
+<section style="width:100%;max-width:100%;box-sizing:border-box;margin-top:24px;">
+  <table style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;border-spacing:0;box-sizing:border-box;background:#fdfdf8;font-family:'IBM Plex Sans',-apple-system,sans-serif;">
     <thead><tr>
-      <th style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;background:#eeefe9;font-size:12px;font-weight:800;color:#23251d;text-align:left;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{维度列名}}</span></th>
-      <th style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;background:#eeefe9;font-size:12px;font-weight:800;color:#23251d;text-align:left;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{方案A名}}</span></th>
-      <th style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;background:#eeefe9;font-size:12px;font-weight:800;color:#23251d;text-align:left;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{方案B名}}</span></th>
+      <th style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;background:#eeefe9;font-size:12px;font-weight:800;color:#23251d;text-align:left;word-break:normal;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{维度列名}}</span></th>
+      <th style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;background:#eeefe9;font-size:12px;font-weight:800;color:#23251d;text-align:left;word-break:normal;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{方案A名}}</span></th>
+      <th style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;background:#eeefe9;font-size:12px;font-weight:800;color:#23251d;text-align:left;word-break:normal;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{方案B名}}</span></th>
     </tr></thead>
     <tbody><tr>
-      <td style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;font-size:13px;color:#4d4f46;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{行标题}}</span></td>
-      <td style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;font-size:13px;color:#23251d;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{A值}}</span></td>
-      <td style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;font-size:13px;color:#23251d;word-break:keep-all;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{B值}}</span></td>
+      <td style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;font-size:13px;color:#4d4f46;word-break:normal;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{行标题}}</span></td>
+      <td style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;font-size:13px;color:#23251d;word-break:normal;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{A值}}</span></td>
+      <td style="box-sizing:border-box;padding:9px 6px;border:1px solid #bfc1b7;font-size:13px;color:#23251d;word-break:normal;overflow-wrap:anywhere;white-space:normal;"><span leaf="">{{B值}}</span></td>
     </tr></tbody>
   </table>
 </section>
 ```
 
-列数和行数按原始数据增减。四列及以上把字号降到 `12px`、单元格横向内边距降到 `5px`；窄屏使用表格容器内的有限横向滚动，不能把短词压成逐字竖排，也不能改成伪表格卡片。
+列数和行数按原始数据增减。四列及以上把字号降到 `12px`、单元格横向内边距降到 `5px`；手机端 1～4 列自然换行，5 列及以上才使用宽度不超过 `680px` 的局部滚动，不能改成伪表格卡片。
 
 ---
 
@@ -958,7 +958,7 @@
 | 行内 `` `code` `` / 技术名词/字段名 | 文字强调 d 行内代码标签 | 整句强调用组件11 |
 | ` ``` 多行代码块 ``` ` | 通用库1a深色/1b浅色 | 左竖条换本主题墨色 `#1e1f23` |
 | 无序/有序列表 | 组件13 无序列表（简单）/ 组件24 条目列表卡（需标题+说明两层） | |
-| Markdown 表格 | 组件22 精简对照表（≥2列数据对照） | 必须输出语义化 `<table>`；桌面完整展示，窄屏仅在表格容器内有限横向滚动，禁止保留 Markdown 竖线文本或 flex 伪表格 |
+| Markdown 表格 | 组件22 精简对照表（≥2列数据对照） | 必须输出语义化 `<table>`；手机端 1～4 列自然换行且不横向滚动，5 列及以上才允许宽度有上限的局部滚动 |
 | 二元观点对比 | 组件21 对比摘要卡 | 仅用于非表格型摘要，不替代数据表 |
 | `![说明](图片)` | 组件19 图片卡 | 有说明才加 `<figcaption>` |
 | `![](图片)` 无说明/通栏 | 组件18 通栏图片 | |

@@ -53,6 +53,7 @@ CODE_STYLE = re.compile(r"monospace|white-space\s*:\s*pre|courier|consolas|sf mo
 OVERFLOW_X_AUTO = re.compile(r"overflow-x\s*:\s*auto", re.I)
 MIN_WIDTH_PX = re.compile(r"min-width\s*:\s*(\d+)px", re.I)
 MAX_WIDTH_PX = re.compile(r"max-width\s*:\s*(\d+)px", re.I)
+TABLE_KEEP_ALL = re.compile(r"<table\b.*?word-break\s*:\s*keep-all.*?</table>", re.I | re.S)
 
 
 class LeafChecker(HTMLParser):
@@ -131,7 +132,7 @@ class ResponsiveTableScrollChecker(HTMLParser):
             max_match = MAX_WIDTH_PX.search(style)
             min_width = int(min_match.group(1)) if min_match else 0
             max_width = int(max_match.group(1)) if max_match else 0
-            bounded = 320 <= min_width <= 760 and min_width <= max_width <= 760
+            bounded = 320 <= min_width <= 680 and min_width <= max_width <= 680
             if bounded and re.search(r"table-layout\s*:\s*fixed", style, re.I):
                 for wrapper in self.scroll_wrappers:
                     wrapper["valid_table"] = True
@@ -254,6 +255,8 @@ def validate(html, name="<input>"):
             (errors if level == "ERROR" else warnings).append("%s（命中 %d 处）" % (msg, hits))
     if RAW_MARKDOWN_TABLE.search(html):
         errors.append("检测到未转换的 Markdown 表格；必须渲染为语义化 <table> 后再交付")
+    if TABLE_KEEP_ALL.search(html):
+        errors.append("语义化表格禁止使用 word-break:keep-all；手机端必须优先让单元格内容自然换行")
     if FORBIDDEN_FRONT_BADGE.search(html):
         errors.append("检测到不适合暴露给读者的前端标签词；请改为信息指南、判断参考、深度解读、避坑提醒等读者口径")
 

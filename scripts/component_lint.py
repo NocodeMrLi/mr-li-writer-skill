@@ -76,7 +76,7 @@ def lint_file(path):
             max_match = re.search(r"max-width\s*:\s*(\d+)px", style, re.I)
             min_width = int(min_match.group(1)) if min_match else 0
             max_width = int(max_match.group(1)) if max_match else 0
-            bounded = 320 <= min_width <= 760 and min_width <= max_width <= 760
+            bounded = 320 <= min_width <= 680 and min_width <= max_width <= 680
             if not table_style or not bounded or not re.search(r"table-layout\s*:\s*fixed", style, re.I):
                 add("ERROR", "横向滚动仅允许用于宽度有上限的语义化表格容器")
         if re.search(r"<table[\s>]", html, re.I):
@@ -84,6 +84,8 @@ def lint_file(path):
                 add("ERROR", "语义化表格缺少 table-layout:fixed，窄屏可能被内容撑宽")
             if "overflow-wrap:anywhere" not in html or not re.search(r"white-space\s*:\s*normal", html, re.I):
                 add("ERROR", "语义化表格缺少单元格长文本换行兜底")
+            if re.search(r"<table\b.*?word-break\s*:\s*keep-all.*?</table>", html, re.I | re.S):
+                add("ERROR", "语义化表格使用 word-break:keep-all，会阻止手机端单元格自然换行")
         # 原 gzh-design 主题中部分引用框、亮点卡和素材占位会刻意使用
         # 四周虚线作为设计语言；这里不把 dashed 本身视为源头问题。
 

@@ -2238,20 +2238,37 @@ class GzhThemeRegressionTests(unittest.TestCase):
                 self.assertNotIn("justify-content:space-between;gap:", hero)
                 self.assertNotIn("min-width:96px", hero)
 
-    def test_markdown_tables_render_as_semantic_responsive_tables_in_every_theme(self):
+    def test_four_column_markdown_tables_wrap_without_horizontal_scroll_in_every_theme(self):
         blocks = build_gzh.parse_blocks(TABLE_MD)
         self.assertTrue(any(block[0] == "table" for block in blocks))
         for theme in build_gzh.THEMES:
             with self.subTest(theme=theme):
-                rendered = build_gzh.build_component_section(TABLE_MD, "报名状态", theme)
+                rendered = build_gzh.component_table(
+                    theme,
+                    ["已截（报名通道已关）", "今日截", "仍在报", "即将开"],
+                    [["辽宁、吉林、黑龙江、上海、浙江、安徽、福建、广东、广西", "山东", "天津、山西、内蒙古", "河北"]],
+                )
                 self.assertIn("<table", rendered)
                 self.assertIn("table-layout:fixed", rendered)
-                self.assertIn("overflow-x:auto", rendered)
-                self.assertIn("max-width:760px", rendered)
-                self.assertRegex(rendered, r"min-width:(?:360|372|496|620|744|760)px")
-                self.assertIn("word-break:keep-all", rendered)
+                self.assertNotIn("overflow-x:auto", rendered)
+                self.assertNotIn("min-width:", rendered)
+                self.assertIn("max-width:100%", rendered)
+                self.assertIn("word-break:normal", rendered)
+                self.assertNotIn("word-break:keep-all", rendered)
                 self.assertIn("overflow-wrap:anywhere", rendered)
                 self.assertNotIn("| --- |", rendered)
+
+    def test_five_plus_column_tables_keep_only_bounded_local_scroll(self):
+        for columns, expected_width in ((5, 460), (6, 552), (8, 680)):
+            headers = ["列%d" % index for index in range(1, columns + 1)]
+            row = ["这是需要合理换行的单元格内容"] * columns
+            rendered = build_gzh.component_table("red-white", headers, [row])
+            with self.subTest(columns=columns):
+                self.assertIn("overflow-x:auto", rendered)
+                self.assertIn("min-width:%dpx" % expected_width, rendered)
+                self.assertIn("max-width:680px", rendered)
+                self.assertIn("word-break:normal", rendered)
+                self.assertNotIn("word-break:keep-all", rendered)
 
     def test_generated_html_validator_rejects_raw_markdown_tables(self):
         validator = load_module("validate_gzh_html", "scripts/validate_gzh_html.py")
@@ -2263,7 +2280,7 @@ class GzhThemeRegressionTests(unittest.TestCase):
         validator = load_module("validate_gzh_html_table_scroll", "scripts/validate_gzh_html.py")
         allowed = (
             '<section style="overflow-x:auto;overflow-y:hidden;">'
-            '<table style="width:100%;min-width:620px;max-width:760px;table-layout:fixed;">'
+            '<table style="width:100%;min-width:552px;max-width:680px;table-layout:fixed;">'
             '<tr><td><span leaf="">9月7日</span><br></td></tr></table></section>'
         )
         errors, _, _ = validator.validate(allowed)
@@ -2272,10 +2289,21 @@ class GzhThemeRegressionTests(unittest.TestCase):
         for source in (
             '<section style="overflow-x:auto;"><p><span leaf="">目录卡片</span></p></section>',
             '<section style="overflow-x:auto;"><table style="min-width:1200px;table-layout:fixed;"><tr><td><span leaf="">数据</span></td></tr></table></section>',
+            '<section style="overflow-x:auto;"><table style="min-width:620px;max-width:760px;table-layout:fixed;"><tr><td><span leaf="">数据</span></td></tr></table></section>',
         ):
             with self.subTest(source=source):
                 errors, _, _ = validator.validate(source)
                 self.assertTrue(any("横向滚动" in error for error in errors), errors)
+
+    def test_generated_html_validator_rejects_table_keep_all(self):
+        validator = load_module("validate_gzh_html_table_wrap", "scripts/validate_gzh_html.py")
+        source = (
+            '<section><table style="width:100%;max-width:100%;table-layout:fixed;">'
+            '<tr><td style="word-break:keep-all;overflow-wrap:anywhere;white-space:normal;">'
+            '<span leaf="">辽宁、吉林、黑龙江、上海</span></td></tr></table></section>'
+        )
+        errors, _, _ = validator.validate(source)
+        self.assertTrue(any("自然换行" in error for error in errors), errors)
 
     def test_generated_html_validator_reports_missing_file_without_traceback(self):
         validator = ROOT / "scripts/validate_gzh_html.py"
