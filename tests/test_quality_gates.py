@@ -166,6 +166,7 @@ class FormalDeliveryContentGateTests(unittest.TestCase):
                     "role": "official",
                     "claim_scope": "工具功能与当前状态",
                     "reader_visibility": "named",
+                    "authority_matched": True,
                 }
             ],
         }

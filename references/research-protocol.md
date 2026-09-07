@@ -38,7 +38,7 @@
 | 最新核验 | 判断信息是否仍有效，记录信息截至日期 | `freshness_checked` |
 | 独立交叉核对 | 冲突或高风险信息至少补一个可靠交叉来源 | `independent_crosscheck_checked` 或 `independent_sources` |
 | 来源组合说明 | 说明用户资料、官方资料和交叉资料如何共同支撑正文 | `source_mix` |
-| 来源角色台账 | 逐一判断机构角色、能支持的事实范围和读者端可见性 | `source_entities`：`name`、`role`、`claim_scope`、`reader_visibility` |
+| 来源角色台账 | 逐一判断机构角色、能支持的事实范围、领域匹配状态和读者端可见性 | `source_entities`：`name`、`role`、`claim_scope`、`authority_matched`、`reader_visibility` |
 
 硬信息即使没有用户种子资料，也必须执行官方核验、最新核验和来源角色登记。机构名称听起来正式、页面排名靠前或资料整理得完整，都不能替代角色判断。
 
@@ -74,6 +74,8 @@ python3 scripts/validate_task_intake.py <任务状态.json> --phase draft
 
 来源等级不是质量的唯一标准。还要检查发布时间、研究口径、适用范围、利益关系和是否直接支持当前论点。权威性与事实领域绑定：PMP 事项优先 PMI/PMI 中国，软考事项优先主管部门或软考办；不能把机构在一个领域的官方身份外推为所有事实的权威来源。
 
+来源角色判断先于页面关键词判断。政府、主管部门或领域官方机构发布的页面，即使标题、栏目或正文包含“培训、课程、题库、咨询”等字样，也仍属于官方来源，不得仅凭这些词降级为商业机构；随后再用 `claim_scope` 和 `authority_matched` 判断它能否支撑当前事实。官方身份解决“是不是商业来源”，领域匹配解决“能不能作为这条事实的权威依据”，两者不能混为一谈。
+
 ### 利益相关来源
 
 若第三方机构通过培训、辅导、认证、课程、咨询或同类服务从文章主题中直接获利，它属于商业相关来源，不得因为资料整理得完整就获得与官方来源相同的正文露出。
@@ -86,8 +88,8 @@ python3 scripts/validate_task_intake.py <任务状态.json> --phase draft
 
 `source_entities` 角色约束：
 
-- `official`：对当前事实有直接主管、发布或认证关系，必须写清 `claim_scope`，不允许跨领域外推。
-- `authoritative` / `independent`：可用于研究、解释或交叉核对，但不能冒充主管机关。
+- `official`：来源主体是政府、主管部门或官方发布机构；页面出现商业特征词不改变该角色。具名支撑当前事实时必须写清 `claim_scope` 且设置 `authority_matched: true`，不允许跨领域外推。
+- `authoritative` / `independent`：可用于研究、解释或交叉核对，但不能冒充主管机关；`authoritative` 具名支撑当前事实同样要求 `authority_matched: true`。
 - `commercial_interested`：通过培训、课程、认证辅导、咨询、题库或同类服务直接获利，正文默认 `anonymous/omit/internal_only`。
 - `unknown`：角色尚未确认，按低可信来源处理，不能显名背书。
 - 只有文章以该机构为 `subject/evaluation/comparison/profile`，并记录 `interest_disclosed: true` 时，商业利益相关机构才可 `named`。

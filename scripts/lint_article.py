@@ -3,10 +3,24 @@
 """Static checks for a Markdown article before delivery."""
 
 import argparse
-import json
 import re
 import sys
 from pathlib import Path
+
+try:
+    from source_governance import (
+        compile_named_source_regex,
+        has_commercial_source_exposure,
+        has_restricted_source_mention,
+        source_role_names,
+    )
+except ImportError:
+    from scripts.source_governance import (
+        compile_named_source_regex,
+        has_commercial_source_exposure,
+        has_restricted_source_mention,
+        source_role_names,
+    )
 
 
 AI_PHRASES = (
@@ -104,13 +118,6 @@ PROCESS_LEAK_PATTERNS = (
     (r"\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)", "时间备注使用了后台动作词"),
 )
 
-COMMERCIAL_SOURCE_EXPOSURE_PATTERNS = (
-    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司))",
-    r"(?:据|来自|来源于|参考|援引).{0,40}[\u4e00-\u9fffA-Za-z0-9·]{2,24}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司))",
-    r"[\u4e00-\u9fffA-Za-z0-9·]{2,24}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司)).{0,30}(?:发布|放出|整理|汇总|统计|披露|表示|指出|显示)",
-)
-
-
 def configured_commercial_source_patterns():
     path = Path(__file__).resolve().parents[1] / "references" / "commercial-source-terms.txt"
     try:
@@ -124,17 +131,8 @@ def configured_commercial_source_patterns():
         terms = []
     if not terms:
         return ()
-    patterns = []
-    for term in terms:
-        escaped = re.escape(term)
-        if len(term) <= 2 and re.fullmatch(r"[\u4e00-\u9fff]+", term):
-            patterns.append(
-                r"(?:据|来自|来源于|参考|援引).{0,40}%s|%s.{0,30}(?:刚(?:把)?|发布|放出|整理|汇总|统计|披露|表示|指出|显示)"
-                % (escaped, escaped)
-            )
-        else:
-            patterns.append(escaped)
-    return tuple(patterns)
+    regex = compile_named_source_regex(terms)
+    return (regex.pattern,) if regex else ()
 
 OVER_LITERARY_PHRASES = (
     "命运的齿轮",
@@ -231,27 +229,6 @@ def parse_args():
         help="正式交付模式：流程泄漏、商业资料背书、未经证实的第一人称和无来源百分比将阻断交付",
     )
     return parser.parse_args()
-
-
-def non_public_source_names(task_state):
-    if not task_state:
-        return ()
-    try:
-        state = json.loads(Path(task_state).read_text(encoding="utf-8"))
-    except (OSError, ValueError, TypeError):
-        return ()
-    scope = state.get("research_scope", {})
-    entities = scope.get("source_entities", []) if isinstance(scope, dict) else []
-    names = []
-    for entity in entities if isinstance(entities, list) else []:
-        if not isinstance(entity, dict):
-            continue
-        name = str(entity.get("name", "")).strip()
-        role = str(entity.get("role", "")).strip().lower().replace("-", "_")
-        visibility = str(entity.get("reader_visibility", "")).strip().lower()
-        if name and (role in {"commercial_interested", "unknown"} or visibility in {"omit", "anonymous", "internal_only"}):
-            names.append(name)
-    return tuple(dict.fromkeys(names))
 
 
 def han_count(text):
@@ -362,11 +339,12 @@ def main():
         if args.strict_delivery:
             errors.append("严格交付门禁：%s" % message)
 
-    commercial_patterns = COMMERCIAL_SOURCE_EXPOSURE_PATTERNS + configured_commercial_source_patterns()
-    governed_names = non_public_source_names(args.task_state)
-    governed_name_hit = any(name.lower() in text.lower() for name in governed_names)
+    configured_patterns = configured_commercial_source_patterns()
+    configured_regex = re.compile(configured_patterns[0], re.I) if configured_patterns else None
+    governed_names, official_names = source_role_names(args.task_state)
+    governed_name_hit = has_restricted_source_mention(text, governed_names)
     if not args.allow_commercial_source_names and (
-        governed_name_hit or any(re.search(pattern, text, re.I) for pattern in commercial_patterns)
+        governed_name_hit or has_commercial_source_exposure(text, configured_regex, official_names)
     ):
         message = (
             "正文疑似把商业相关第三方机构写成资料背书。硬信息应使用与该事实直接对应的官方来源；第三方仅作辅助核对时，请匿名改为“据相关第三方机构公开信息/公开汇总”，并在未获官方确认时明确“尚待官方确认”，不要在正文显名宣传。"

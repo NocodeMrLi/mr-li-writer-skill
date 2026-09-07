@@ -20,6 +20,11 @@ import re
 import subprocess
 import sys
 
+try:
+    from source_governance import compile_named_source_regex, has_commercial_source_exposure, source_role_names
+except ImportError:
+    from scripts.source_governance import compile_named_source_regex, has_commercial_source_exposure, source_role_names
+
 
 PROCESS_LEAK_PATTERNS = (
     r"(抓取|爬取|采集)(到|自|于|时间|结果|数据|页面|信息)?",
@@ -32,14 +37,6 @@ PROCESS_LEAK_PATTERNS = (
     r"\d{4}\s*年\s*\d{1,2}\s*月\s*(抓取|爬取|采集|检索)",
 )
 
-COMMERCIAL_SOURCE_EXPOSURE = re.compile(
-    r"(?:数据|资料|信息|内容).{0,24}(?:来自|来源于|据).{0,70}(?<!相关)[\u4e00-\u9fffA-Za-z0-9]{2,16}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司))"
-    r"|(?:据|来自|来源于|参考|援引).{0,40}[\u4e00-\u9fffA-Za-z0-9·]{2,24}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司))"
-    r"|[\u4e00-\u9fffA-Za-z0-9·]{2,24}(?:培训(?:机构|学校|平台|公司|品牌)?|网校|辅导(?:机构|平台|公司|品牌)?|题库(?:平台|公司|品牌)?|考证(?:机构|平台|服务)?|课程(?:平台|公司|品牌)|教育(?:培训|咨询)(?:机构|公司)?|咨询(?:机构|公司)).{0,30}(?:发布|放出|整理|汇总|统计|披露|表示|指出|显示)",
-    re.I,
-)
-
-
 def configured_commercial_source_regex():
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "references", "commercial-source-terms.txt")
     try:
@@ -50,17 +47,7 @@ def configured_commercial_source_regex():
         terms = []
     if not terms:
         return None
-    patterns = []
-    for term in terms:
-        escaped = re.escape(term)
-        if len(term) <= 2 and re.fullmatch(r"[\u4e00-\u9fff]+", term):
-            patterns.append(
-                r"(?:据|来自|来源于|参考|援引).{0,40}%s|%s.{0,30}(?:刚(?:把)?|发布|放出|整理|汇总|统计|披露|表示|指出|显示)"
-                % (escaped, escaped)
-            )
-        else:
-            patterns.append(escaped)
-    return re.compile(r"(?:%s)" % "|".join(patterns), re.I)
+    return compile_named_source_regex(terms)
 
 
 def warn_process_leaks(text, label="正文"):
@@ -74,9 +61,10 @@ def warn_process_leaks(text, label="正文"):
             return
 
 
-def warn_commercial_source_exposure(text, label="正文"):
+def warn_commercial_source_exposure(text, label="正文", task_state=""):
     configured = configured_commercial_source_regex()
-    if COMMERCIAL_SOURCE_EXPOSURE.search(text) or (configured and configured.search(text)):
+    _restricted_names, official_names = source_role_names(task_state)
+    if has_commercial_source_exposure(text, configured, official_names):
         print(
             "[警告] %s疑似把商业相关第三方机构写成资料背书；请使用与该事实匹配的官方来源。第三方仅作辅助核对时应匿名写“据相关第三方机构公开信息/公开汇总”；未获官方确认时还须明确待核实。" % label,
             file=sys.stderr,
@@ -1587,7 +1575,7 @@ def main():
     with open(md_path, encoding="utf-8") as f:
         md_text = f.read()
     warn_process_leaks(md_text)
-    warn_commercial_source_exposure(md_text)
+    warn_commercial_source_exposure(md_text, task_state=args.task_state)
 
     title = args.title or os.path.splitext(os.path.basename(md_path))[0]
     theme_key, reason = resolve_theme(args.theme, md_text, title)

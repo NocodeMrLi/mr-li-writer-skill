@@ -617,6 +617,7 @@ class DeliveryProtocolTests(unittest.TestCase):
                             "role": "official",
                             "claim_scope": "2026 年软考报名安排",
                             "reader_visibility": "named",
+                            "authority_matched": True,
                         }
                     ],
                 },
@@ -693,6 +694,37 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("不能在正文显名", result.stdout)
 
+    def test_research_scope_blocks_cross_field_authority_named_as_current_authority(self):
+        validator = ROOT / "scripts/validate_research_scope.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                original_prompt="2026 年软考报名政策",
+                research_scope={
+                    "external_search_done": True,
+                    "official_sources_checked": True,
+                    "freshness_checked": True,
+                    "independent_crosscheck_checked": True,
+                    "source_mix": "官方资料与独立资料交叉核对",
+                    "source_entities": [
+                        {
+                            "name": "PMI",
+                            "role": "authoritative",
+                            "claim_scope": "PMP 与项目管理认证",
+                            "reader_visibility": "named",
+                            "authority_matched": False,
+                        }
+                    ],
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(validator), str(state), "--phase", "draft"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("事实领域不匹配", result.stdout)
+
     def test_task_intake_requires_task_context_before_draft(self):
         validator = ROOT / "scripts/validate_task_intake.py"
         with tempfile.TemporaryDirectory() as tmp:
@@ -752,6 +784,7 @@ class DeliveryProtocolTests(unittest.TestCase):
             "freshness_checked",
             "source_mix",
             "source_entities",
+            "authority_matched",
         ):
             self.assertIn(token, skill + research + agent)
         self.assertIn("只基于我给的资料", skill + research + readme)
@@ -1793,6 +1826,9 @@ class ArticleLintTests(unittest.TestCase):
     def test_generic_commercial_patterns_do_not_treat_ministry_name_as_training_vendor(self):
         articles = (
             "教育部发布了最新通知。",
+            "工业和信息化部职业技能培训课程页面显示，报名工作已经开始。",
+            "据工业和信息化部职业技能培训课程页面，报名工作已经开始。",
+            "教育部课程平台发布了最新通知。",
             "这座城市正在形成人才聚集效应。",
         )
         for article in articles:
@@ -1801,6 +1837,89 @@ class ArticleLintTests(unittest.TestCase):
                     output = io.StringIO()
                     with contextlib.redirect_stderr(output):
                         warn(article)
+                    self.assertNotIn("商业相关第三方机构", output.getvalue())
+
+    def test_generic_commercial_patterns_still_detect_unlisted_training_sources(self):
+        articles = (
+            "某培训机构发布了全年考试城市汇总。",
+            "工业和信息化部与某培训机构联合发布了课程汇总。",
+        )
+        for article in articles:
+            for warn in (build_html.warn_commercial_source_exposure, build_gzh.warn_commercial_source_exposure):
+                with self.subTest(article=article, module=warn.__module__):
+                    output = io.StringIO()
+                    with contextlib.redirect_stderr(output):
+                        warn(article)
+                    self.assertIn("商业相关第三方机构", output.getvalue())
+
+    def test_strict_lint_does_not_downgrade_field_matched_official_source_with_commercial_words(self):
+        article = """# 职业技能培训政策
+
+工业和信息化部职业技能培训课程页面显示，相关安排已经公布。
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = pathlib.Path(tmp)
+            path = directory / "article.md"
+            state = directory / "task-state.json"
+            path.write_text(article, encoding="utf-8")
+            state.write_text(
+                json.dumps(
+                    {
+                        "research_scope": {
+                            "source_entities": [
+                                {
+                                    "name": "工业和信息化部",
+                                    "role": "official",
+                                    "claim_scope": "职业技能培训政策",
+                                    "reader_visibility": "named",
+                                    "authority_matched": True,
+                                }
+                            ]
+                        }
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            with mock.patch.object(
+                sys,
+                "argv",
+                ["lint_article.py", str(path), "--strict-delivery", "--task-state", str(state)],
+            ):
+                with contextlib.redirect_stdout(output):
+                    code = lint_article.main()
+        self.assertEqual(code, 0, output.getvalue())
+        self.assertNotIn("商业相关第三方机构", output.getvalue())
+
+    def test_source_role_protects_official_entity_whose_name_contains_training_term(self):
+        article = "某省干部培训中心发布了年度课程安排。"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = pathlib.Path(tmp) / "task-state.json"
+            state.write_text(
+                json.dumps(
+                    {
+                        "research_scope": {
+                            "source_entities": [
+                                {
+                                    "name": "某省干部培训中心",
+                                    "role": "official",
+                                    "claim_scope": "该中心年度课程安排",
+                                    "reader_visibility": "named",
+                                    "authority_matched": True,
+                                }
+                            ]
+                        }
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            for warn in (build_html.warn_commercial_source_exposure, build_gzh.warn_commercial_source_exposure):
+                with self.subTest(module=warn.__module__):
+                    output = io.StringIO()
+                    with contextlib.redirect_stderr(output):
+                        warn(article, task_state=str(state))
                     self.assertNotIn("商业相关第三方机构", output.getvalue())
 
     def test_commercial_source_terms_missing_warns_before_generic_fallback(self):

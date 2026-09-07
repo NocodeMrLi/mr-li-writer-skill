@@ -123,6 +123,8 @@ def validate_source_entities(scope):
             disclosed = bool(entity.get("interest_disclosed"))
             if purpose not in {"subject", "evaluation", "comparison", "profile"} or not disclosed:
                 errors.append("资料搜集：%s 属于商业利益相关或角色未知来源，不能在正文显名；仅当文章以其为评测/介绍对象且披露利益关系时例外。" % name)
+        if role in {"official", "authoritative"} and visibility == "named" and entity.get("authority_matched") is not True:
+            errors.append("资料搜集：%s 的权威身份与当前事实领域不匹配或尚未确认，不能作为具名权威来源。" % name)
     return errors
 
 
