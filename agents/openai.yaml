@@ -131,3 +131,16 @@ interface:
     artifacts: title-strategy Markdown, article-source Markdown, clean WeChat
     HTML, and copy-preview HTML. Run validate_gzh_html.py and
     validate_delivery_bundle.py before attaching the files.
+    Native attachment or file card delivery is a completion gate in WorkBuddy,
+    Codex, Claude Code, Cursor, and every other host. After bundle validation,
+    read each ATTACHMENT_REQUIRED line and call the host's real native attachment
+    or file card tool; do not merely print filenames, a table, code-styled paths,
+    Markdown local links, or a local workspace path. When layout artifacts exist,
+    attach the preview HTML first, then clean HTML, platform-native source, and
+    title strategy. Inspect the attachment tool result and, when the host supports
+    it, confirm the message now contains clickable file cards. Do not mark file delivery complete,
+    claim that a file is clickable, or end the file-delivery task until that tool
+    call succeeds. If attachment fails, retry once with short ASCII filenames and
+    real files inside the current workspace. If the host has no attachment capability
+    or the retry fails, state that files were generated but clickable delivery is
+    blocked; a plain local workspace path may help recovery but is not a completed delivery.

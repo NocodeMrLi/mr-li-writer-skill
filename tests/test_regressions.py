@@ -1037,6 +1037,26 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("原生附件", text)
         self.assertNotIn("`[用途名](绝对路径) — 一句话用途`", text)
 
+    def test_clickable_delivery_is_a_hard_completion_gate_in_every_agent_entrypoint(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        protocol = (ROOT / "references/delivery-protocol.md").read_text(encoding="utf-8")
+        agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8").lower()
+
+        for text in (skill, protocol):
+            self.assertIn("可点击交付硬门禁", text)
+            self.assertIn("预览 HTML 必须作为第一张文件卡片", text)
+            self.assertIn("仅列出工作区路径不算交付", text)
+            self.assertIn("不得把任务标记为已交付", text)
+
+        for marker in (
+            "native attachment or file card",
+            "preview html first",
+            "do not mark file delivery complete",
+            "local workspace path",
+            "attachment tool result",
+        ):
+            self.assertIn(marker, agent)
+
     def test_research_protocol_covers_commercial_source_conflicts(self):
         text = (ROOT / "references/research-protocol.md").read_text(encoding="utf-8")
         self.assertIn("直接商业利益", text)
@@ -1075,6 +1095,17 @@ class DeliveryProtocolTests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+            self.assertIn("文件完整性校验通过不等于最终交付完成", complete.stdout)
+            required = [
+                line for line in complete.stdout.splitlines()
+                if line.startswith("ATTACHMENT_REQUIRED\t")
+            ]
+            self.assertEqual(len(required), 4, complete.stdout)
+            self.assertIn("\t1\t复制预览 HTML\t", required[0])
+            self.assertIn("article-preview.html", required[0])
+            self.assertIn("\t2\t公众号正文 HTML\t", required[1])
+            self.assertIn("\t3\t平台原生正文\t", required[2])
+            self.assertIn("\t4\t标题策略 Markdown\t", required[3])
 
     def test_agent_entrypoint_repeats_wechat_delivery_guards(self):
         text = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")

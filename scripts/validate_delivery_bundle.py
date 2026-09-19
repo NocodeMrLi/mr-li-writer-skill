@@ -114,6 +114,18 @@ def validate_wechat_bundle(directory):
     return roles, errors
 
 
+def attachment_order(roles):
+    """Return validated artifacts in the order users should see as file cards."""
+    priority = (
+        "复制预览 HTML",
+        "公众号正文 HTML",
+        "平台排版 HTML",
+        "平台原生正文",
+        "标题策略 Markdown",
+    )
+    return [(role, roles[role]) for role in priority if roles.get(role)]
+
+
 def require_task_state(task_state, platform):
     if not task_state:
         print("[阻断] 交付校验前必须传入 --task-state，并通过 scripts/validate_task_intake.py 确认必问项。")
@@ -232,6 +244,10 @@ def main():
         print("[通过] 标题、平台原生正文、排版 HTML 与复制预览均真实存在且非空")
     else:
         print("[通过] 标题策略与平台原生正文真实存在且非空；本次不机械要求 HTML")
+    print("[待执行] 必须调用宿主原生附件/文件卡片能力附加以下文件；预览优先，不能用工作区路径代替：")
+    for index, (role, path) in enumerate(attachment_order(roles), start=1):
+        print("ATTACHMENT_REQUIRED\t%d\t%s\t%s" % (index, role, path.resolve()))
+    print("[注意] 文件完整性校验通过不等于最终交付完成；只有附件工具返回成功后才能结束任务。")
     return 0
 
 
