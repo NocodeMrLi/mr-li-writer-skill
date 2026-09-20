@@ -67,7 +67,7 @@
   <p style="font-size:11px;color:#A1A1AA;letter-spacing:2px;margin:0 0 18px;font-weight:400;">
     <span leaf="">QUOTE</span>
   </p>
-  <p style="font-size:18px;font-weight:700;color:#27272A;margin:0 0 8px;line-height:1.7;letter-spacing:0.5px;">
+  <p style="font-size:18px;font-weight:700;color:#27272A;margin:0 0 8px;line-height:1.7;letter-spacing:0.5px;text-align:left;text-align-last:left;word-spacing:normal;white-space:normal;word-break:normal;overflow-wrap:anywhere;">
     <span leaf="">{{金句前段}}</span>
     <span style="border-bottom:2px solid #52525B;"><span leaf="">{{石墨下划线关键词}}</span></span>
     <span leaf="">{{金句收尾}}</span>

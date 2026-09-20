@@ -680,15 +680,20 @@ def apply_component(snippet, replacements):
 
 def zen_hero(title, blocks):
     intro = pick_first_paragraph(blocks)
+    title_alignment = (
+        "text-align:left;text-align-last:left"
+        if len(re.sub(r"\s+", "", title or "")) >= 18
+        else "text-align:center;text-align-last:center"
+    )
     return """
 <section style="margin:32px 16px 48px;padding:40px 24px;border-top:1px solid #E8E8E8;border-bottom:1px solid #E8E8E8;text-align:center;">
-  <p style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:19px;font-weight:600;color:#2B2B2B;margin:0 0 24px;line-height:1.85;letter-spacing:0.8px;word-break:keep-all;overflow-wrap:anywhere;">
+  <p style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:19px;font-weight:600;color:#2B2B2B;margin:0 0 24px;line-height:1.85;letter-spacing:0.8px;%s;word-spacing:normal;white-space:normal;word-break:normal;overflow-wrap:anywhere;">
     <span leaf="">%s</span>
   </p>
   <p style="font-size:12px;color:#A3A3A3;margin:0;letter-spacing:1.5px;">
     <span leaf="">%s</span>
   </p>
-</section>""" % (html_text(title), html_text("— " + short_text(intro, 22)))
+</section>""" % (title_alignment, html_text(title), html_text("— " + short_text(intro, 22)))
 
 
 def zen_section_title(text, number):

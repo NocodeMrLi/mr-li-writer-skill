@@ -87,11 +87,11 @@
         <p style="font-size:15px;color:#D1D5DB;margin:0 0 6px;text-decoration:line-through;letter-spacing:0.5px;">
           <span leaf="">{{划线旧认知}}</span>
         </p>
-        <p style="font-size:24px;font-weight:900;color:#111827;margin:0;line-height:1.08;letter-spacing:0;word-break:keep-all;overflow-wrap:anywhere;">
+        <p style="font-size:24px;font-weight:900;color:#111827;margin:0;line-height:1.08;letter-spacing:0;text-align:left;text-align-last:left;word-spacing:normal;white-space:normal;word-break:normal;overflow-wrap:anywhere;">
           <span leaf="">{{主标题行1}}</span>
           <span style="color:#059669;"><span leaf="">{{绿色高亮词}}</span></span>
         </p>
-        <p style="font-size:24px;font-weight:900;color:#059669;margin:0 0 16px;line-height:1.08;letter-spacing:0;word-break:break-word;overflow-wrap:anywhere;">
+        <p style="font-size:24px;font-weight:900;color:#059669;margin:0 0 16px;line-height:1.08;letter-spacing:0;text-align:left;text-align-last:left;word-spacing:normal;white-space:normal;word-break:normal;overflow-wrap:anywhere;">
           <span leaf="">{{主标题行2}}</span>
         </p>
         <section style="width:48px;height:3px;background:linear-gradient(to right,#059669,#34D399);border-radius:2px;margin-bottom:12px;">
@@ -131,11 +131,11 @@
       <p style="font-size:15px;color:#D1D5DB;margin:0 0 6px;text-decoration:line-through;letter-spacing:0.5px;">
         <span leaf="">{{划线旧认知}}</span>
       </p>
-      <p style="font-size:24px;font-weight:900;color:#111827;margin:0;line-height:1.08;letter-spacing:0;word-break:keep-all;overflow-wrap:anywhere;">
+      <p style="font-size:24px;font-weight:900;color:#111827;margin:0;line-height:1.08;letter-spacing:0;text-align:left;text-align-last:left;word-spacing:normal;white-space:normal;word-break:normal;overflow-wrap:anywhere;">
         <span leaf="">{{主标题行1}}</span>
         <span style="color:#059669;"><span leaf="">{{绿色高亮词}}</span></span>
       </p>
-      <p style="font-size:24px;font-weight:900;color:#059669;margin:0 0 16px;line-height:1.08;letter-spacing:0;word-break:break-word;overflow-wrap:anywhere;">
+      <p style="font-size:24px;font-weight:900;color:#059669;margin:0 0 16px;line-height:1.08;letter-spacing:0;text-align:left;text-align-last:left;word-spacing:normal;white-space:normal;word-break:normal;overflow-wrap:anywhere;">
         <span leaf="">{{主标题行2}}</span>
       </p>
       <section style="width:48px;height:3px;background:linear-gradient(to right,#059669,#34D399);border-radius:2px;margin-bottom:12px;">

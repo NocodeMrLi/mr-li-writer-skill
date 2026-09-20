@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from html.parser import HTMLParser
 from unittest import mock
 
 
@@ -2187,6 +2188,73 @@ class GzhThemeRegressionTests(unittest.TestCase):
 正文一。
 """
 
+    def test_cover_primary_text_resists_mobile_justification_across_themes(self):
+        class StyledNodeParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.nodes = []
+                self.stack = []
+
+            def handle_starttag(self, tag, attrs):
+                node = {"tag": tag, "attrs": dict(attrs), "text": ""}
+                self.nodes.append(node)
+                self.stack.append(node)
+
+            def handle_endtag(self, tag):
+                for index in range(len(self.stack) - 1, -1, -1):
+                    if self.stack[index]["tag"] == tag:
+                        del self.stack[index:]
+                        break
+
+            def handle_data(self, data):
+                for node in self.stack:
+                    node["text"] += data
+
+        title = "PMP 9/12 考完别干等：查分时间、官网入口、电子证下载，一篇说清"
+        intro = "成绩公布前，先把查分入口、时间节点和证书下载路径说清楚。"
+        md = "# 测试文章\n\n%s\n\n## 第一部分\n正文。" % intro
+        needles = {
+            "moyu-green": "PMP9/12",
+            "red-white": "成绩公布前",
+            "graphite-minimal": "成绩公布前",
+            "zen-whitespace": "PMP 9/12",
+            "moyu-ticket": "PMP 9/12",
+            "olive-journal": "PMP 9/12",
+        }
+
+        for theme, needle in needles.items():
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(md, title, theme)
+                parser = StyledNodeParser()
+                parser.feed(rendered)
+                candidates = []
+                for node in parser.nodes:
+                    style = node["attrs"].get("style", "")
+                    size = re.search(r"font-size\s*:\s*(\d+)px", style)
+                    if needle in html.unescape(node["text"]) and size and int(size.group(1)) >= 16:
+                        candidates.append(node)
+                self.assertTrue(candidates, "未找到 %s 的封面主文字" % theme)
+                primary = min(candidates, key=lambda node: len(node["text"]))
+                style = re.sub(r"\s+", "", primary["attrs"]["style"]).lower()
+                self.assertIn("text-align:left", style)
+                self.assertIn("text-align-last:left", style)
+                self.assertIn("word-spacing:normal", style)
+                self.assertIn("white-space:normal", style)
+                self.assertIn("word-break:normal", style)
+                self.assertIn("overflow-wrap:anywhere", style)
+
+    def test_short_zen_cover_keeps_centered_editorial_style(self):
+        rendered = build_gzh.component_hero(
+            "zen-whitespace",
+            build_gzh.load_theme_components("zen-whitespace"),
+            "慢一点，也没关系",
+            build_gzh.parse_blocks(SAMPLE_MD),
+        )
+        title = re.search(r'<p style="([^"]*)">\s*<span leaf="">慢一点，也没关系</span>', rendered)
+        self.assertIsNotNone(title)
+        style = re.sub(r"\s+", "", title.group(1)).lower()
+        self.assertIn("text-align:center", style)
+
     def test_moyu_cover_renders_title_once_without_repeated_fragment(self):
         title = "一份不会把复杂问题写复杂的完整安装与避坑指南"
         rendered = build_gzh.build_component_section(SAMPLE_MD, title, "moyu-green")
@@ -2225,7 +2293,8 @@ class GzhThemeRegressionTests(unittest.TestCase):
                     "9月第一周｜软考报名收官作战表",
                     theme,
                 )
-                self.assertIn("word-break:keep-all", rendered)
+                self.assertIn("word-break:normal", rendered)
+                self.assertIn("white-space:normal", rendered)
                 self.assertIn("overflow-wrap:anywhere", rendered)
 
     def test_olive_cover_keeps_title_and_illustration_side_by_side(self):

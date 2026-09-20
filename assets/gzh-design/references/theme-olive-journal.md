@@ -76,7 +76,7 @@
     <section style="display:flex;align-items:stretch;justify-content:center;gap:12px;">
       <section style="flex:1;min-width:0;">
         <p style="font-size:14px;color:#9ea096;margin:0 0 8px;letter-spacing:0.3px;text-decoration:line-through;"><span leaf="">{{旧标题占位}}</span></p>
-        <p style="font-size:24px;font-weight:800;color:#23251d;margin:0 0 10px;line-height:1.15;letter-spacing:0;word-break:keep-all;overflow-wrap:anywhere;">
+        <p style="font-size:24px;font-weight:800;color:#23251d;margin:0 0 10px;line-height:1.15;letter-spacing:0;text-align:left;text-align-last:left;word-spacing:normal;white-space:normal;word-break:normal;overflow-wrap:anywhere;">
           <span leaf="">{{主标题}}</span><span style="color:#4d4f46;"><span leaf="">&nbsp;·&nbsp;</span></span><span style="border-bottom:3px solid #e5e7e0;"><span leaf="">{{强调词}}</span></span>
         </p>
         <section style="display:flex;align-items:center;gap:4px;margin-bottom:12px;">
