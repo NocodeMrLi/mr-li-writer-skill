@@ -307,6 +307,45 @@ def platform_key(value):
     return "未知平台"
 
 
+PROMPT_PLATFORM_ALIASES = (
+    ("公众号", ("微信公众号", "公众号")),
+    ("小红书", ("小红书",)),
+    ("知乎", ("知乎",)),
+    ("官网/网页", ("官网/网页", "官网", "网页")),
+    ("个人博客", ("个人博客", "博客")),
+)
+
+
+def prompt_platform_mention_is_negated(text, start):
+    prefix = text[max(0, start - 12) : start]
+    return bool(re.search(r"(?:不是|不要(?:发|用|选)?|不选|不发|别选|别用|排除|非|not)\s*$", prefix, re.I))
+
+
+def detect_prompt_platform(text):
+    alias_to_platform = {
+        alias: platform
+        for platform, aliases in PROMPT_PLATFORM_ALIASES
+        for alias in aliases
+    }
+    aliases = sorted(alias_to_platform, key=len, reverse=True)
+    alias_pattern = "|".join(re.escape(alias) for alias in aliases)
+    explicit = re.search(
+        r"(?:发布平台|创作平台|平台)\s*(?:选择|选|是|用|为|：|:)?\s*(%s)" % alias_pattern,
+        text,
+        re.I,
+    )
+    if explicit and not prompt_platform_mention_is_negated(text, explicit.start(1)):
+        return alias_to_platform[explicit.group(1)]
+
+    mentioned = []
+    for alias in aliases:
+        match = re.search(re.escape(alias), text, re.I)
+        if match and not prompt_platform_mention_is_negated(text, match.start()):
+            mentioned.append(alias_to_platform[alias])
+    unique = list(dict.fromkeys(mentioned))
+    return unique[0] if len(unique) == 1 else ""
+
+
 def state_from_prompt(prompt):
     text = prompt or ""
     memory_based = bool(MEMORY_AUTH_RE.search(text))
@@ -314,11 +353,7 @@ def state_from_prompt(prompt):
     confirmed = source == "auto_authorized"
     quote = text.strip() if confirmed else ""
     state = {}
-    platform = ""
-    for candidate in ("公众号", "小红书", "知乎", "官网/网页", "个人博客"):
-        if candidate in text or (candidate == "官网/网页" and ("官网" in text or "网页" in text)) or (candidate == "个人博客" and "博客" in text):
-            platform = candidate
-            break
+    platform = detect_prompt_platform(text)
     if platform:
         state["platform"] = {
             "value": platform,
@@ -462,28 +497,56 @@ def print_report(errors, resume_without_confirmation, platform):
     for label, reason in errors:
         print("- %s：%s" % (label, reason))
     print("")
-    print("请先向用户合并确认缺失项；如果用户要省略询问，必须明确回复“自动匹配 / 不用问 / 直接处理 / 本次全部你看着办”。")
-    print("当前平台可选交付样式：%s" % STYLE_OPTIONS.get(platform, STYLE_OPTIONS["未知平台"]))
+    print("请先向用户确认缺失项；如果用户要省略询问，必须明确回复“自动匹配 / 不用问 / 直接处理 / 本次全部你看着办”。")
+    if platform == "未知平台" or any(label == "发布平台" for label, _reason in errors):
+        print("平台尚未确认：本轮不得展示或选择任何平台专属交付样式。")
+    else:
+        print("当前平台可选交付样式：%s" % STYLE_OPTIONS.get(platform, STYLE_OPTIONS["未知平台"]))
 
 
 def print_new_task_hint():
     print("新任务尚未形成任务状态，必须先完成最低必要询问，再抓取、检索、读取链接、生成任务列表、写正文或排版。")
 
 
-def print_question_card(platform):
-    delivery_options = GENERIC_DELIVERY_OPTIONS_TEXT.get(platform, GENERIC_DELIVERY_OPTIONS_TEXT["未知平台"])
-    print("")
-    print("请先确认以下信息（可直接按序号回复；有特殊要求写在“补充说明/自行输入”）：")
-    print("1. 发布平台：%s" % PLATFORM_OPTIONS_TEXT)
-    print("   注意：公众号排版主题不是发布平台，不能把平台和主题合并成一个选项。")
-    print("2. 内容目标：%s" % CONTENT_GOAL_OPTIONS_TEXT)
-    print("3. 创作方向：")
+def print_direction_options():
     print("   A. [最推荐] 读者最需要解决的现实问题/行动清单")
     print("   B. [次推荐] 关键变化的深度解读/判断标准")
     print("   C. 平台原生传播角度：更适合转发、收藏或评论讨论")
     print("   D. 转化销售角度：突出信任、异议处理和下一步行动")
     print("   E. 专业报告角度：强调来源、框架、边界和结论可靠性")
-    print("4. 平台交付样式：%s" % delivery_options)
+
+
+def print_question_card(platform, errors):
+    error_labels = {label for label, _reason in errors}
+    platform_unresolved = platform == "未知平台" or "发布平台" in error_labels
+    delivery_options = GENERIC_DELIVERY_OPTIONS_TEXT.get(platform, GENERIC_DELIVERY_OPTIONS_TEXT["未知平台"])
+    print("")
+    if platform_unresolved:
+        print("请先确认以下信息：")
+        print("第一步：先确认发布平台（可同时确认不依赖平台的内容目标和创作方向）：")
+        print("1. 发布平台：%s" % PLATFORM_OPTIONS_TEXT)
+        print("   注意：公众号排版主题不是发布平台，不能把平台和主题合并成一个选项。")
+        next_number = 2
+        if "内容目标" in error_labels:
+            print("%d. 内容目标：%s" % (next_number, CONTENT_GOAL_OPTIONS_TEXT))
+            next_number += 1
+        if "创作方向" in error_labels:
+            print("%d. 创作方向：" % next_number)
+            print_direction_options()
+        print("选定发布平台后，再单独确认该平台的交付样式；本轮不要生成或展示任何平台专属样式选项。")
+    else:
+        print("已确认发布平台：%s" % platform)
+        print("请只确认以下仍缺失的信息：")
+        next_number = 1
+        if "内容目标" in error_labels:
+            print("%d. 内容目标：%s" % (next_number, CONTENT_GOAL_OPTIONS_TEXT))
+            next_number += 1
+        if "创作方向" in error_labels:
+            print("%d. 创作方向：" % next_number)
+            print_direction_options()
+            next_number += 1
+        if "平台交付样式" in error_labels:
+            print("%d. %s平台交付样式：%s" % (next_number, platform, delivery_options))
     print("补充说明/自行输入：可以写目标读者、阅读场景、立场边界、时效口径、来源边界、篇幅深度或你自己的表达偏好；也可以留空。")
 
 
@@ -536,7 +599,7 @@ def main():
         print_new_task_hint()
     print_report(errors, resume_without_confirmation, platform)
     if errors and (args.emit_question_card or from_prompt):
-        print_question_card(platform)
+        print_question_card(platform, errors)
     return 1 if errors else 0
 
 

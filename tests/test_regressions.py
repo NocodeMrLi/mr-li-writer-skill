@@ -238,7 +238,8 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("发布平台", result.stdout)
         self.assertIn("平台交付样式", result.stdout)
-        self.assertIn("当前平台可选交付样式", result.stdout)
+        self.assertIn("平台尚未确认：本轮不得展示或选择任何平台专属交付样式", result.stdout)
+        self.assertNotIn("当前平台可选交付样式", result.stdout)
 
     def test_task_intake_rejects_platform_value_mixed_with_layout_theme(self):
         validator = ROOT / "scripts/validate_task_intake.py"
@@ -282,17 +283,93 @@ class DeliveryProtocolTests(unittest.TestCase):
             text=True,
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("请先确认以下信息", result.stdout)
+        self.assertIn("第一步：先确认发布平台", result.stdout)
         self.assertIn("1. 发布平台", result.stdout)
         self.assertIn("公众号 / 小红书 / 知乎 / 官网/网页 / 个人博客", result.stdout)
         self.assertIn("2. 内容目标", result.stdout)
         self.assertIn("3. 创作方向", result.stdout)
-        self.assertIn("4. 平台交付样式", result.stdout)
+        self.assertNotIn("4. 平台交付样式", result.stdout)
+        self.assertIn("选定发布平台后，再单独确认该平台的交付样式", result.stdout)
         self.assertIn("最推荐", result.stdout)
         self.assertIn("次推荐", result.stdout)
         self.assertIn("补充说明/自行输入", result.stdout)
         self.assertIn("公众号排版主题不是发布平台", result.stdout)
         self.assertNotIn("公众号（橄榄手记）", result.stdout)
+
+    def test_unknown_platform_question_card_defers_platform_specific_delivery_style(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "写一篇人工智能产品的纯观点评论。",
+                "--phase",
+                "task-list",
+                "--emit-question-card",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("第一步：先确认发布平台", result.stdout)
+        self.assertIn("选定发布平台后，再单独确认该平台的交付样式", result.stdout)
+        self.assertNotIn("4. 平台交付样式", result.stdout)
+        for wrong_option in ("摸鱼绿", "橄榄手记", "回答 + HTML 预览", "手机卡片预览"):
+            with self.subTest(wrong_option=wrong_option):
+                self.assertNotIn(wrong_option, result.stdout)
+
+    def test_known_zhihu_platform_asks_only_zhihu_delivery_style(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_task_state(
+                tmp,
+                platform={"value": "知乎", "confirmed": True, "source": "user", "user_quote": "知乎"},
+                content_goal={"value": "普通传播", "confirmed": True, "source": "user", "user_quote": "普通传播"},
+                writing_direction={"value": "纯观点评论", "confirmed": True, "source": "user", "user_quote": "纯观点评论"},
+                delivery_style={"value": "", "confirmed": False, "source": "missing", "user_quote": ""},
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(validator),
+                    str(state),
+                    "--phase",
+                    "task-list",
+                    "--emit-question-card",
+                ],
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("已确认发布平台：知乎", result.stdout)
+        self.assertIn("回答 / 专栏 / 回答 + HTML 预览 / 专栏 + HTML 预览 / 自动匹配", result.stdout)
+        self.assertNotIn("发布平台：公众号 / 小红书 / 知乎", result.stdout)
+        for wrong_option in ("摸鱼绿", "橄榄手记", "手机卡片预览"):
+            with self.subTest(wrong_option=wrong_option):
+                self.assertNotIn(wrong_option, result.stdout)
+
+    def test_prompt_platform_selection_ignores_negated_other_platforms(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validator),
+                "--from-prompt",
+                "发布平台选知乎，不是公众号；创作方向是纯观点评论。",
+                "--phase",
+                "task-list",
+                "--emit-question-card",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("已确认发布平台：知乎", result.stdout)
+        self.assertIn("回答 / 专栏 / 回答 + HTML 预览 / 专栏 + HTML 预览 / 自动匹配", result.stdout)
+        for wrong_option in ("摸鱼绿", "橄榄手记", "公众号平台交付样式"):
+            with self.subTest(wrong_option=wrong_option):
+                self.assertNotIn(wrong_option, result.stdout)
 
     def test_task_intake_from_prompt_always_outputs_standard_question_card(self):
         validator = ROOT / "scripts/validate_task_intake.py"
@@ -309,11 +386,12 @@ class DeliveryProtocolTests(unittest.TestCase):
             text=True,
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("请先确认以下信息", result.stdout)
+        self.assertIn("第一步：先确认发布平台", result.stdout)
         self.assertIn("1. 发布平台", result.stdout)
         self.assertIn("2. 内容目标", result.stdout)
         self.assertIn("3. 创作方向", result.stdout)
-        self.assertIn("4. 平台交付样式", result.stdout)
+        self.assertNotIn("4. 平台交付样式", result.stdout)
+        self.assertIn("选定发布平台后，再单独确认该平台的交付样式", result.stdout)
         self.assertIn("补充说明/自行输入", result.stdout)
 
     def test_task_intake_from_prompt_does_not_treat_title_auto_match_as_global_authorization(self):
@@ -1116,6 +1194,9 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("--theme-confirmed", text)
         self.assertIn("If the publishing platform is missing", text)
         self.assertIn("3-5 concrete options", text)
+        self.assertIn("two-stage question flow", text)
+        self.assertIn("do not show or create any platform-specific delivery-style picker", text)
+        self.assertIn("only the selected platform's delivery-style options", text)
 
     def test_resume_requests_must_recheck_required_confirmations(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -1456,12 +1537,12 @@ class DeliveryProtocolTests(unittest.TestCase):
             "内容目标",
             "发布环境",
             "Markdown / CMS 富文本 / 静态 HTML",
-            "一次合并询问",
+            "同一阶段的多个必要缺口应合并询问",
             "不重复询问",
         ):
             self.assertIn(phrase, platform)
         self.assertIn("必要询问矩阵", skill)
-        self.assertIn("一次合并", skill)
+        self.assertIn("同一阶段缺少多个关键项时合并询问", skill)
 
     def test_non_layout_platform_bundle_requires_title_and_native_source_only(self):
         validator = ROOT / "scripts/validate_delivery_bundle.py"
@@ -1755,7 +1836,7 @@ class ReadmeDocumentationTests(unittest.TestCase):
         self.assertIn("执行中会确认什么", text)
         for platform in ("公众号", "知乎", "小红书", "官网/网页", "个人博客"):
             self.assertIn(platform, text)
-        self.assertIn("一次合并询问", text)
+        self.assertIn("同一阶段缺少多个关键项时合并询问", text)
 
 
 class ArticleLintTests(unittest.TestCase):
