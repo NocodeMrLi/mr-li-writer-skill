@@ -22,15 +22,15 @@
     <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27C93F;font-size:0;line-height:0;overflow:hidden;">.</span>
     <span style="margin-left:12px;font-size:12px;color:#64748B;font-family:Consolas,Monaco,monospace;letter-spacing:1px;"><span leaf="">python</span></span>
   </section>
-  <section style="padding:11px 14px;">
-    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">def make_skill(name):</span></p>
-    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">　　return f"已生成 {name}"</span></p>
-    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;"><span leaf="">print(make_skill("gzh-design"))</span></p>
+  <section style="width:100%;max-width:100%;box-sizing:border-box;padding:11px 14px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">
+    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;letter-spacing:0;color:#E2E8F0;white-space:nowrap;word-break:normal;overflow-wrap:normal;"><span leaf="">def&nbsp;make_skill(name):</span></p>
+    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;letter-spacing:0;color:#E2E8F0;white-space:nowrap;word-break:normal;overflow-wrap:normal;"><span leaf="">&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;f"已生成&nbsp;{name}"</span></p>
+    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;letter-spacing:0;color:#E2E8F0;white-space:nowrap;word-break:normal;overflow-wrap:normal;"><span leaf="">print(make_skill("gzh-design"))</span></p>
   </section>
 </section>
 ```
 
-要点（**关键，避免大段空白**）：① 顶栏三色圆点 + 语言名（无语言可删该 span）；② **每行代码用一个 `<p style="margin:0;...">`，不要用 `white-space:pre`**——否则 HTML 源码里 span 前的缩进和行间换行会被原样渲染成大左缩进 + 空行；③ 需要缩进时在 span 文字里用全角空格 `　`（不要靠源码空格）；④ 行距只靠 `line-height:1.6` 控制，padding 用 `11px 14px`，保持紧凑；⑤ 长行会自动换行，不溢出。
+要点（**关键，避免大段空白和手机端 ASCII 图错列**）：① 顶栏三色圆点 + 语言名（无语言可删该 span）；② **每行代码用一个 `<p style="margin:0;...;white-space:nowrap">`，不要用 `white-space:pre`**——否则 HTML 源码里的缩进和换行会被渲染成额外空白；③ 行内普通空格全部编码为 `&nbsp;`，Tab 展开为 4 个 `&nbsp;`，精确保留代码、甘特图和字符图的列；④ 正文容器必须是 `width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden`，长行仅在代码卡内部左右滑动，不能撑宽整页；⑤ 行距只靠 `line-height:1.6` 控制，padding 用 `11px 14px`，保持紧凑。
 
 ### 1b. 浅色代码块（适配浅色温和主题，如玫瑰粉/天蓝/焦糖棕）
 
@@ -39,13 +39,13 @@
   <section style="padding:7px 14px;border-bottom:1px solid #E5E7EB;">
     <span style="font-size:12px;color:#9CA3AF;font-family:Consolas,Monaco,monospace;letter-spacing:1px;"><span leaf="">bash</span></span>
   </section>
-  <section style="padding:11px 14px;">
-    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#24292F;"><span leaf="">npx skills add gzh-design</span></p>
+  <section style="width:100%;max-width:100%;box-sizing:border-box;padding:11px 14px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;">
+    <p style="margin:0;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;letter-spacing:0;color:#24292F;white-space:nowrap;word-break:normal;overflow-wrap:normal;"><span leaf="">npx&nbsp;skills&nbsp;add&nbsp;gzh-design</span></p>
   </section>
 </section>
 ```
 
-（左竖条 `#DC2626` 换成当前主题主色；多行同 1a：每行一个 `<p style="margin:0">`，不用 `white-space:pre`，缩进用全角空格 `　`。）
+（左竖条 `#DC2626` 换成当前主题主色；多行同 1a：每行一个不换行 `<p>`，普通空格编码为 `&nbsp;`，长行在代码卡内部滑动。）
 
 ### 1c. 行内代码（正文中的 `code` 短片段）
 

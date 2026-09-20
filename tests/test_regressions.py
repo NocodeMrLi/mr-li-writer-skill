@@ -54,6 +54,16 @@ TABLE_MD = """# 报名状态
 | 辽宁 | 8月19日 8:30 | 8月25日 16:00 | 不含大连，大连单独安排 |
 """
 
+GANTT_CODE_MD = """# 软考倒计时行动甘特图
+
+```text
+节点 / 周次      第1周    第2周    第3周    第4周
+报名收尾核查    █░░░░░░  已报：确认缴费成功
+批次安排公布    ░█░░░░░  9月下旬，盯官网
+考试日          ░░░░░░█  10/24—10/27
+```
+"""
+
 
 class DeliveryProtocolTests(unittest.TestCase):
     def write_task_state(self, directory, **overrides):
@@ -2450,6 +2460,38 @@ class GzhThemeRegressionTests(unittest.TestCase):
                 self.assertIn("max-width:680px", rendered)
                 self.assertIn("word-break:normal", rendered)
                 self.assertNotIn("word-break:keep-all", rendered)
+
+    def test_ascii_gantt_code_keeps_columns_inside_bounded_mobile_scroll_across_themes(self):
+        validator = load_module("validate_gzh_html_gantt", "scripts/validate_gzh_html.py")
+        for theme in build_gzh.THEMES:
+            with self.subTest(theme=theme):
+                rendered = build_gzh.build_component_section(
+                    GANTT_CODE_MD,
+                    "软考倒计时行动甘特图",
+                    theme,
+                )
+                self.assertIn("overflow-x:auto", rendered)
+                self.assertIn("max-width:100%", rendered)
+                self.assertIn("-webkit-overflow-scrolling:touch", rendered)
+                self.assertIn("white-space:nowrap", rendered)
+                self.assertIn("word-break:normal", rendered)
+                self.assertIn("overflow-wrap:normal", rendered)
+                self.assertIn("节点&nbsp;/&nbsp;周次", rendered)
+                self.assertIn("报名收尾核查&nbsp;&nbsp;&nbsp;&nbsp;█", rendered)
+                self.assertNotIn("white-space:pre", rendered)
+                errors, _, _ = validator.validate(rendered)
+                self.assertFalse(errors, errors)
+
+    def test_generated_html_validator_allows_bounded_code_scrolling(self):
+        validator = load_module("validate_gzh_html_code_scroll", "scripts/validate_gzh_html.py")
+        source = (
+            '<section style="width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;">'
+            '<p style="margin:0;font-family:Consolas,monospace;white-space:nowrap;'
+            'word-break:normal;overflow-wrap:normal;"><span leaf="">甘特图&nbsp;&nbsp;█░░</span></p>'
+            '</section>'
+        )
+        errors, _, _ = validator.validate(source)
+        self.assertFalse(any("横向滚动" in error for error in errors), errors)
 
     def test_generated_html_validator_rejects_raw_markdown_tables(self):
         validator = load_module("validate_gzh_html", "scripts/validate_gzh_html.py")

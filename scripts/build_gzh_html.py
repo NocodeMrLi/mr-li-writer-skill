@@ -190,6 +190,12 @@ def leaf(text):
     return '<span leaf="">%s</span>' % html.escape(normalize_cn_punctuation(text))
 
 
+def code_leaf(text):
+    """Escape code without rewriting punctuation and preserve every column space."""
+    escaped = html.escape(text.replace("\t", "    "))
+    return '<span leaf="">%s</span>' % escaped.replace(" ", "&nbsp;")
+
+
 def normalize_cn_punctuation(text):
     table = str.maketrans({
         ",": "，",
@@ -1327,8 +1333,20 @@ def table_block(headers, rows, theme):
 def code_block(code, lang, theme):
     rows = []
     for line in code.split("\n") or [""]:
-        rows.append('<p style="margin:0;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.6;color:#E2E8F0;">%s</p>' % leaf(line.replace("  ", "　　")))
-    return '<section style="margin:0 10px 22px;border-radius:8px;overflow:hidden;background:#1E293B;box-shadow:0 4px 16px -8px rgba(15,23,42,0.4);"><section style="padding:8px 14px;background:#0F172A;"><span style="font-size:12px;color:#94A3B8;font-family:Consolas,Monaco,monospace;letter-spacing:1px;">%s</span></section><section style="padding:11px 14px;">%s</section></section>' % (leaf(lang), "".join(rows))
+        rows.append(
+            '<p style="margin:0;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.6;'
+            'letter-spacing:0;color:#E2E8F0;white-space:nowrap;word-break:normal;overflow-wrap:normal;">%s</p>'
+            % code_leaf(line)
+        )
+    return (
+        '<section style="margin:0 10px 22px;max-width:100%%;border-radius:8px;overflow:hidden;background:#1E293B;'
+        'box-shadow:0 4px 16px -8px rgba(15,23,42,0.4);">'
+        '<section style="padding:8px 14px;background:#0F172A;"><span style="font-size:12px;color:#94A3B8;'
+        'font-family:Consolas,Monaco,monospace;letter-spacing:1px;">%s</span></section>'
+        '<section style="width:100%%;max-width:100%%;box-sizing:border-box;padding:11px 14px;overflow-x:auto;'
+        'overflow-y:hidden;-webkit-overflow-scrolling:touch;">%s</section></section>'
+        % (leaf(lang), "".join(rows))
+    )
 
 
 def image_block(alt, src, theme):

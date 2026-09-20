@@ -23,7 +23,7 @@ CJK = re.compile(r"[一-鿿㐀-䶿]")
 CHECKS = [
     (re.compile(r"white-space\s*:\s*pre", re.I), "ERROR",
      "用了 white-space:pre —— 会把 HTML 源码缩进/换行渲染成大左缩进+空行；"
-     "代码块改成每行一个 <p style=\"margin:0\">，缩进用全角空格"),
+     "代码块改成每行一个不换行 <p style=\"margin:0\">，空格编码为 &nbsp;"),
     (re.compile(r"</?div[\s>]", re.I), "ERROR", "出现 <div>，应用 <section>"),
     (re.compile(r"\sclass\s*=", re.I), "ERROR", "出现 class 属性（会被公众号剥离）"),
     (re.compile(r"\sid\s*=", re.I), "ERROR", "出现 id 属性"),
@@ -77,8 +77,30 @@ def lint_file(path):
             min_width = int(min_match.group(1)) if min_match else 0
             max_width = int(max_match.group(1)) if max_match else 0
             bounded = 320 <= min_width <= 680 and min_width <= max_width <= 680
-            if not table_style or not bounded or not re.search(r"table-layout\s*:\s*fixed", style, re.I):
-                add("ERROR", "横向滚动仅允许用于宽度有上限的语义化表格容器")
+            valid_table = bool(
+                table_style
+                and bounded
+                and re.search(r"table-layout\s*:\s*fixed", style, re.I)
+            )
+            scroll_section = re.search(
+                r"<section\b[^>]*style=\"([^\"]*overflow-x\s*:\s*auto[^\"]*)\"",
+                html,
+                re.I,
+            )
+            code_line = re.search(
+                r"<p\b[^>]*style=\"[^\"]*(?:monospace|consolas|sf mono)[^\"]*"
+                r"white-space\s*:\s*nowrap[^\"]*word-break\s*:\s*normal[^\"]*"
+                r"overflow-wrap\s*:\s*normal[^\"]*\"",
+                html,
+                re.I,
+            )
+            valid_code = bool(
+                scroll_section
+                and re.search(r"max-width\s*:\s*100%", scroll_section.group(1), re.I)
+                and code_line
+            )
+            if not valid_table and not valid_code:
+                add("ERROR", "横向滚动仅允许用于有宽度上限的语义化表格或不换行代码容器")
         if re.search(r"<table[\s>]", html, re.I):
             if not re.search(r"table-layout\s*:\s*fixed", html, re.I):
                 add("ERROR", "语义化表格缺少 table-layout:fixed，窄屏可能被内容撑宽")

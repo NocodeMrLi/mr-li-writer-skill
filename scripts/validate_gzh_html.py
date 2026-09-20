@@ -107,8 +107,8 @@ class LeafChecker(HTMLParser):
             self.half_punct.append(snippet)
 
 
-class ResponsiveTableScrollChecker(HTMLParser):
-    """Allow horizontal scrolling only on bounded semantic-table wrappers."""
+class ResponsiveScrollChecker(HTMLParser):
+    """Allow horizontal scrolling only for bounded tables or preformatted code."""
 
     VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
 
@@ -123,9 +123,14 @@ class ResponsiveTableScrollChecker(HTMLParser):
         depth = len(self.stack)
         if OVERFLOW_X_AUTO.search(style):
             if tag != "section":
-                self.invalid.append("横向滚动只能用于语义表格的外层 section")
+                self.invalid.append("横向滚动只能用于表格或代码的外层 section")
             else:
-                self.scroll_wrappers.append({"depth": depth, "valid_table": False})
+                self.scroll_wrappers.append({
+                    "depth": depth,
+                    "valid_table": False,
+                    "valid_code": False,
+                    "code_bounded": bool(re.search(r"max-width\s*:\s*100%", style, re.I)),
+                })
 
         if tag == "table" and self.scroll_wrappers:
             min_match = MIN_WIDTH_PX.search(style)
@@ -137,6 +142,18 @@ class ResponsiveTableScrollChecker(HTMLParser):
                 for wrapper in self.scroll_wrappers:
                     wrapper["valid_table"] = True
 
+        if tag == "p" and self.scroll_wrappers:
+            safe_code_line = (
+                CODE_STYLE.search(style)
+                and re.search(r"white-space\s*:\s*nowrap", style, re.I)
+                and re.search(r"word-break\s*:\s*normal", style, re.I)
+                and re.search(r"overflow-wrap\s*:\s*normal", style, re.I)
+            )
+            if safe_code_line:
+                for wrapper in self.scroll_wrappers:
+                    if wrapper["code_bounded"]:
+                        wrapper["valid_code"] = True
+
         if tag not in self.VOID_TAGS:
             self.stack.append(tag)
 
@@ -147,8 +164,8 @@ class ResponsiveTableScrollChecker(HTMLParser):
             if tag == "section":
                 closing = [item for item in self.scroll_wrappers if item["depth"] == index]
                 for item in closing:
-                    if not item["valid_table"]:
-                        self.invalid.append("横向滚动仅允许包裹宽度有上限的语义化 table")
+                    if not item["valid_table"] and not item["valid_code"]:
+                        self.invalid.append("横向滚动仅允许包裹宽度有上限的语义化 table 或不换行代码")
                     self.scroll_wrappers.remove(item)
             del self.stack[index:]
             break
@@ -260,13 +277,13 @@ def validate(html, name="<input>"):
     if FORBIDDEN_FRONT_BADGE.search(html):
         errors.append("检测到不适合暴露给读者的前端标签词；请改为信息指南、判断参考、深度解读、避坑提醒等读者口径")
 
-    table_scroll_checker = ResponsiveTableScrollChecker()
+    scroll_checker = ResponsiveScrollChecker()
     try:
-        table_scroll_checker.feed(html)
+        scroll_checker.feed(html)
     except Exception as exc:
-        warnings.append("表格滚动校验中断: %s" % exc)
-    if table_scroll_checker.invalid:
-        errors.append("；".join(dict.fromkeys(table_scroll_checker.invalid)))
+        warnings.append("响应式滚动校验中断: %s" % exc)
+    if scroll_checker.invalid:
+        errors.append("；".join(dict.fromkeys(scroll_checker.invalid)))
 
     checker = LeafChecker()
     try:
