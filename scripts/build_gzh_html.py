@@ -13,6 +13,7 @@ library and assemble richer article-specific components from that source.
 """
 
 import argparse
+import hashlib
 import html
 import os
 import random
@@ -749,8 +750,15 @@ def component_container(components, theme):
     snippet = select_code(components, 1)
     m = re.search(r"(<section\b[^>]*>)", snippet)
     if not m:
-        return container_start(theme), "</section>"
-    return m.group(1), "</section>"
+        open_tag = container_start(theme)
+    else:
+        open_tag = m.group(1)
+    theme_key = next((key for key, value in THEMES.items() if value is theme), "unknown")
+    marker = (
+        ' data-mr-li-writer-renderer="component-library-v1"'
+        ' data-mr-li-writer-theme="%s"' % html.escape(theme_key, quote=True)
+    )
+    return open_tag[:-1] + marker + ">", "</section>"
 
 
 def component_hero(theme_key, components, title, blocks):
@@ -1413,6 +1421,9 @@ PREVIEW_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="mr-li-writer-template" content="gzh-preview-v2">
+<meta name="mr-li-writer-theme" content="__THEME__">
+<meta name="mr-li-writer-content-sha256" content="__CONTENT_SHA256__">
 <title>__TITLE__ · 公众号排版预览</title>
 <style>
 body{margin:0;background:#eef0f2;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;-webkit-text-size-adjust:100%;}
@@ -1482,9 +1493,24 @@ function gzhCopy(){
 """
 
 
+def normalized_section_html(section_html):
+    return section_html.replace("\r\n", "\n").replace("\r", "\n").strip()
+
+
+def section_digest(section_html):
+    return hashlib.sha256(normalized_section_html(section_html).encode("utf-8")).hexdigest()
+
+
 def write_preview(section_html, out_path, title, theme):
     preview_path = os.path.splitext(out_path)[0] + "-preview.html"
-    page = PREVIEW_TEMPLATE.replace("__TITLE__", html.escape(title)).replace("__MAIN__", theme["main"]).replace("__CONTENT__", section_html)
+    theme_key = next((key for key, value in THEMES.items() if value is theme), "unknown")
+    page = (
+        PREVIEW_TEMPLATE.replace("__TITLE__", html.escape(title))
+        .replace("__MAIN__", theme["main"])
+        .replace("__THEME__", html.escape(theme_key, quote=True))
+        .replace("__CONTENT_SHA256__", section_digest(section_html))
+        .replace("__CONTENT__", section_html)
+    )
     with open(preview_path, "w", encoding="utf-8") as f:
         f.write(page)
     return preview_path

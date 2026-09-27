@@ -107,6 +107,14 @@ interface:
     user whether to continue as a bounded source-based rewrite.
     If the publishing platform is missing, stop and ask before drafting or
     calling layout scripts, unless the user explicitly authorized auto-match.
+    Pass the current user's exact, unmodified message to --from-prompt. Never
+    pass an agent-written brief, task label, summary, or inferred phrase such
+    as "industry analysis / WeChat" as if it were the user's words. A platform
+    name inside source material, quoted article text, subject matter, or a
+    platform comparison is not confirmation. Only an explicit user selection
+    action such as "choose Zhihu", "write this as a WeChat article", or
+    "publish to Xiaohongshu" can confirm it; otherwise keep the platform
+    unknown and show the first-stage platform question card.
     When asking for the writing direction, give 3-5 concrete options and mark
     the best one as [most recommended] and the second best as [second
     recommended]. For WeChat final layout, never silently choose any theme:
@@ -136,6 +144,15 @@ interface:
     artifacts: title-strategy Markdown, article-source Markdown, clean WeChat
     HTML, and copy-preview HTML. Run validate_gzh_html.py and
     validate_delivery_bundle.py before attaching the files.
+    Never hand-write a WeChat copy-preview page or a color-only approximation
+    of a named theme. Generate the clean HTML with build_gzh_html.py and the
+    preview from that exact output. The clean file must carry the
+    component-library-v1 renderer and selected-theme markers; the preview must
+    carry the gzh-preview-v2 marker, matching content digest, and ClipboardItem
+    text/html plus text/plain contract. navigator.clipboard.writeText must never
+    be used for WeChat HTML because it pastes source tags into editors. If
+    validate_delivery_bundle.py rejects provenance, theme, clipboard contract,
+    or content parity, regenerate instead of bypassing or forging the markers.
     Native attachment or file card delivery is a completion gate in WorkBuddy,
     Codex, Claude Code, Cursor, and every other host. After bundle validation,
     read each ATTACHMENT_REQUIRED line and call the host's real native attachment

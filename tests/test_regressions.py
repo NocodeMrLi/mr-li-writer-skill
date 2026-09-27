@@ -330,6 +330,68 @@ class DeliveryProtocolTests(unittest.TestCase):
             with self.subTest(wrong_option=wrong_option):
                 self.assertNotIn(wrong_option, result.stdout)
 
+    def test_prompt_platform_detection_ignores_incidental_platform_words(self):
+        """Regression: source/content mentions must not become a platform confirmation."""
+        validator = ROOT / "scripts/validate_task_intake.py"
+        prompts = (
+            "请参考这个公众号里的文章，写一篇面向项目经理的行业解读。",
+            "这是一篇关于公众号运营变化的行业观察，请基于素材写文章。",
+            "原文说‘我们在公众号做了三个月测试’，请分析其中的结论。",
+            "比较公众号、知乎和小红书的内容生态，但先不要替我选择发布平台。",
+            "这篇发公众号还是知乎更合适？先让我选。",
+            "不要发到公众号，发布平台稍后再确认。",
+            "面向行业解读/公众号，主题是 FDE 的职业变化。",
+        )
+        for prompt in prompts:
+            with self.subTest(prompt=prompt):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(validator),
+                        "--from-prompt",
+                        prompt,
+                        "--phase",
+                        "task-list",
+                        "--emit-question-card",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("第一步：先确认发布平台", result.stdout)
+                self.assertIn("发布平台：公众号 / 小红书 / 知乎", result.stdout)
+                self.assertNotIn("已确认发布平台", result.stdout)
+                for wrong_option in ("摸鱼绿", "橄榄手记", "回答 + HTML 预览", "手机卡片预览"):
+                    self.assertNotIn(wrong_option, result.stdout)
+
+    def test_prompt_platform_detection_keeps_explicit_user_choices(self):
+        validator = ROOT / "scripts/validate_task_intake.py"
+        cases = (
+            ("发布平台选择知乎，写一篇纯观点评论。", "知乎"),
+            ("帮我写成公众号文章，内容目标是普通传播。", "公众号"),
+            ("根据长期偏好直接处理，写成公众号并自动匹配。", "公众号"),
+            ("这篇发到小红书，做成避坑笔记。", "小红书"),
+            ("官网/网页，按专题文章继续。", "官网/网页"),
+        )
+        for prompt, platform in cases:
+            with self.subTest(prompt=prompt):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(validator),
+                        "--from-prompt",
+                        prompt,
+                        "--phase",
+                        "task-list",
+                        "--emit-question-card",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("已确认发布平台：%s" % platform, result.stdout)
+                self.assertNotIn("第一步：先确认发布平台", result.stdout)
+
     def test_known_zhihu_platform_asks_only_zhihu_delivery_style(self):
         validator = ROOT / "scripts/validate_task_intake.py"
         with tempfile.TemporaryDirectory() as tmp:
@@ -1050,6 +1112,23 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertIn("--task-state", missing_state.stdout + missing_state.stderr)
 
             state = self.write_task_state(delivery)
+            built = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/build_gzh_html.py"),
+                    str(delivery / "article-source.md"),
+                    "-o",
+                    str(delivery / "article.html"),
+                    "-t",
+                    "moyu-green",
+                    "--theme-confirmed",
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
             complete = subprocess.run(
                 [
                     sys.executable,
@@ -1065,13 +1144,57 @@ class DeliveryProtocolTests(unittest.TestCase):
             )
             self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
 
+    def test_wechat_delivery_rejects_generic_theme_and_plaintext_html_copy(self):
+        """Regression: a color-only page must not pass as a rich WeChat theme bundle."""
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            state = self.write_task_state(delivery)
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            (delivery / "article-source.md").write_text("# 正文\n\n这是正文内容。", encoding="utf-8")
+            (delivery / "article.html").write_text(
+                '<section style="max-width:680px;color:#059669"><h1>测试标题</h1><p>正文</p></section>',
+                encoding="utf-8",
+            )
+            (delivery / "article-preview.html").write_text(
+                """<!doctype html><html><body>
+<button onclick="copyArticle()">复制全文（公众号格式）</button>
+<main id="article"><section style="color:#059669"><h1>测试标题</h1><p>正文</p></section></main>
+<script>function copyArticle(){navigator.clipboard.writeText(document.getElementById('article').innerHTML);}</script>
+</body></html>""",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(validator),
+                    str(delivery),
+                    "--platform",
+                    "公众号",
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("完整组件库", result.stdout)
+        self.assertIn("富文本剪贴板", result.stdout)
+
     def test_wrap_gzh_preview_requires_task_state(self):
         wrapper = ROOT / "scripts/wrap_gzh_preview.py"
         with tempfile.TemporaryDirectory() as tmp:
             directory = pathlib.Path(tmp)
             source = directory / "article.html"
             output = directory / "article-preview.html"
-            source.write_text("<section><p><span leaf=\"\">正文</span></p></section>", encoding="utf-8")
+            source.write_text(
+                '<section data-mr-li-writer-renderer="component-library-v1" '
+                'data-mr-li-writer-theme="moyu-green"><p><span leaf="">正文</span></p></section>',
+                encoding="utf-8",
+            )
 
             missing_state = subprocess.run(
                 [sys.executable, str(wrapper), str(source), str(output)],
@@ -1162,11 +1285,23 @@ class DeliveryProtocolTests(unittest.TestCase):
             delivery = pathlib.Path(tmp)
             state = self.write_task_state(delivery)
             (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
-            (delivery / "article.html").write_text("<section>正文</section>", encoding="utf-8")
-            (delivery / "article-preview.html").write_text(
-                "<button>复制到公众号</button><script>function gzhCopy(){}</script>",
-                encoding="utf-8",
+            built = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/build_gzh_html.py"),
+                    str(delivery / "article-source.md"),
+                    "-o",
+                    str(delivery / "article.html"),
+                    "-t",
+                    "moyu-green",
+                    "--theme-confirmed",
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
             )
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
             missing = subprocess.run(
                 [sys.executable, str(validator), str(delivery), "--platform", "公众号", "--task-state", str(state)],
                 capture_output=True,
@@ -1196,6 +1331,114 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertIn("\t3\t平台原生正文\t", required[2])
             self.assertIn("\t4\t标题策略 Markdown\t", required[3])
 
+    def test_all_wechat_themes_require_official_component_and_rich_copy_contract(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        builder = ROOT / "scripts/build_gzh_html.py"
+        for theme in build_gzh.THEMES:
+            with self.subTest(theme=theme), tempfile.TemporaryDirectory() as tmp:
+                delivery = pathlib.Path(tmp)
+                state = self.write_task_state(
+                    delivery,
+                    delivery_style={
+                        "value": theme,
+                        "confirmed": True,
+                        "source": "user",
+                        "user_quote": theme,
+                    },
+                )
+                (delivery / "title-strategy.md").write_text(
+                    "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                    encoding="utf-8",
+                )
+                (delivery / "article-source.md").write_text(TABLE_MD, encoding="utf-8")
+                built = subprocess.run(
+                    [
+                        sys.executable,
+                        str(builder),
+                        str(delivery / "article-source.md"),
+                        "-o",
+                        str(delivery / "article.html"),
+                        "-t",
+                        theme,
+                        "--theme-confirmed",
+                        "--task-state",
+                        str(state),
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+                clean = (delivery / "article.html").read_text(encoding="utf-8")
+                preview = (delivery / "article-preview.html").read_text(encoding="utf-8")
+                self.assertIn('data-mr-li-writer-renderer="component-library-v1"', clean)
+                self.assertIn('data-mr-li-writer-theme="%s"' % theme, clean)
+                self.assertIn('content="gzh-preview-v2"', preview)
+                self.assertIn("ClipboardItem", preview)
+                self.assertNotIn("navigator.clipboard.writeText", preview)
+                checked = subprocess.run(
+                    [
+                        sys.executable,
+                        str(validator),
+                        str(delivery),
+                        "--platform",
+                        "公众号",
+                        "--task-state",
+                        str(state),
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+
+    def test_wechat_delivery_rejects_preview_content_drift(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        builder = ROOT / "scripts/build_gzh_html.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            state = self.write_task_state(delivery)
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            (delivery / "article-source.md").write_text(SAMPLE_MD, encoding="utf-8")
+            built = subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    str(delivery / "article-source.md"),
+                    "-o",
+                    str(delivery / "article.html"),
+                    "-t",
+                    "moyu-green",
+                    "--theme-confirmed",
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            preview_path = delivery / "article-preview.html"
+            preview_path.write_text(
+                preview_path.read_text(encoding="utf-8").replace("正文一。", "被替换的错误正文。", 1),
+                encoding="utf-8",
+            )
+            checked = subprocess.run(
+                [
+                    sys.executable,
+                    str(validator),
+                    str(delivery),
+                    "--platform",
+                    "公众号",
+                    "--task-state",
+                    str(state),
+                ],
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertIn("正文与公众号正文 HTML 不一致", checked.stdout)
+
     def test_agent_entrypoint_repeats_wechat_delivery_guards(self):
         text = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8")
         self.assertIn("four real", text)
@@ -1208,6 +1451,23 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("two-stage question flow", text)
         self.assertIn("do not show or create any platform-specific delivery-style picker", text)
         self.assertIn("only the selected platform's delivery-style options", text)
+        self.assertIn("Never hand-write a WeChat copy-preview page", text)
+        self.assertIn("component-library-v1", text)
+        self.assertIn("gzh-preview-v2", text)
+        self.assertIn("navigator.clipboard.writeText must never", text)
+        self.assertIn("exact, unmodified message", text)
+        self.assertIn("source material", text)
+        self.assertIn("is not confirmation", text)
+
+    def test_documents_forbid_platform_confirmation_from_incidental_mentions(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        platform = (ROOT / "references/platform-native-protocol.md").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for text in (skill, platform, readme):
+            self.assertIn("未经改写", text)
+            self.assertIn("公众号运营", text)
+            self.assertIn("不是选择", text)
+            self.assertIn("平台未知", text)
 
     def test_resume_requests_must_recheck_required_confirmations(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -1397,6 +1657,11 @@ class DeliveryProtocolTests(unittest.TestCase):
             self.assertIn("navigator.clipboard.write", text)
             self.assertIn("gzhFallbackCopy", text)
             self.assertIn("<meta charset=\"utf-8\">", text)
+            self.assertIn('content="gzh-preview-v2"', text)
+            self.assertRegex(text, r'mr-li-writer-content-sha256" content="[a-f0-9]{64}"')
+            clean = output.read_text(encoding="utf-8")
+            self.assertIn('data-mr-li-writer-renderer="component-library-v1"', clean)
+            self.assertIn('data-mr-li-writer-theme="red-white"', clean)
 
     def test_skill_requires_multiple_direction_options_with_ranking(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -1726,6 +1991,9 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("ClipboardItem", template)
         self.assertIn("'text/html'", template)
         self.assertIn("'text/plain'", template)
+        self.assertIn('content="gzh-preview-v2"', template)
+        self.assertIn("{{CONTENT_SHA256}}", template)
+        self.assertNotIn("navigator.clipboard.writeText", template)
 
     def test_component_subheading_number_resets_per_chapter(self):
         markdown = """# 标题

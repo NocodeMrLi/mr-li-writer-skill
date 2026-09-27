@@ -14,8 +14,10 @@ validate_gzh_html.py（本预览页含 script/style，不参与校验）。
 """
 
 import argparse
+import hashlib
 import html
 import os
+import re
 import subprocess
 import sys
 
@@ -46,7 +48,10 @@ def main():
         print(f"✗ 找不到文件: {src}")
         sys.exit(1)
 
-    content = open(src, encoding="utf-8").read().strip()
+    content = open(src, encoding="utf-8").read().replace("\r\n", "\n").replace("\r", "\n").strip()
+    if 'data-mr-li-writer-renderer="component-library-v1"' not in content:
+        print("✗ 正文不是完整组件库正式产物；请先使用 build_gzh_html.py 生成并校验", file=sys.stderr)
+        sys.exit(1)
     root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
     candidates = [
         os.path.join(root, "assets", "gzh-design", "assets", "preview-template.html"),
@@ -56,7 +61,18 @@ def main():
     tpl = open(tpl_path, encoding="utf-8").read()
 
     title = os.path.splitext(os.path.basename(src))[0]
-    out_html = tpl.replace("{{TITLE}}", html.escape(title)).replace("<!--GZH_CONTENT-->", content)
+    theme_match = re.search(r'data-mr-li-writer-theme=["\']([^"\']+)', content)
+    if not theme_match:
+        print("✗ 正文缺少公众号主题标识，不能生成正式复制预览", file=sys.stderr)
+        sys.exit(1)
+    theme = theme_match.group(1)
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    out_html = (
+        tpl.replace("{{TITLE}}", html.escape(title))
+        .replace("{{THEME}}", html.escape(theme, quote=True))
+        .replace("{{CONTENT_SHA256}}", digest)
+        .replace("<!--GZH_CONTENT-->", content)
+    )
 
     out = args.output if args.output else os.path.splitext(src)[0] + "-preview.html"
     open(out, "w", encoding="utf-8").write(out_html)

@@ -2,6 +2,7 @@
 """Validate platform-native source, title strategy, and optional layout artifacts."""
 
 import argparse
+import hashlib
 import json
 import pathlib
 import re
@@ -11,6 +12,16 @@ import sys
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 WECHAT_PLATFORMS = {"公众号", "wechat", "gzh", "微信", "微信公众号"}
+WECHAT_THEME_ALIASES = {
+    "摸鱼绿": "moyu-green",
+    "红白色系": "red-white",
+    "石墨极简": "graphite-minimal",
+    "石墨极简风": "graphite-minimal",
+    "留白禅意风": "zen-whitespace",
+    "留白禅意风（Zen）": "zen-whitespace",
+    "摸鱼票据风": "moyu-ticket",
+    "橄榄手记": "olive-journal",
+}
 
 
 def first_match(files, predicate):
@@ -78,7 +89,74 @@ def find_bundle_roles(directory, platform, layout=False):
     return roles, needs_layout
 
 
-def validate_bundle(directory, platform, layout=False):
+def normalized_html(text):
+    return text.replace("\r\n", "\n").replace("\r", "\n").strip()
+
+
+def html_digest(text):
+    return hashlib.sha256(normalized_html(text).encode("utf-8")).hexdigest()
+
+
+def normalize_wechat_theme(value):
+    value = str(value or "").strip()
+    if value.lower() in {"auto", "random"} or value == "自动匹配":
+        return ""
+    return WECHAT_THEME_ALIASES.get(value, value)
+
+
+def meta_content(source, name):
+    match = re.search(
+        r'<meta\s+name=["\']%s["\']\s+content=["\']([^"\']*)["\']\s*/?>'
+        % re.escape(name),
+        source,
+        re.I,
+    )
+    return match.group(1).strip() if match else ""
+
+
+def validate_wechat_layout(clean_path, preview_path, expected_theme=""):
+    errors = []
+    clean = clean_path.read_text(encoding="utf-8", errors="replace")
+    preview = preview_path.read_text(encoding="utf-8", errors="replace")
+
+    renderer = re.search(r'data-mr-li-writer-renderer=["\']component-library-v1["\']', clean, re.I)
+    theme_match = re.search(r'data-mr-li-writer-theme=["\']([^"\']+)["\']', clean, re.I)
+    actual_theme = theme_match.group(1).strip() if theme_match else ""
+    if not renderer or not actual_theme:
+        errors.append("公众号正文 HTML 未由完整组件库渲染器生成；禁止只按主题颜色手写简化页面")
+    expected_theme = normalize_wechat_theme(expected_theme)
+    if expected_theme and actual_theme and actual_theme != expected_theme:
+        errors.append("公众号正文 HTML 主题与任务状态不一致：应为 %s，实际为 %s" % (expected_theme, actual_theme))
+
+    if meta_content(preview, "mr-li-writer-template") != "gzh-preview-v2":
+        errors.append("复制预览 HTML 不是受支持的公众号正式预览模板")
+    preview_theme = meta_content(preview, "mr-li-writer-theme")
+    if actual_theme and preview_theme != actual_theme:
+        errors.append("复制预览 HTML 的主题标识与公众号正文 HTML 不一致")
+
+    rich_clipboard = all(
+        marker in preview
+        for marker in ("ClipboardItem", "'text/html'", "'text/plain'", "navigator.clipboard.write([item])")
+    )
+    if not rich_clipboard or "navigator.clipboard.writeText" in preview:
+        errors.append("公众号复制预览必须使用 text/html + text/plain 富文本剪贴板，禁止 writeText 复制 HTML 源码")
+
+    article_match = re.search(
+        r'<article\b[^>]*id=["\']gzh-content["\'][^>]*>(.*?)</article>',
+        preview,
+        re.I | re.S,
+    )
+    declared_digest = meta_content(preview, "mr-li-writer-content-sha256")
+    clean_digest = html_digest(clean)
+    embedded_digest = html_digest(article_match.group(1)) if article_match else ""
+    if not re.fullmatch(r"[a-f0-9]{64}", declared_digest):
+        errors.append("复制预览 HTML 缺少有效的正文一致性摘要")
+    elif declared_digest != clean_digest or embedded_digest != clean_digest:
+        errors.append("复制预览 HTML 内正文与公众号正文 HTML 不一致；必须由同一份已校验正文生成")
+    return errors
+
+
+def validate_bundle(directory, platform, layout=False, task_state=None):
     roles, needs_layout = find_bundle_roles(directory, platform, layout=layout)
     errors = []
     for role, path in roles.items():
@@ -104,6 +182,11 @@ def validate_bundle(directory, platform, layout=False):
             re.I,
         ):
             errors.append("复制预览 HTML 缺少可识别的复制功能")
+    if is_wechat(platform):
+        clean = roles.get("公众号正文 HTML")
+        expected_theme = state_value(task_state or {}, "delivery_style")
+        if clean and preview and clean.stat().st_size and preview.stat().st_size:
+            errors.extend(validate_wechat_layout(clean, preview, expected_theme))
 
     return roles, needs_layout, errors
 
@@ -220,10 +303,12 @@ def main():
     if intake_rc != 0:
         return intake_rc
 
+    state = load_task_state(args.task_state)
     roles, needs_layout, errors = validate_bundle(
         directory,
         args.platform,
         layout=args.layout,
+        task_state=state,
     )
     mode = "排版交付" if needs_layout else "原生内容交付"
     print("%s交付校验（%s）: %s" % (args.platform, mode, directory))

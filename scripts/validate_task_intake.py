@@ -317,11 +317,29 @@ PROMPT_PLATFORM_ALIASES = (
 
 
 def prompt_platform_mention_is_negated(text, start):
-    prefix = text[max(0, start - 12) : start]
-    return bool(re.search(r"(?:不是|不要(?:发|用|选)?|不选|不发|别选|别用|排除|非|not)\s*$", prefix, re.I))
+    prefix = text[max(0, start - 20) : start]
+    return bool(
+        re.search(
+            r"(?:不是|不要|不想|不打算|不能|不许|禁止|拒绝|不选|不发|别选|别用|排除|非|not)(?:.{0,6})$",
+            prefix,
+            re.I,
+        )
+    )
 
 
-def detect_prompt_platform(text):
+def prompt_platform_is_alternative(text, end, alias_pattern):
+    suffix = text[end : end + 24]
+    return bool(re.match(r"\s*(?:还是|或者|或|/|、)\s*(?:%s)" % alias_pattern, suffix, re.I))
+
+
+def detect_prompt_platform_choice(text):
+    """Return an explicitly selected platform and the exact supporting phrase.
+
+    A platform word inside source material, article subject matter, a comparison,
+    or an agent-generated summary is not a user choice. False negatives are safer
+    here: the question card can ask once more, while a false positive silently
+    changes the entire writing and delivery workflow.
+    """
     alias_to_platform = {
         alias: platform
         for platform, aliases in PROMPT_PLATFORM_ALIASES
@@ -329,21 +347,55 @@ def detect_prompt_platform(text):
     }
     aliases = sorted(alias_to_platform, key=len, reverse=True)
     alias_pattern = "|".join(re.escape(alias) for alias in aliases)
-    explicit = re.search(
-        r"(?:发布平台|创作平台|平台)\s*(?:选择|选|是|用|为|：|:)?\s*(%s)" % alias_pattern,
+    field_choice = re.search(
+        r"(?:发布平台|创作平台|目标平台|投稿平台|平台)\s*"
+        r"(?:选择|选|确定为|定为|是|用|使用|为|：|:)?\s*"
+        r"(?P<platform>%s)" % alias_pattern,
         text,
         re.I,
     )
-    if explicit and not prompt_platform_mention_is_negated(text, explicit.start(1)):
-        return alias_to_platform[explicit.group(1)]
+    if field_choice and not prompt_platform_mention_is_negated(text, field_choice.start("platform")):
+        alias = field_choice.group("platform")
+        return alias_to_platform[alias], field_choice.group(0).strip()
 
-    mentioned = []
-    for alias in aliases:
-        match = re.search(re.escape(alias), text, re.I)
-        if match and not prompt_platform_mention_is_negated(text, match.start()):
-            mentioned.append(alias_to_platform[alias])
-    unique = list(dict.fromkeys(mentioned))
-    return unique[0] if len(unique) == 1 else ""
+    leading_choice = re.match(
+        r"\s*(?P<platform>%s)\s*(?:[，,。;；：:]|$)" % alias_pattern,
+        text,
+        re.I,
+    )
+    if leading_choice and not prompt_platform_is_alternative(text, leading_choice.end("platform"), alias_pattern):
+        alias = leading_choice.group("platform")
+        return alias_to_platform[alias], leading_choice.group(0).strip()
+
+    action_patterns = (
+        r"(?:发布|发表|发|投稿|投放|同步|上架|输出)\s*(?:在|到|至|往)?\s*(?P<platform>%s)" % alias_pattern,
+        r"(?:写|改|改写|做|制作|生成|创作)\s*(?:成|为)\s*(?P<platform>%s)" % alias_pattern,
+        r"(?:写|改写|生成|创作|制作|整理|做)\s*(?:成|为)?\s*(?:一篇|一个|一版)?\s*"
+        r"(?P<platform>%s)\s*(?:文章|回答|专栏|笔记|内容|稿件?|推文)" % alias_pattern,
+        r"(?:在|到)\s*(?P<platform>%s)\s*(?:发布|发表|发文|投稿|投放|同步)" % alias_pattern,
+        r"(?:用于|适配)\s*(?P<platform>%s)\s*(?:发布|发文|文章|回答|专栏|笔记)" % alias_pattern,
+    )
+    choices = []
+    for pattern in action_patterns:
+        for match in re.finditer(pattern, text, re.I):
+            start = match.start("platform")
+            end = match.end("platform")
+            if prompt_platform_mention_is_negated(text, start):
+                continue
+            if prompt_platform_is_alternative(text, end, alias_pattern):
+                continue
+            alias = match.group("platform")
+            choices.append((alias_to_platform[alias], match.group(0).strip()))
+    unique_platforms = list(dict.fromkeys(platform for platform, _quote in choices))
+    if len(unique_platforms) == 1:
+        platform = unique_platforms[0]
+        quote = next(quote for candidate, quote in choices if candidate == platform)
+        return platform, quote
+    return "", ""
+
+
+def detect_prompt_platform(text):
+    return detect_prompt_platform_choice(text)[0]
 
 
 def state_from_prompt(prompt):
@@ -353,13 +405,13 @@ def state_from_prompt(prompt):
     confirmed = source == "auto_authorized"
     quote = text.strip() if confirmed else ""
     state = {}
-    platform = detect_prompt_platform(text)
+    platform, platform_quote = detect_prompt_platform_choice(text)
     if platform:
         state["platform"] = {
             "value": platform,
             "confirmed": True,
             "source": "user",
-            "user_quote": platform,
+            "user_quote": platform_quote,
         }
     for key, label in REQUIRED_FIELDS:
         state.setdefault(
