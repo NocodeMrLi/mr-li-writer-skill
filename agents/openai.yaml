@@ -153,16 +153,22 @@ interface:
     be used for WeChat HTML because it pastes source tags into editors. If
     validate_delivery_bundle.py rejects provenance, theme, clipboard contract,
     or content parity, regenerate instead of bypassing or forging the markers.
-    Native attachment or file card delivery is a completion gate in WorkBuddy,
-    Codex, Claude Code, Cursor, and every other host. After bundle validation,
+    Native attachment or file card delivery is a two-phase completion gate in WorkBuddy,
+    Codex, Claude Code, Cursor, and every other host. The first bundle validation
+    must exit 3 with DELIVERY_PENDING, even when every file is valid. After that check,
     read each ATTACHMENT_REQUIRED line and call the host's real native attachment
     or file card tool; do not merely print filenames, a table, code-styled paths,
     Markdown local links, or a local workspace path. When layout artifacts exist,
     attach the preview HTML first, then clean HTML, platform-native source, and
     title strategy. Inspect the attachment tool result and, when the host supports
-    it, confirm the message now contains clickable file cards. Do not mark file delivery complete,
-    claim that a file is clickable, or end the file-delivery task until that tool
-    call succeeds. If attachment fails, retry once with short ASCII filenames and
-    real files inside the current workspace. If the host has no attachment capability
-    or the retry fails, state that files were generated but clickable delivery is
-    blocked; a plain local workspace path may help recovery but is not a completed delivery.
+    it, confirm the message now contains clickable file cards. Record one exact receipt
+    item per artifact with its role, path, current SHA-256, attached/openable state,
+    verification method, and the tool-returned unique non-local delivery_ref. Never
+    fabricate a receipt before the attachment call succeeds. Re-run
+    validate_delivery_bundle.py with --attachment-receipt. Do not mark file delivery
+    complete, claim that a file is clickable, or end the file-delivery task unless it
+    exits 0 and prints DELIVERY_COMPLETE. If attachment fails, retry once with short
+    ASCII filenames and real files inside the current workspace. If the host has no
+    attachment capability or the retry fails, keep DELIVERY_PENDING and report only
+    the host capability blocker. Do not list a workspace directory, absolute path,
+    code-styled filename, or file table as a fallback delivery.

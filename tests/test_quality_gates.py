@@ -230,7 +230,8 @@ class FormalDeliveryContentGateTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("DELIVERY_PENDING", result.stdout)
         self.assertIn("开头疑似", result.stdout)
 
     def test_professional_delivery_requires_verifiable_sources(self):

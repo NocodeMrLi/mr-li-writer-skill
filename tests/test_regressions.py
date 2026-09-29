@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import html
 import importlib.util
 import io
@@ -1142,7 +1143,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+            self.assertEqual(complete.returncode, 3, complete.stdout + complete.stderr)
+            self.assertIn("DELIVERY_PENDING", complete.stdout)
 
     def test_wechat_delivery_rejects_generic_theme_and_plaintext_html_copy(self):
         """Regression: a color-only page must not pass as a rich WeChat theme bundle."""
@@ -1249,10 +1251,152 @@ class DeliveryProtocolTests(unittest.TestCase):
         self.assertIn("原生附件", text)
         self.assertNotIn("`[用途名](绝对路径) — 一句话用途`", text)
 
+    def test_delivery_bundle_stays_pending_without_clickable_attachment_receipt(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            state = self.write_task_state(
+                delivery,
+                platform={"value": "知乎", "confirmed": True, "source": "user", "user_quote": "知乎"},
+                delivery_style={"value": "回答", "confirmed": True, "source": "user", "user_quote": "回答"},
+            )
+            (delivery / "title-strategy.md").write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            (delivery / "article-source.md").write_text("# 正文\n\n内容。", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, str(validator), str(delivery), "--platform", "知乎", "--task-state", str(state)],
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+            self.assertIn("DELIVERY_PENDING", result.stdout)
+            self.assertIn("ATTACHMENT_REQUIRED", result.stdout)
+            self.assertNotIn("[通过]", result.stdout)
+            self.assertNotIn("DELIVERY_COMPLETE", result.stdout)
+
+    def test_delivery_bundle_completes_only_with_exact_openable_attachment_receipt(self):
+        validator = ROOT / "scripts/validate_delivery_bundle.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            delivery = pathlib.Path(tmp)
+            state = self.write_task_state(
+                delivery,
+                platform={"value": "知乎", "confirmed": True, "source": "user", "user_quote": "知乎"},
+                delivery_style={"value": "回答", "confirmed": True, "source": "user", "user_quote": "回答"},
+            )
+            title = delivery / "title-strategy.md"
+            source = delivery / "article-source.md"
+            title.write_text(
+                "# 标题策略\n\n## 主标题\n测试标题\n\n## 备选标题\n备选一、备选二。",
+                encoding="utf-8",
+            )
+            source.write_text("# 正文\n\n内容。", encoding="utf-8")
+
+            def artifact(role, path, ref):
+                return {
+                    "role": role,
+                    "path": str(path.resolve()),
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "status": "attached",
+                    "openable": True,
+                    "verification": "tool_success",
+                    "delivery_ref": ref,
+                }
+
+            receipt = delivery / "attachment-receipt.json"
+            receipt.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "host": "workbuddy",
+                        "artifacts": [
+                            artifact("平台原生正文", source, "workbuddy-card:article-source"),
+                            artifact("标题策略 Markdown", title, "workbuddy-card:title-strategy"),
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            complete = subprocess.run(
+                [
+                    sys.executable,
+                    str(validator),
+                    str(delivery),
+                    "--platform",
+                    "知乎",
+                    "--task-state",
+                    str(state),
+                    "--attachment-receipt",
+                    str(receipt),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+            self.assertIn("DELIVERY_COMPLETE", complete.stdout)
+
+            valid_receipt = json.loads(receipt.read_text(encoding="utf-8"))
+            broken_cases = []
+
+            path_only = json.loads(json.dumps(valid_receipt, ensure_ascii=False))
+            path_only["artifacts"][0]["delivery_ref"] = str(source.resolve())
+            broken_cases.append(("path-only", path_only, "不能是本地路径或文件名"))
+
+            missing_card = json.loads(json.dumps(valid_receipt, ensure_ascii=False))
+            missing_card["artifacts"] = missing_card["artifacts"][:-1]
+            broken_cases.append(("missing-card", missing_card, "逐一覆盖全部交付物"))
+
+            stale_file = json.loads(json.dumps(valid_receipt, ensure_ascii=False))
+            stale_file["artifacts"][0]["sha256"] = "0" * 64
+            broken_cases.append(("stale-file", stale_file, "SHA-256 与当前文件不一致"))
+
+            not_openable = json.loads(json.dumps(valid_receipt, ensure_ascii=False))
+            not_openable["artifacts"][0]["openable"] = False
+            broken_cases.append(("not-openable", not_openable, "openable=true"))
+
+            duplicate_card = json.loads(json.dumps(valid_receipt, ensure_ascii=False))
+            duplicate_card["artifacts"][1]["delivery_ref"] = duplicate_card["artifacts"][0]["delivery_ref"]
+            broken_cases.append(("duplicate-card", duplicate_card, "逐文件唯一"))
+
+            for case_name, broken, expected_error in broken_cases:
+                with self.subTest(case=case_name):
+                    receipt.write_text(json.dumps(broken, ensure_ascii=False), encoding="utf-8")
+                    rejected = subprocess.run(
+                        [
+                            sys.executable,
+                            str(validator),
+                            str(delivery),
+                            "--platform",
+                            "知乎",
+                            "--task-state",
+                            str(state),
+                            "--attachment-receipt",
+                            str(receipt),
+                        ],
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertIn(expected_error, rejected.stdout)
+
+    def test_delivery_rules_forbid_path_only_fallback_even_when_host_is_blocked(self):
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        protocol = (ROOT / "references/delivery-protocol.md").read_text(encoding="utf-8")
+        self.assertNotIn("可以给出纯文本路径帮助找回文件", skill)
+        self.assertNotIn("可以纯文本列出真实绝对路径", protocol)
+        for text in (skill, protocol):
+            self.assertIn("DELIVERY_PENDING", text)
+            self.assertIn("DELIVERY_COMPLETE", text)
+            self.assertIn("附件回执", text)
+
     def test_clickable_delivery_is_a_hard_completion_gate_in_every_agent_entrypoint(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         protocol = (ROOT / "references/delivery-protocol.md").read_text(encoding="utf-8")
-        agent = (ROOT / "agents/openai.yaml").read_text(encoding="utf-8").lower()
+        agent = " ".join((ROOT / "agents/openai.yaml").read_text(encoding="utf-8").lower().split())
 
         for text in (skill, protocol):
             self.assertIn("可点击交付硬门禁", text)
@@ -1264,8 +1408,11 @@ class DeliveryProtocolTests(unittest.TestCase):
             "native attachment or file card",
             "preview html first",
             "do not mark file delivery complete",
-            "local workspace path",
             "attachment tool result",
+            "delivery_pending",
+            "delivery_complete",
+            "--attachment-receipt",
+            "do not list a workspace directory",
         ):
             self.assertIn(marker, agent)
 
@@ -1318,8 +1465,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
-            self.assertIn("文件完整性校验通过不等于最终交付完成", complete.stdout)
+            self.assertEqual(complete.returncode, 3, complete.stdout + complete.stderr)
+            self.assertIn("DELIVERY_PENDING", complete.stdout)
             required = [
                 line for line in complete.stdout.splitlines()
                 if line.startswith("ATTACHMENT_REQUIRED\t")
@@ -1388,7 +1535,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                     capture_output=True,
                     text=True,
                 )
-                self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+                self.assertEqual(checked.returncode, 3, checked.stdout + checked.stderr)
+                self.assertIn("DELIVERY_PENDING", checked.stdout)
 
     def test_wechat_delivery_rejects_preview_content_drift(self):
         validator = ROOT / "scripts/validate_delivery_bundle.py"
@@ -1839,7 +1987,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+            self.assertIn("DELIVERY_PENDING", result.stdout)
             self.assertIn("平台原生正文", result.stdout)
             self.assertNotIn("跳过", result.stdout)
 
@@ -1874,7 +2023,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+            self.assertEqual(complete.returncode, 3, complete.stdout + complete.stderr)
+            self.assertIn("DELIVERY_PENDING", complete.stdout)
 
     def test_xiaohongshu_bundle_accepts_plain_text_native_source(self):
         validator = ROOT / "scripts/validate_delivery_bundle.py"
@@ -1895,7 +2045,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+            self.assertIn("DELIVERY_PENDING", result.stdout)
             self.assertIn("平台原生正文", result.stdout)
             self.assertNotIn("跳过", result.stdout)
 
@@ -1932,7 +2083,8 @@ class DeliveryProtocolTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(complete.returncode, 0, complete.stdout + complete.stderr)
+            self.assertEqual(complete.returncode, 3, complete.stdout + complete.stderr)
+            self.assertIn("DELIVERY_PENDING", complete.stdout)
             for role in ("标题策略 Markdown", "平台原生正文", "平台排版 HTML", "复制预览 HTML"):
                 self.assertIn(role, complete.stdout)
 

@@ -11,6 +11,8 @@ import sys
 
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+ATTACHMENT_RECEIPT_SCHEMA_VERSION = 1
+DELIVERY_PENDING_EXIT_CODE = 3
 WECHAT_PLATFORMS = {"公众号", "wechat", "gzh", "微信", "微信公众号"}
 WECHAT_THEME_ALIASES = {
     "摸鱼绿": "moyu-green",
@@ -209,12 +211,120 @@ def attachment_order(roles):
     return [(role, roles[role]) for role in priority if roles.get(role)]
 
 
+def file_sha256(path):
+    """Return the SHA-256 digest for one delivery artifact."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def is_local_delivery_ref(value, artifact_path):
+    """Reject workspace paths and filenames masquerading as attachment references."""
+    reference = str(value or "").strip()
+    if not reference:
+        return True
+    lowered = reference.lower()
+    if lowered.startswith(("file:", "/", "\\", "./", "../", "~/")):
+        return True
+    if re.match(r"^[a-zA-Z]:[\\/]", reference):
+        return True
+    if reference in {artifact_path.name, str(artifact_path), str(artifact_path.resolve())}:
+        return True
+    if re.match(r"^\[[^\]]+\]\((?:file:|/|\\|[a-zA-Z]:[\\/])", reference):
+        return True
+    return False
+
+
+def validate_attachment_receipt(receipt_path, ordered_artifacts):
+    """Validate host attachment evidence against every required artifact in order."""
+    errors = []
+    try:
+        receipt = json.loads(pathlib.Path(receipt_path).read_text(encoding="utf-8"))
+    except OSError as exc:
+        return {}, ["无法读取附件回执: %s" % exc]
+    except (ValueError, TypeError) as exc:
+        return {}, ["附件回执不是有效 JSON: %s" % exc]
+
+    if not isinstance(receipt, dict):
+        return {}, ["附件回执顶层必须是 JSON 对象"]
+    if receipt.get("schema_version") != ATTACHMENT_RECEIPT_SCHEMA_VERSION:
+        errors.append("附件回执 schema_version 必须为 %d" % ATTACHMENT_RECEIPT_SCHEMA_VERSION)
+    host = str(receipt.get("host", "")).strip()
+    if not host:
+        errors.append("附件回执缺少 host")
+    received = receipt.get("artifacts")
+    if not isinstance(received, list):
+        return receipt, errors + ["附件回执 artifacts 必须是数组"]
+    if len(received) != len(ordered_artifacts):
+        errors.append("附件回执必须逐一覆盖全部交付物：应有 %d 个，实际 %d 个" % (len(ordered_artifacts), len(received)))
+
+    seen_refs = set()
+    for index, (role, path) in enumerate(ordered_artifacts):
+        if index >= len(received):
+            break
+        item = received[index]
+        if not isinstance(item, dict):
+            errors.append("附件回执第 %d 项必须是对象" % (index + 1))
+            continue
+        if item.get("role") != role:
+            errors.append("附件回执第 %d 项顺序或角色不一致：应为 %s" % (index + 1, role))
+
+        received_path = str(item.get("path", "")).strip()
+        if not received_path:
+            errors.append("附件回执第 %d 项缺少 path" % (index + 1))
+        else:
+            try:
+                if pathlib.Path(received_path).expanduser().resolve() != path.resolve():
+                    errors.append("附件回执第 %d 项 path 与实际交付物不一致" % (index + 1))
+            except (OSError, RuntimeError, ValueError):
+                errors.append("附件回执第 %d 项 path 无法解析" % (index + 1))
+
+        if item.get("sha256") != file_sha256(path):
+            errors.append("附件回执第 %d 项 SHA-256 与当前文件不一致" % (index + 1))
+        if item.get("status") != "attached":
+            errors.append("附件回执第 %d 项 status 必须为 attached" % (index + 1))
+        if item.get("openable") is not True:
+            errors.append("附件回执第 %d 项必须确认 openable=true" % (index + 1))
+        if item.get("verification") not in {"tool_success", "ui_readback"}:
+            errors.append("附件回执第 %d 项 verification 必须为 tool_success 或 ui_readback" % (index + 1))
+
+        delivery_ref = str(item.get("delivery_ref", "")).strip()
+        if is_local_delivery_ref(delivery_ref, path):
+            errors.append("附件回执第 %d 项 delivery_ref 不能是本地路径或文件名" % (index + 1))
+        elif delivery_ref in seen_refs:
+            errors.append("附件回执中的 delivery_ref 必须逐文件唯一，不能用一个路径或卡片冒充全部交付物")
+        else:
+            seen_refs.add(delivery_ref)
+    return receipt, errors
+
+
+def emit_subcheck_output(result):
+    """Keep warnings/errors while avoiding a misleading top-level '[通过]' state."""
+    if result.stdout:
+        lines = []
+        for line in result.stdout.splitlines():
+            if line.startswith("[通过]"):
+                line = "[子检查就绪]" + line[len("[通过]"):]
+            lines.append(line)
+        print("\n".join(lines))
+    if result.stderr:
+        print(result.stderr, end="" if result.stderr.endswith("\n") else "\n", file=sys.stderr)
+
+
 def require_task_state(task_state, platform):
     if not task_state:
         print("[阻断] 交付校验前必须传入 --task-state，并通过 scripts/validate_task_intake.py 确认必问项。")
         return 2
     checker = SCRIPT_DIR / "validate_task_intake.py"
-    return subprocess.call([sys.executable, str(checker), task_state, "--phase", "delivery", "--platform", platform])
+    result = subprocess.run(
+        [sys.executable, str(checker), task_state, "--phase", "delivery", "--platform", platform],
+        capture_output=True,
+        text=True,
+    )
+    emit_subcheck_output(result)
+    return result.returncode
 
 
 def state_value(state, key):
@@ -275,10 +385,7 @@ def validate_content_quality(source, platform, task_state):
         command.append("--require-sources")
 
     result = subprocess.run(command, capture_output=True, text=True)
-    if result.stdout:
-        print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
-    if result.stderr:
-        print(result.stderr, end="" if result.stderr.endswith("\n") else "\n", file=sys.stderr)
+    emit_subcheck_output(result)
     return result.returncode
 
 
@@ -292,6 +399,11 @@ def main():
         help="本次包含排版交付；除公众号外，启用后要求排版 HTML 和复制预览 HTML",
     )
     parser.add_argument("--task-state", default="", help="任务状态 JSON；交付前必须通过必问项/恢复任务门禁")
+    parser.add_argument(
+        "--attachment-receipt",
+        default="",
+        help="宿主附件工具成功后形成的 JSON 回执；缺少回执时交付保持 DELIVERY_PENDING",
+    )
     args = parser.parse_args()
 
     directory = pathlib.Path(args.directory).expanduser().resolve()
@@ -325,14 +437,28 @@ def main():
         print("[错误] 正文质量门禁未通过；请修复阻断项后重新校验。")
         return 1
 
-    if needs_layout:
-        print("[通过] 标题、平台原生正文、排版 HTML 与复制预览均真实存在且非空")
-    else:
-        print("[通过] 标题策略与平台原生正文真实存在且非空；本次不机械要求 HTML")
-    print("[待执行] 必须调用宿主原生附件/文件卡片能力附加以下文件；预览优先，不能用工作区路径代替：")
-    for index, (role, path) in enumerate(attachment_order(roles), start=1):
-        print("ATTACHMENT_REQUIRED\t%d\t%s\t%s" % (index, role, path.resolve()))
-    print("[注意] 文件完整性校验通过不等于最终交付完成；只有附件工具返回成功后才能结束任务。")
+    ordered_artifacts = attachment_order(roles)
+    if not args.attachment_receipt:
+        if needs_layout:
+            print("[文件检查就绪] 标题、平台原生正文、排版 HTML 与复制预览均真实存在且非空")
+        else:
+            print("[文件检查就绪] 标题策略与平台原生正文真实存在且非空；本次不机械要求 HTML")
+        print("[待执行] 必须调用宿主原生附件/文件卡片能力附加以下文件；预览优先，不能用工作区路径代替：")
+        for index, (role, path) in enumerate(ordered_artifacts, start=1):
+            print("ATTACHMENT_REQUIRED\t%d\t%s\t%s" % (index, role, path.resolve()))
+        print("ATTACHMENT_RECEIPT_REQUIRED\tschema_version=%d\t逐文件记录宿主工具返回的唯一 delivery_ref" % ATTACHMENT_RECEIPT_SCHEMA_VERSION)
+        print("DELIVERY_PENDING\t文件检查已完成；可点击附件尚未形成，不得结束任务或声称已完成/已交付")
+        return DELIVERY_PENDING_EXIT_CODE
+
+    receipt, receipt_errors = validate_attachment_receipt(args.attachment_receipt, ordered_artifacts)
+    for error in receipt_errors:
+        print("[错误] %s" % error)
+    if receipt_errors:
+        print("DELIVERY_PENDING\t附件回执未通过；不得用路径、文件名或文件清单代替可点击附件")
+        return 1
+
+    print("DELIVERY_COMPLETE\thost=%s\tartifacts=%d" % (receipt.get("host"), len(ordered_artifacts)))
+    print("[交付完成] 全部交付物均有与当前文件一致、可打开且非本地路径的宿主附件回执")
     return 0
 
 
